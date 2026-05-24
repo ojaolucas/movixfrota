@@ -1,0 +1,144 @@
+/* MovixFrota - Design System CSS Variables */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+
+:root {
+    /* Fonts */
+    --font-primary: 'Inter', sans-serif;
+    --font-heading: 'Outfit', sans-serif;
+
+    /* Theme-independent Constants */
+    --sidebar-width: 260px;
+    --sidebar-collapsed-width: 78px;
+    --header-height: 70px;
+    --border-radius-xs: 4px;
+    --border-radius-sm: 8px;
+    --border-radius-md: 12px;
+    --border-radius-lg: 16px;
+    --border-radius-xl: 24px;
+    --transition-fast: 0.2s ease;
+    --transition-normal: 0.3s ease;
+    --transition-slow: 0.5s ease;
+
+    /* Colors - Brand Palette */
+    --primary-h: 220;
+    --primary-s: 100%;
+    --primary-l: 50%; /* #0055ff */
+    
+    --success-h: 142;
+    --success-s: 70%;
+    --success-l: 45%; /* #22c55e */
+    
+    --warning-h: 38;
+    --warning-s: 92%;
+    --warning-l: 50%; /* #f59e0b */
+    
+    --danger-h: 350;
+    --danger-s: 89%;
+    --danger-l: 60%; /* #ef4444 */
+    
+    --info-h: 199;
+    --info-s: 89%;
+    --info-l: 48%; /* #0ea5e9 */
+}
+
+/* Light Theme Variables */
+body.theme-light {
+    --bg-main: #f8fafc;
+    --bg-surface: #ffffff;
+    --bg-surface-hover: #f1f5f9;
+    --bg-card: rgba(255, 255, 255, 0.8);
+    --bg-sidebar: #0f172a; /* Keep dark sidebar for ERP contrast */
+    --bg-sidebar-hover: #1e293b;
+    --bg-header: rgba(255, 255, 255, 0.8);
+    --bg-backdrop: rgba(15, 23, 42, 0.3);
+
+    --border-color: #e2e8f0;
+    --border-light: #f1f5f9;
+    
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --text-inverse: #ffffff;
+    
+    --primary: hsl(var(--primary-h), var(--primary-s), var(--primary-l));
+    --primary-hover: hsl(var(--primary-h), var(--primary-s), calc(var(--primary-l) - 8%));
+    --primary-light: hsl(var(--primary-h), var(--primary-s), 95%);
+    
+    --success: hsl(var(--success-h), var(--success-s), var(--success-l));
+    --success-light: hsl(var(--success-h), var(--success-s), 94%);
+    
+    --warning: hsl(var(--warning-h), var(--warning-s), var(--warning-l));
+    --warning-light: hsl(var(--warning-h), var(--warning-s), 94%);
+    
+    --danger: hsl(var(--danger-h), var(--danger-s), var(--danger-l));
+    --danger-light: hsl(var(--danger-h), var(--danger-s), 94%);
+    
+    --info: hsl(var(--info-h), var(--info-s), var(--info-l));
+    --info-light: hsl(var(--info-h), var(--info-s), 94%);
+
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+    --shadow-lg: 0 10px 15px -3px rgba(15,23,42,0.05), 0 4px 6px -2px rgba(15,23,42,0.03);
+    --shadow-card: 0 10px 25px -5px rgba(0,0,0,0.02), 0 8px 10px -6px rgba(0,0,0,0.02);
+    --glass-blur: 8px;
+    --glass-border: rgba(255, 255, 255, 0.4);
+    --glass-bg: rgba(255, 255, 255, 0.7);
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, #0055ff, #0099ff);
+    --gradient-success: linear-gradient(135deg, #22c55e, #10b981);
+    --gradient-danger: linear-gradient(135deg, #ef4444, #f43f5e);
+    --gradient-warning: linear-gradient(135deg, #f59e0b, #d97706);
+    --gradient-info: linear-gradient(135deg, #0ea5e9, #2563eb);
+    --gradient-card: linear-gradient(to bottom right, #ffffff, #f8fafc);
+}
+
+/* Dark Theme Variables */
+body.theme-dark {
+    --bg-main: #0b0f19;
+    --bg-surface: #121826;
+    --bg-surface-hover: #1b2336;
+    --bg-card: rgba(18, 24, 38, 0.8);
+    --bg-sidebar: #090d16;
+    --bg-sidebar-hover: #121826;
+    --bg-header: rgba(18, 24, 38, 0.8);
+    --bg-backdrop: rgba(3, 7, 18, 0.6);
+
+    --border-color: #1f293d;
+    --border-light: #161f30;
+    
+    --text-main: #f3f4f6;
+    --text-muted: #9ca3af;
+    --text-inverse: #0b0f19;
+    
+    --primary: hsl(var(--primary-h), var(--primary-s), 55%);
+    --primary-hover: hsl(var(--primary-h), var(--primary-s), 63%);
+    --primary-light: rgba(0, 85, 255, 0.15);
+    
+    --success: hsl(var(--success-h), var(--success-s), 50%);
+    --success-light: rgba(34, 197, 94, 0.15);
+    
+    --warning: hsl(var(--warning-h), var(--warning-s), 55%);
+    --warning-light: rgba(245, 158, 11, 0.15);
+    
+    --danger: hsl(var(--danger-h), var(--danger-s), 65%);
+    --danger-light: rgba(239, 68, 68, 0.15);
+    
+    --info: hsl(var(--info-h), var(--info-s), 55%);
+    --info-light: rgba(14, 165, 233, 0.15);
+
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.5);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.4), 0 2px 4px -1px rgba(0,0,0,0.3);
+    --shadow-lg: 0 20px 25px -5px rgba(0,0,0,0.5), 0 10px 10px -5px rgba(0,0,0,0.4);
+    --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.3);
+    --glass-blur: 12px;
+    --glass-border: rgba(255, 255, 255, 0.05);
+    --glass-bg: rgba(18, 24, 38, 0.7);
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, #3b82f6, #60a5fa);
+    --gradient-success: linear-gradient(135deg, #10b981, #34d399);
+    --gradient-danger: linear-gradient(135deg, #f43f5e, #fb7185);
+    --gradient-warning: linear-gradient(135deg, #f59e0b, #fbbf24);
+    --gradient-info: linear-gradient(135deg, #38bdf8, #60a5fa);
+    --gradient-card: linear-gradient(to bottom right, #121826, #162032);
+}

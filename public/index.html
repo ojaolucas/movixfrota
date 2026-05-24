@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MovixFrota | Gestão Inteligente de Frotas</title>
+    <!-- Metas SEO -->
+    <meta name="description" content="MovixFrota - O sistema ERP definitivo para gestão, controle financeiro, manutenção preventiva, consumo de combustível e auditoria completa da frota corporativa.">
+    <meta name="theme-color" content="#0055ff">
+    <meta name="author" content="Antigravity Enterprise">
+    
+    <!-- CSS Style sheets -->
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/modules.css">
+    
+    <!-- Icons (FontAwesome & Lucide support) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="theme-light not-logged-in">
+
+    <!-- REAL-TIME SECURE LOGIN CARD OVERLAY -->
+    <div class="login-wrapper" id="login-container">
+        <div class="login-card glass-panel">
+            <div class="login-header">
+                <div class="login-logo">M</div>
+                <h2>MovixFrota</h2>
+                <p>ERP de Gestão Inteligente de Frotas</p>
+            </div>
+            
+            <form id="form-login" onsubmit="return false;" class="login-form">
+                <div class="form-login-group">
+                    <label for="login-identifier"><i class="fa-solid fa-id-card"></i> CPF ou E-mail</label>
+                    <input type="text" id="login-identifier" class="form-login-control" placeholder="Digite seu CPF ou E-mail corporativo" required autocomplete="username">
+                </div>
+                <div class="form-login-group" style="margin-top: 16px;">
+                    <label for="login-password"><i class="fa-solid fa-lock"></i> Senha de Acesso</label>
+                    <input type="password" id="login-password" class="form-login-control" placeholder="Digite sua senha de acesso" required autocomplete="current-password">
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-login" id="btn-login-submit" style="margin-top: 24px; width: 100%; justify-content: center; height: 46px;">
+                    <i class="fa-solid fa-right-to-bracket"></i> Acessar Sistema
+                </button>
+            </form>
+            
+            <div class="login-footer">
+                <span>Contate o administrador para obter suas credenciais corporativas.</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- SIDEBAR NAVIGATION MENU -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <div class="sidebar-logo">M</div>
+            <span class="sidebar-name">MovixFrota</span>
+        </div>
+        
+        <ul class="sidebar-menu">
+            <li class="sidebar-item active">
+                <a class="sidebar-link" data-route="dashboard">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" data-route="veiculos">
+                    <i class="fa-solid fa-truck"></i>
+                    <span>Veículos</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" data-route="motoristas">
+                    <i class="fa-solid fa-id-card-clip"></i>
+                    <span>Motoristas</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" data-route="documentos">
+                    <i class="fa-solid fa-folder-open"></i>
+                    <span>Documentos</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" data-route="abastecimentos">
+                    <i class="fa-solid fa-gas-pump"></i>
+                    <span>Abastecimentos</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" data-route="manutencoes">
+                    <i class="fa-solid fa-screwdriver-wrench"></i>
+                    <span>Manutenções</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" data-route="pneus">
+                    <i class="fa-solid fa-ring"></i>
+                    <span>Pneus</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" data-route="oleo">
+                    <i class="fa-solid fa-oil-can"></i>
+                    <span>Troca de Óleo</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" data-route="viagens">
+                    <i class="fa-solid fa-route"></i>
+                    <span>Viagens</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" data-route="relatorios">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                    <span>Relatórios</span>
+                </a>
+            </li>
+            <li class="sidebar-item" id="sidebar-usuarios-item" style="display: none;">
+                <a class="sidebar-link" data-route="usuarios">
+                    <i class="fa-solid fa-users-gear"></i>
+                    <span>Usuários</span>
+                </a>
+            </li>
+            <li class="sidebar-item">
+                <a class="sidebar-link" data-route="auditoria">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <span>Auditoria & Logs</span>
+                </a>
+            </li>
+        </ul>
+        
+        <!-- Sidebar profile switches (simulates access levels in ERP) -->
+        <div class="sidebar-footer" id="sidebar-user-footer">
+            <!-- Loaded dynamically in app.js -->
+        </div>
+    </nav>
+
+    <!-- MAIN FRAME CONTAINER -->
+    <div class="app-container">
+        
+        <!-- HEADER PANEL -->
+        <header class="header">
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <button class="toggle-sidebar-btn" id="sidebar-toggle" aria-label="Toggle Sidebar Menu">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                
+                <!-- Smart Global Search -->
+                <div class="header-search">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" class="search-input" id="global-search" placeholder="Busca global inteligente..." autocomplete="off">
+                    
+                    <!-- Search dropdown results -->
+                    <div class="search-results-dropdown" id="search-results-dropdown">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <!-- User Active Role Badge -->
+                <div class="role-badge admin" id="header-role-badge">
+                    <i class="fa-solid fa-user-shield"></i>
+                    <span id="header-role-label">Administrador</span>
+                </div>
+                
+                <!-- Dark / Light Theme Toggle Switch -->
+                <button class="theme-toggle-btn" id="theme-toggle" title="Alternar Modo Escuro/Claro">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+                
+                <!-- Notification Bell Widget -->
+                <div class="notification-bell-container">
+                    <button class="bell-btn" id="bell-toggle" title="Notificações e Alertas">
+                        <i class="fa-solid fa-bell"></i>
+                        <span class="bell-badge" id="bell-badge"></span>
+                    </button>
+                    
+                    <!-- Notifications Dropdown Box -->
+                    <div class="notifications-panel" id="notifications-panel">
+                        <div class="notifications-header">
+                            <h3>Alertas da Frota</h3>
+                            <button class="mark-read-btn" id="mark-all-read">Marcar como lidas</button>
+                        </div>
+                        <ul class="notifications-list" id="notifications-list">
+                            <!-- Injected dynamically -->
+                        </ul>
+                        <div class="notifications-footer">
+                            <a href="#dashboard" class="all-notifications-link" id="view-all-alerts">Ver todos no Dashboard</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- User Account Info -->
+                <div class="user-avatar-container">
+                    <img class="user-avatar-img" id="header-avatar" src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&auto=format&fit=crop&q=60" alt="Avatar Usuário">
+                    <div class="user-meta">
+                        <span class="user-display-name" id="header-user-name">Carlos Silveira</span>
+                        <span class="user-display-role" id="header-user-role">Administrador</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- DYNAMIC PAGE BODY CONTAINER -->
+        <main class="content-wrapper" id="view-content-wrapper">
+            <!-- View content is injected here by router modules -->
+        </main>
+        
+    </div>
+
+    <!-- GLOBAL DYNAMIC REUSABLE FORM MODAL -->
+    <div class="modal-overlay" id="global-modal">
+        <div class="modal-container" id="global-modal-container">
+            <div class="modal-header">
+                <h3 id="modal-title">Título do Formulário</h3>
+                <button class="close-modal-btn" id="close-modal-btn">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="modal-body-content">
+                <!-- Form fields loaded dynamically -->
+            </div>
+            <div class="modal-footer" id="modal-footer-actions">
+                <!-- Dynamic actions buttons -->
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST POPUP NOTIFICATION SYSTEM -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- THIRD-PARTY LIBRARIES (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- MOVIXFROTA SCRIPTS -->
+    <script src="js/store.js"></script>
+    <script src="js/router.js"></script>
+    
+    <!-- Page Modules Inclusions -->
+    <script src="js/modules/dashboard.js"></script>
+    <script src="js/modules/veiculos.js"></script>
+    <script src="js/modules/motoristas.js"></script>
+    <script src="js/modules/documentos.js"></script>
+    <script src="js/modules/abastecimentos.js"></script>
+    <script src="js/modules/manutencoes.js"></script>
+    <script src="js/modules/pneus.js"></script>
+    <script src="js/modules/oleo.js"></script>
+    <script src="js/modules/viagens.js"></script>
+    <script src="js/modules/relatorios.js"></script>
+    <script src="js/modules/usuarios.js"></script>
+    <script src="js/modules/auditoria.js"></script>
+    
+    <!-- Central Control Entry App -->
+    <script src="js/app.js"></script>
+</body>
+</html>

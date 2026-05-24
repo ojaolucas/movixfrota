@@ -1,0 +1,732 @@
+{
+  "usuarios": [
+    {
+      "id": "USR-001",
+      "nome": "Carlos Silveira",
+      "cpf": "123.456.789-00",
+      "email": "carlos.admin@movixfrota.com.br",
+      "cargo": "Administrador de Frota",
+      "perfil": "Administrador",
+      "status": "ativo",
+      "foto": "/img/avatar-default.png",
+      "senhaHash": "$2a$10$io7xoEcVbOlfOsHemNUXaeTK5rTJt3KJqR2MHKspx5cVfrnpHvsgG",
+      "dataCadastro": "2024-01-01"
+    },
+    {
+      "id": "USR-002",
+      "nome": "Renata Souza",
+      "cpf": "234.567.890-11",
+      "email": "renata.gestora@movixfrota.com.br",
+      "cargo": "Gerente Operacional",
+      "perfil": "Gestor",
+      "status": "ativo",
+      "foto": "/img/avatar-default.png",
+      "senhaHash": "$2a$10$JY44EFPgookbCedt7Bc/KuVGkUV8lAGNNHbn3ThO9Ds2zJ23qnWGu",
+      "dataCadastro": "2024-01-01"
+    },
+    {
+      "id": "USR-003",
+      "nome": "Marcos Lima",
+      "cpf": "345.678.901-22",
+      "email": "marcos.op@movixfrota.com.br",
+      "cargo": "Operador de Pátio",
+      "perfil": "Operacional",
+      "status": "ativo",
+      "foto": "/img/avatar-default.png",
+      "senhaHash": "$2a$10$ID8hkBJO0wRhaT7egun8f.KWsj9BRtmGrcGS/FG3j6GfgK8fijlS2",
+      "dataCadastro": "2024-01-01"
+    },
+    {
+      "id": "USR-004",
+      "nome": "Juliana Vieira",
+      "cpf": "456.789.012-33",
+      "email": "juliana.view@movixfrota.com.br",
+      "cargo": "Auditora Financeira",
+      "perfil": "Visualizador",
+      "status": "ativo",
+      "foto": "/img/avatar-default.png",
+      "senhaHash": "$2a$10$9E7pxZOkP8bYjeLCUsQuvOLoe4fRvnwjr6KyQWjurdXDaPduTfHj2",
+      "dataCadastro": "2024-01-01"
+    }
+  ],
+  "veiculos": [
+    {
+      "id": "V-1",
+      "marca": "Scania",
+      "modelo": "R 450",
+      "ano": 2021,
+      "cor": "Azul Metálico",
+      "tipo": "Caminhão",
+      "renavam": "98765432101",
+      "chassi": "9BWZZZ99Z99999901",
+      "placa": "ABC-1234",
+      "combustivel": "Diesel",
+      "kmAtual": 145000,
+      "dataAquisicao": "2021-03-10",
+      "status": "disponivel",
+      "observacoes": "Operação interestadual.",
+      "historicoKM": [
+        {
+          "data": "2021-03-10",
+          "km": 0
+        },
+        {
+          "data": "2025-05-01",
+          "km": 144000
+        }
+      ]
+    },
+    {
+      "id": "V-2",
+      "marca": "Ford",
+      "modelo": "Cargo 2429",
+      "ano": 2019,
+      "cor": "Branco",
+      "tipo": "Caminhão",
+      "renavam": "98765432102",
+      "chassi": "9BWZZZ99Z99999902",
+      "placa": "KLY-5678",
+      "combustivel": "Diesel",
+      "kmAtual": 284300,
+      "dataAquisicao": "2019-06-15",
+      "status": "em_manutencao",
+      "observacoes": "Amortecedores pendentes.",
+      "historicoKM": [
+        {
+          "data": "2019-06-15",
+          "km": 0
+        },
+        {
+          "data": "2025-05-01",
+          "km": 283000
+        }
+      ]
+    },
+    {
+      "id": "V-3",
+      "marca": "Mercedes-Benz",
+      "modelo": "Sprinter 416",
+      "ano": 2022,
+      "cor": "Cinza",
+      "tipo": "Van/Furgão",
+      "renavam": "98765432103",
+      "chassi": "9BWZZZ99Z99999903",
+      "placa": "MXF-9012",
+      "combustivel": "Diesel",
+      "kmAtual": 86400,
+      "dataAquisicao": "2022-09-20",
+      "status": "disponivel",
+      "observacoes": "Baú refrigerado.",
+      "historicoKM": [
+        {
+          "data": "2022-09-20",
+          "km": 0
+        },
+        {
+          "data": "2025-05-01",
+          "km": 85100
+        }
+      ]
+    },
+    {
+      "id": "V-4",
+      "marca": "Fiat",
+      "modelo": "Fiorino Endurance",
+      "ano": 2020,
+      "cor": "Branco",
+      "tipo": "Utilitário",
+      "renavam": "98765432104",
+      "chassi": "9BWZZZ99Z99999904",
+      "placa": "HJG-4432",
+      "combustivel": "Flex",
+      "kmAtual": 112000,
+      "dataAquisicao": "2020-01-22",
+      "status": "disponivel",
+      "observacoes": "Entregas urbanas.",
+      "historicoKM": [
+        {
+          "data": "2020-01-22",
+          "km": 0
+        },
+        {
+          "data": "2025-05-01",
+          "km": 111000
+        }
+      ]
+    },
+    {
+      "id": "V-5",
+      "marca": "Chevrolet",
+      "modelo": "Onix 1.0 Turbo",
+      "ano": 2023,
+      "cor": "Preto",
+      "tipo": "Passeio",
+      "renavam": "98765432105",
+      "chassi": "9BWZZZ99Z99999905",
+      "placa": "QWE-7766",
+      "combustivel": "Flex",
+      "kmAtual": 34500,
+      "dataAquisicao": "2023-05-05",
+      "status": "disponivel",
+      "observacoes": "Uso gerencial.",
+      "historicoKM": [
+        {
+          "data": "2023-05-05",
+          "km": 0
+        },
+        {
+          "data": "2025-05-01",
+          "km": 33800
+        }
+      ]
+    },
+    {
+      "id": "V-6",
+      "marca": "Toyota",
+      "modelo": "Hilux CD 4x4",
+      "ano": 2022,
+      "cor": "Prata",
+      "tipo": "Picape",
+      "renavam": "98765432106",
+      "chassi": "9BWZZZ99Z99999906",
+      "placa": "OIU-8899",
+      "combustivel": "Diesel",
+      "kmAtual": 92300,
+      "dataAquisicao": "2022-02-18",
+      "status": "disponivel",
+      "observacoes": "Apoio a obras.",
+      "historicoKM": [
+        {
+          "data": "2022-02-18",
+          "km": 0
+        },
+        {
+          "data": "2025-05-01",
+          "km": 91000
+        }
+      ]
+    }
+  ],
+  "motoristas": [
+    {
+      "id": "M-1",
+      "nome": "Antônio Santos",
+      "cpf": "123.456.789-01",
+      "rg": "12.345.678-9",
+      "cnh": "987654321",
+      "categoriaCNH": "E",
+      "dataVencimentoCNH": "2027-11-20",
+      "telefone": "(11) 98765-4321",
+      "email": "antonio.santos@movix.com.br",
+      "endereco": "Rua das Flores, 123 - São Paulo/SP",
+      "status": "ativo",
+      "observacoes": "Motorista sênior.",
+      "foto": "/img/avatar-default.png"
+    },
+    {
+      "id": "M-2",
+      "nome": "Roberto Albuquerque",
+      "cpf": "234.567.890-12",
+      "rg": "23.456.789-0",
+      "cnh": "876543210",
+      "categoriaCNH": "D",
+      "dataVencimentoCNH": "2026-05-20",
+      "telefone": "(11) 97654-3210",
+      "email": "roberto.albuquerque@movix.com.br",
+      "endereco": "Av. Paulista, 1500 - São Paulo/SP",
+      "status": "ativo",
+      "observacoes": "CNH próxima do vencimento.",
+      "foto": "/img/avatar-default.png"
+    },
+    {
+      "id": "M-3",
+      "nome": "Julio Cesar Cruz",
+      "cpf": "345.678.901-23",
+      "rg": "34.567.890-1",
+      "cnh": "765432109",
+      "categoriaCNH": "E",
+      "dataVencimentoCNH": "2026-04-10",
+      "telefone": "(21) 96543-2109",
+      "email": "julio.cruz@movix.com.br",
+      "endereco": "Rua do Ouvidor, 45 - Rio de Janeiro/RJ",
+      "status": "ativo",
+      "observacoes": "CNH VENCIDA.",
+      "foto": "/img/avatar-default.png"
+    },
+    {
+      "id": "M-4",
+      "nome": "Amanda Silveira",
+      "cpf": "456.789.012-34",
+      "rg": "45.678.901-2",
+      "cnh": "654321098",
+      "categoriaCNH": "B",
+      "dataVencimentoCNH": "2029-08-15",
+      "telefone": "(11) 95432-1098",
+      "email": "amanda.silveira@movix.com.br",
+      "endereco": "Av. Brasil, 450 - Campinas/SP",
+      "status": "ativo",
+      "observacoes": "",
+      "foto": "/img/avatar-default.png"
+    },
+    {
+      "id": "M-5",
+      "nome": "Douglas Costa",
+      "cpf": "567.890.123-45",
+      "rg": "56.789.012-3",
+      "cnh": "543210987",
+      "categoriaCNH": "C",
+      "dataVencimentoCNH": "2028-02-28",
+      "telefone": "(19) 94321-0987",
+      "email": "douglas.costa@movix.com.br",
+      "endereco": "Rua Tiradentes, 89 - Santos/SP",
+      "status": "ativo",
+      "observacoes": "",
+      "foto": "/img/avatar-default.png"
+    }
+  ],
+  "documentos": [
+    {
+      "id": "D-1",
+      "tipo": "Licenciamento CRLV",
+      "referenciaType": "veiculo",
+      "referenciaId": "V-1",
+      "emissao": "2025-01-10",
+      "vencimento": "2026-01-10",
+      "arquivo": "crlv_scania.pdf",
+      "obs": "Licenciamento anual quitado."
+    },
+    {
+      "id": "D-2",
+      "tipo": "Seguro Frota Bradesco",
+      "referenciaType": "veiculo",
+      "referenciaId": "V-1",
+      "emissao": "2025-02-15",
+      "vencimento": "2026-02-15",
+      "arquivo": "apolice_scania.pdf",
+      "obs": "Franquia reduzida."
+    },
+    {
+      "id": "D-3",
+      "tipo": "Licenciamento CRLV",
+      "referenciaType": "veiculo",
+      "referenciaId": "V-2",
+      "emissao": "2024-05-15",
+      "vencimento": "2025-05-15",
+      "arquivo": "crlv_cargo.pdf",
+      "obs": "Licenciamento vencido!"
+    },
+    {
+      "id": "D-4",
+      "tipo": "Multa de Trânsito",
+      "referenciaType": "veiculo",
+      "referenciaId": "V-3",
+      "emissao": "2026-03-01",
+      "vencimento": "2026-06-01",
+      "arquivo": "multa_sprinter.pdf",
+      "obs": "Excesso de velocidade."
+    },
+    {
+      "id": "D-5",
+      "tipo": "CNH Digital",
+      "referenciaType": "motorista",
+      "referenciaId": "M-3",
+      "emissao": "2021-04-10",
+      "vencimento": "2026-04-10",
+      "arquivo": "cnh_julio.pdf",
+      "obs": "CNH expirada."
+    }
+  ],
+  "abastecimentos": [
+    {
+      "id": "A-1",
+      "data": "2026-05-20",
+      "veiculoId": "V-1",
+      "motoristaId": "M-1",
+      "kmAtual": 145000,
+      "litros": 320,
+      "valorTotal": 1920,
+      "valorLitro": 6,
+      "posto": "Posto Ipiranga - Rod. Dutra KM 80",
+      "combustivel": "Diesel",
+      "kmL": 4.8,
+      "custoKM": 1.25
+    },
+    {
+      "id": "A-2",
+      "data": "2026-05-18",
+      "veiculoId": "V-3",
+      "motoristaId": "M-2",
+      "kmAtual": 86400,
+      "litros": 65,
+      "valorTotal": 390,
+      "valorLitro": 6,
+      "posto": "Posto Shell - Marginal Pinheiros",
+      "combustivel": "Diesel",
+      "kmL": 9.5,
+      "custoKM": 0.63
+    },
+    {
+      "id": "A-3",
+      "data": "2026-05-15",
+      "veiculoId": "V-4",
+      "motoristaId": "M-4",
+      "kmAtual": 112000,
+      "litros": 45,
+      "valorTotal": 252,
+      "valorLitro": 5.6,
+      "posto": "Posto Petrobras - Av. Brasil",
+      "combustivel": "Gasolina",
+      "kmL": 12,
+      "custoKM": 0.47
+    },
+    {
+      "id": "A-4",
+      "data": "2026-05-12",
+      "veiculoId": "V-5",
+      "motoristaId": "M-4",
+      "kmAtual": 34500,
+      "litros": 38,
+      "valorTotal": 212.8,
+      "valorLitro": 5.6,
+      "posto": "Posto BR - Campinas",
+      "combustivel": "Gasolina",
+      "kmL": 13.5,
+      "custoKM": 0.41
+    },
+    {
+      "id": "A-5",
+      "data": "2026-05-10",
+      "veiculoId": "V-2",
+      "motoristaId": "M-5",
+      "kmAtual": 284300,
+      "litros": 180,
+      "valorTotal": 1080,
+      "valorLitro": 6,
+      "posto": "RodoPosto 2000 - Fernão Dias",
+      "combustivel": "Diesel",
+      "kmL": 3.9,
+      "custoKM": 1.54
+    },
+    {
+      "id": "A-6",
+      "data": "2026-04-18",
+      "veiculoId": "V-1",
+      "motoristaId": "M-1",
+      "kmAtual": 143460,
+      "litros": 310,
+      "valorTotal": 1860,
+      "valorLitro": 6,
+      "posto": "Posto Ipiranga",
+      "combustivel": "Diesel",
+      "kmL": 4.7,
+      "custoKM": 1.28
+    },
+    {
+      "id": "A-7",
+      "data": "2026-04-12",
+      "veiculoId": "V-3",
+      "motoristaId": "M-2",
+      "kmAtual": 85780,
+      "litros": 62,
+      "valorTotal": 372,
+      "valorLitro": 6,
+      "posto": "Posto Shell",
+      "combustivel": "Diesel",
+      "kmL": 9.7,
+      "custoKM": 0.62
+    },
+    {
+      "id": "A-8",
+      "data": "2026-03-24",
+      "veiculoId": "V-1",
+      "motoristaId": "M-1",
+      "kmAtual": 142000,
+      "litros": 330,
+      "valorTotal": 1947,
+      "valorLitro": 5.9,
+      "posto": "Posto Ipiranga",
+      "combustivel": "Diesel",
+      "kmL": 4.8,
+      "custoKM": 1.23
+    },
+    {
+      "id": "A-9",
+      "data": "2026-03-10",
+      "veiculoId": "V-4",
+      "motoristaId": "M-4",
+      "kmAtual": 110460,
+      "litros": 44,
+      "valorTotal": 242,
+      "valorLitro": 5.5,
+      "posto": "Posto Petrobras",
+      "combustivel": "Gasolina",
+      "kmL": 12.3,
+      "custoKM": 0.45
+    },
+    {
+      "id": "A-10",
+      "data": "2026-02-15",
+      "veiculoId": "V-2",
+      "motoristaId": "M-5",
+      "kmAtual": 282400,
+      "litros": 200,
+      "valorTotal": 1180,
+      "valorLitro": 5.9,
+      "posto": "RodoPosto 2000",
+      "combustivel": "Diesel",
+      "kmL": 4.1,
+      "custoKM": 1.44
+    }
+  ],
+  "manutencoes": [
+    {
+      "id": "MAN-001",
+      "veiculoId": "V-1",
+      "tipo": "Preventiva",
+      "categoria": "Mecânica",
+      "data": "2026-05-10",
+      "km": 144200,
+      "oficina": "Mecânica Diesel Express",
+      "fornecedor": "Pecas Truck SA",
+      "descricao": "Revisão preventiva e lubrificação.",
+      "valor": 2450,
+      "status": "Realizada",
+      "anexo": ""
+    },
+    {
+      "id": "MAN-002",
+      "veiculoId": "V-2",
+      "tipo": "Corretiva",
+      "categoria": "Suspensão",
+      "data": "2026-05-22",
+      "km": 284300,
+      "oficina": "Bortoloto Amortecedores",
+      "fornecedor": "Bortoloto SA",
+      "descricao": "Substituição das bolsas pneumáticas traseiras.",
+      "valor": 4800,
+      "status": "Em andamento",
+      "anexo": ""
+    },
+    {
+      "id": "MAN-003",
+      "veiculoId": "V-3",
+      "tipo": "Preventiva",
+      "categoria": "Elétrica",
+      "data": "2026-04-15",
+      "km": 85200,
+      "oficina": "Auto Elétrica Central",
+      "fornecedor": "Auto Elétrica Central",
+      "descricao": "Revisão de alternador e fiação.",
+      "valor": 850,
+      "status": "Realizada",
+      "anexo": ""
+    },
+    {
+      "id": "MAN-004",
+      "veiculoId": "V-4",
+      "tipo": "Corretiva",
+      "categoria": "Freios",
+      "data": "2026-05-01",
+      "km": 111500,
+      "oficina": "Freios Campinas",
+      "fornecedor": "Freios Campinas",
+      "descricao": "Substituição de pastilhas e discos de freio.",
+      "valor": 1200,
+      "status": "Realizada",
+      "anexo": ""
+    },
+    {
+      "id": "MAN-005",
+      "veiculoId": "V-1",
+      "tipo": "Preventiva",
+      "categoria": "Mecânica",
+      "data": "2026-05-05",
+      "km": 144000,
+      "oficina": "Scania AutoService",
+      "fornecedor": "Scania",
+      "descricao": "Manutenção programada de 140k KM. Atrasada.",
+      "valor": 3500,
+      "status": "Atrasada",
+      "anexo": ""
+    }
+  ],
+  "pneus": [
+    {
+      "id": "P-1",
+      "codigo": "PN-88771",
+      "marca": "Michelin",
+      "modelo": "X Multi Z",
+      "dataInstalacao": "2024-05-10",
+      "kmInicial": 120000,
+      "vidaEstimada": 80000,
+      "custo": 2800,
+      "posicao": "Dianteiro Esquerdo",
+      "veiculoAtual": "V-1"
+    },
+    {
+      "id": "P-2",
+      "codigo": "PN-88772",
+      "marca": "Michelin",
+      "modelo": "X Multi Z",
+      "dataInstalacao": "2024-05-10",
+      "kmInicial": 120000,
+      "vidaEstimada": 80000,
+      "custo": 2800,
+      "posicao": "Dianteiro Direito",
+      "veiculoAtual": "V-1"
+    },
+    {
+      "id": "P-3",
+      "codigo": "PN-99441",
+      "marca": "Bridgestone",
+      "modelo": "M729",
+      "dataInstalacao": "2023-11-20",
+      "kmInicial": 240000,
+      "vidaEstimada": 60000,
+      "custo": 2100,
+      "posicao": "Traseiro Esquerdo",
+      "veiculoAtual": "V-2"
+    },
+    {
+      "id": "P-4",
+      "codigo": "PN-99442",
+      "marca": "Bridgestone",
+      "modelo": "M729",
+      "dataInstalacao": "2023-11-20",
+      "kmInicial": 240000,
+      "vidaEstimada": 60000,
+      "custo": 2100,
+      "posicao": "Traseiro Direito",
+      "veiculoAtual": "V-2"
+    }
+  ],
+  "oleos": [
+    {
+      "id": "O-1",
+      "dataTroca": "2026-05-01",
+      "veiculoId": "V-1",
+      "kmTroca": 144000,
+      "estabelecimento": "Scania AutoService",
+      "tipoOleo": "Lubrax Advento 15W40",
+      "filtroAr": true,
+      "filtroCombustivel": true,
+      "filtroOleo": true,
+      "proximaTrocaKM": 154000,
+      "proximaTrocaDias": "2026-11-01",
+      "valor": 680
+    },
+    {
+      "id": "O-2",
+      "dataTroca": "2026-05-15",
+      "veiculoId": "V-3",
+      "kmTroca": 86000,
+      "estabelecimento": "Mercadão do Óleo",
+      "tipoOleo": "Castrol Magnatec 5W30",
+      "filtroAr": true,
+      "filtroCombustivel": false,
+      "filtroOleo": true,
+      "proximaTrocaKM": 96000,
+      "proximaTrocaDias": "2026-11-15",
+      "valor": 350
+    },
+    {
+      "id": "O-3",
+      "dataTroca": "2025-10-10",
+      "veiculoId": "V-2",
+      "kmTroca": 274000,
+      "estabelecimento": "Beto Lubrificantes",
+      "tipoOleo": "Shell Rimula R4 15W40",
+      "filtroAr": true,
+      "filtroCombustivel": true,
+      "filtroOleo": true,
+      "proximaTrocaKM": 284000,
+      "proximaTrocaDias": "2026-04-10",
+      "valor": 580
+    }
+  ],
+  "viagens": [
+    {
+      "id": "VI-1",
+      "veiculoId": "V-1",
+      "motoristaId": "M-1",
+      "origem": "São Paulo/SP",
+      "destino": "Belo Horizonte/MG",
+      "dataSaida": "2026-05-17",
+      "dataRetorno": "2026-05-20",
+      "kmInicial": 143800,
+      "kmFinal": 144980,
+      "kmRodado": 1180,
+      "custos": 450,
+      "observacoes": "Entrega no prazo.",
+      "status": "Realizada"
+    },
+    {
+      "id": "VI-2",
+      "veiculoId": "V-3",
+      "motoristaId": "M-2",
+      "origem": "São Paulo/SP",
+      "destino": "São José dos Campos/SP",
+      "dataSaida": "2026-05-21",
+      "dataRetorno": "2026-05-22",
+      "kmInicial": 86100,
+      "kmFinal": 86380,
+      "kmRodado": 280,
+      "custos": 85,
+      "observacoes": "Carga de peças automotivas.",
+      "status": "Realizada"
+    },
+    {
+      "id": "VI-3",
+      "veiculoId": "V-4",
+      "motoristaId": "M-4",
+      "origem": "Campinas/SP",
+      "destino": "São Paulo/SP",
+      "dataSaida": "2026-05-23",
+      "dataRetorno": "",
+      "kmInicial": 112000,
+      "kmFinal": 0,
+      "kmRodado": 0,
+      "custos": 35,
+      "observacoes": "Em rota.",
+      "status": "Em andamento"
+    }
+  ],
+  "logs": [
+    {
+      "id": "LOG-AEG3UOL24",
+      "data": "2026-05-24T22:59:22.402Z",
+      "usuario": "Carlos Silveira",
+      "perfil": "Administrador",
+      "acao": "Login",
+      "entidade": "Sessão",
+      "detalhes": "Login realizado com sucesso (123.456.789-00)"
+    },
+    {
+      "id": "LOG-IPTI3ENGK",
+      "data": "2026-05-24T02:09:29.519Z",
+      "usuario": "Carlos Silveira",
+      "perfil": "Administrador",
+      "acao": "Login",
+      "entidade": "Sessão",
+      "detalhes": "Login realizado com sucesso (123.456.789-00)"
+    },
+    {
+      "id": "LOG-9JJ2VQ7PN",
+      "data": "2026-05-23T16:40:07.690Z",
+      "usuario": "Carlos Silveira",
+      "perfil": "Administrador",
+      "acao": "Login",
+      "entidade": "Sessão",
+      "detalhes": "Login realizado com sucesso (123.456.789-00)"
+    },
+    {
+      "id": "LOG-INIT",
+      "data": "2026-05-23T16:38:51.435Z",
+      "usuario": "Sistema",
+      "perfil": "Administrador",
+      "acao": "Inicialização",
+      "entidade": "Banco de Dados",
+      "detalhes": "Base de dados inicializada com dados semente. Senha padrão: movix@2026"
+    }
+  ]
+}
