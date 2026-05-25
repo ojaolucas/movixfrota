@@ -174,7 +174,10 @@
                         </td>
                         <td>
                             <div style="display:flex; flex-direction:column;">
-                                <span style="font-weight:600;">Nº ${m.cnh}</span>
+                                <div style="display:flex; align-items:center; gap:6px;">
+                                    <span style="font-weight:600;">Nº ${m.cnh}</span>
+                                    ${m.cnhAnexo ? `<a href="${m.cnhAnexo}" target="_blank" title="Visualizar CNH Anexa" style="color:var(--primary); font-size:0.85rem;"><i class="fa-solid fa-paperclip"></i></a>` : ''}
+                                </div>
                                 <span style="font-size:0.75rem; color:var(--text-muted);">Categoria: ${m.categoriaCNH}</span>
                             </div>
                         </td>
@@ -287,6 +290,23 @@
 
         modalBody.innerHTML = `
             <form id="form-motorista" class="form-grid">
+                
+                <!-- PHOTO UPLOAD GANE -->
+                <div class="form-group full-width" style="display:flex; flex-direction:column; gap:8px;">
+                    <label style="font-weight: 600;">Foto de Perfil do Motorista</label>
+                    <div style="display:flex; align-items:center; gap:20px; background:var(--bg-surface-hover); padding:16px; border-radius:var(--border-radius-md); border:1px dashed var(--border-color);">
+                        <img id="mot-avatar-preview" src="${isEdit && m.foto ? m.foto : '/img/avatar-default.png'}" style="width:70px; height:70px; border-radius:50%; object-fit:cover; border:2px solid var(--primary); background:#ffffff;">
+                        <div style="display:flex; flex-direction:column; gap:6px;">
+                            <span style="font-size:0.75rem; color:var(--text-muted);">Formatos aceitos: JPG, PNG, JPEG (Máx. 5MB)</span>
+                            <button type="button" class="btn btn-secondary" id="btn-mot-foto" style="height:36px; padding:0 16px; cursor:pointer;">
+                                <i class="fa-solid fa-cloud-arrow-up text-primary"></i> Selecionar Imagem
+                            </button>
+                            <input type="file" id="mot-foto-file" accept="image/*" style="display:none;">
+                            <input type="hidden" name="foto" id="mot-foto-url" value="${isEdit && m.foto ? m.foto : '/img/avatar-default.png'}">
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label>Nome Completo <span class="required">*</span></label>
                     <input type="text" class="form-control" name="nome" required value="${isEdit ? m.nome : ''}" placeholder="Nome do motorista">
@@ -304,8 +324,8 @@
                     <input type="text" class="form-control" name="telefone" required value="${isEdit ? m.telefone : ''}" placeholder="(00) 00000-0000">
                 </div>
                 <div class="form-group">
-                    <label>E-mail <span class="required">*</span></label>
-                    <input type="email" class="form-control" name="email" required value="${isEdit ? m.email : ''}" placeholder="motorista@empresa.com.br">
+                    <label>E-mail</label>
+                    <input type="email" class="form-control" name="email" value="${isEdit && m.email ? m.email : ''}" placeholder="motorista@empresa.com.br">
                 </div>
                 <div class="form-group">
                     <label>Nº Registro CNH <span class="required">*</span></label>
@@ -313,12 +333,7 @@
                 </div>
                 <div class="form-group">
                     <label>Categoria CNH <span class="required">*</span></label>
-                    <select class="form-control" name="categoriaCNH" required>
-                        <option value="B" ${isEdit && m.categoriaCNH === 'B' ? 'selected' : ''}>Categoria B (Leves)</option>
-                        <option value="C" ${isEdit && m.categoriaCNH === 'C' ? 'selected' : ''}>Categoria C (Carga leve)</option>
-                        <option value="D" ${isEdit && m.categoriaCNH === 'D' ? 'selected' : ''}>Categoria D (Van/Microônibus)</option>
-                        <option value="E" ${isEdit && m.categoriaCNH === 'E' ? 'selected' : ''}>Categoria E (Carretas pesadas)</option>
-                    </select>
+                    <input type="text" class="form-control" name="categoriaCNH" required value="${isEdit ? m.categoriaCNH : ''}" placeholder="Ex: AD, B, E">
                 </div>
                 <div class="form-group">
                     <label>Vencimento CNH <span class="required">*</span></label>
@@ -331,9 +346,29 @@
                         <option value="inativo" ${isEdit && m.status === 'inativo' ? 'selected' : ''}>Inativo</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>URL Foto Perfil</label>
-                    <input type="url" class="form-control" name="foto" value="${isEdit ? m.foto : ''}" placeholder="https://imagem.com/foto.jpg">
+                <div class="form-group full-width">
+                    <label>Anexar CNH Digitalizada (PDF ou Imagem)</label>
+                    <div class="file-upload-area" id="mot-cnh-upload-trigger" style="margin-top: 4px; cursor: pointer;">
+                        <i class="fa-solid fa-file-pdf"></i>
+                        <span class="file-upload-text" id="mot-cnh-upload-text">
+                            ${isEdit && m.cnhAnexo ? `<strong class="text-success"><i class="fa-solid fa-circle-check"></i> ${m.cnhAnexo.split('/').pop()}</strong>` : 'Arraste ou clique para anexar CNH'}
+                        </span>
+                        <span class="file-upload-hint">Formatos aceitos: PDF, JPG, PNG, JPEG (Máx. 10MB)</span>
+                        <input type="file" id="mot-cnh-file-input" style="display:none;" accept="image/*,application/pdf">
+                    </div>
+                    <input type="hidden" name="cnhAnexo" id="mot-cnh-anexo-url" value="${isEdit && m.cnhAnexo ? m.cnhAnexo : ''}">
+                    
+                    <div id="mot-cnh-actions" style="display:${isEdit && m.cnhAnexo ? 'flex' : 'none'}; gap:12px; margin-top:8px; align-items:center;">
+                        <a href="${isEdit && m.cnhAnexo ? m.cnhAnexo : '#'}" id="btn-visualizar-cnh" target="_blank" class="btn btn-secondary" style="height:32px; padding:0 12px; font-size:0.75rem; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                            <i class="fa-solid fa-eye"></i> Visualizar
+                        </a>
+                        <a href="${isEdit && m.cnhAnexo ? m.cnhAnexo : '#'}" id="btn-baixar-cnh" download class="btn btn-secondary" style="height:32px; padding:0 12px; font-size:0.75rem; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                            <i class="fa-solid fa-download"></i> Baixar
+                        </a>
+                        <button type="button" class="btn btn-danger" id="btn-remover-cnh" style="height:32px; padding:0 12px; font-size:0.75rem; display:inline-flex; align-items:center; gap:6px;">
+                            <i class="fa-solid fa-trash"></i> Remover
+                        </button>
+                    </div>
                 </div>
                 <div class="form-group full-width">
                     <label>Endereço Completo</label>
@@ -352,6 +387,112 @@
         `;
 
         modal.classList.add('active');
+
+        // Photo Upload Logic
+        const btnFoto = document.getElementById('btn-mot-foto');
+        const fotoFile = document.getElementById('mot-foto-file');
+        const avatarPreview = document.getElementById('mot-avatar-preview');
+        const fotoUrlInput = document.getElementById('mot-foto-url');
+
+        if (btnFoto && fotoFile) {
+            btnFoto.addEventListener('click', () => fotoFile.click());
+            fotoFile.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const formData = new FormData();
+                formData.append('foto', file);
+
+                try {
+                    btnFoto.disabled = true;
+                    btnFoto.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
+
+                    const res = await fetch('/api/upload/foto', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!res.ok) {
+                        const err = await res.json();
+                        throw new Error(err.error || 'Erro no upload.');
+                    }
+
+                    const result = await res.json();
+                    avatarPreview.src = result.url;
+                    fotoUrlInput.value = result.url;
+
+                    window.movixApp.showToast('Foto do motorista atualizada!', 'success');
+                } catch (err) {
+                    console.error(err);
+                    window.movixApp.showToast(err.message || 'Erro ao enviar foto.', 'danger');
+                } finally {
+                    btnFoto.disabled = false;
+                    btnFoto.innerHTML = '<i class="fa-solid fa-cloud-arrow-up text-primary"></i> Selecionar Imagem';
+                }
+            });
+        }
+
+        // CNH Document Upload Logic
+        const cnhUploadTrigger = document.getElementById('mot-cnh-upload-trigger');
+        const cnhFileInput = document.getElementById('mot-cnh-file-input');
+        const cnhUploadText = document.getElementById('mot-cnh-upload-text');
+        const cnhAnexoUrl = document.getElementById('mot-cnh-anexo-url');
+        const cnhActionsDiv = document.getElementById('mot-cnh-actions');
+        const btnVisualizarCnh = document.getElementById('btn-visualizar-cnh');
+        const btnBaixarCnh = document.getElementById('btn-baixar-cnh');
+        const btnRemoverCnh = document.getElementById('btn-remover-cnh');
+
+        if (cnhUploadTrigger && cnhFileInput) {
+            cnhUploadTrigger.addEventListener('click', () => cnhFileInput.click());
+            cnhFileInput.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                try {
+                    cnhUploadText.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando arquivo...';
+                    cnhUploadTrigger.style.pointerEvents = 'none';
+
+                    const res = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!res.ok) {
+                        const err = await res.json();
+                        throw new Error(err.error || 'Erro no upload.');
+                    }
+
+                    const result = await res.json();
+                    cnhAnexoUrl.value = result.url;
+                    cnhUploadText.innerHTML = `<strong class="text-success"><i class="fa-solid fa-circle-check"></i> ${result.name}</strong>`;
+                    
+                    btnVisualizarCnh.href = result.url;
+                    btnBaixarCnh.href = result.url;
+                    cnhActionsDiv.style.display = 'flex';
+
+                    window.movixApp.showToast('CNH anexada com sucesso!', 'success');
+                } catch (err) {
+                    console.error(err);
+                    window.movixApp.showToast(err.message || 'Erro ao enviar CNH.', 'danger');
+                    cnhUploadText.innerText = 'Arraste ou clique para anexar CNH';
+                } finally {
+                    cnhUploadTrigger.style.pointerEvents = 'auto';
+                }
+            });
+        }
+
+        if (btnRemoverCnh) {
+            btnRemoverCnh.addEventListener('click', () => {
+                cnhAnexoUrl.value = '';
+                cnhUploadText.innerText = 'Arraste ou clique para anexar CNH';
+                cnhActionsDiv.style.display = 'none';
+                cnhFileInput.value = '';
+                window.movixApp.showToast('CNH removida.', 'info');
+            });
+        }
 
         document.getElementById('btn-cancelar-modal').addEventListener('click', () => modal.classList.remove('active'));
 

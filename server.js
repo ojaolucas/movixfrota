@@ -190,6 +190,37 @@ app.post('/api/upload/foto', requireAuth, upload.single('foto'), (req, res) => {
     res.json({ success: true, url });
 });
 
+// Configuração Multer Genérica para Documentos e PDFs (Manutenção, CRLV, CNH, Seguro)
+const storageDoc = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, UPLOADS_PATH),
+    filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname);
+        cb(null, `doc_${uuidv4()}${ext}`);
+    }
+});
+
+const uploadDoc = multer({
+    storage: storageDoc,
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+    fileFilter: (req, file, cb) => {
+        const allowed = /jpeg|jpg|png|pdf/;
+        const extname = allowed.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = allowed.test(file.mimetype);
+        if (extname || mimetype) {
+            cb(null, true);
+        } else {
+            cb(new Error('Apenas imagens (jpg, png, jpeg) e PDFs são permitidos.'));
+        }
+    }
+});
+
+// Rota genérica de upload para documentos e comprovantes
+app.post('/api/upload', requireAuth, uploadDoc.single('file'), (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
+    const url = `/uploads/${req.file.filename}`;
+    res.json({ success: true, url, name: req.file.originalname });
+});
+
 // ─── VEÍCULOS ─────────────────────────────────────────────
 app.get('/api/veiculos', requireAuth, (req, res) => {
     const db = readDB();

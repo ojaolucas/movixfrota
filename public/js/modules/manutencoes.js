@@ -174,7 +174,10 @@
                         </td>
                         <td>
                             <div style="display:flex; flex-direction:column;">
-                                <span style="font-weight:600;">${m.tipo}</span>
+                                <div style="display:flex; align-items:center; gap:6px;">
+                                    <span style="font-weight:600;">${m.tipo}</span>
+                                    ${m.anexo ? `<a href="${m.anexo}" target="_blank" title="Visualizar Nota Fiscal / Recibo" style="color:var(--primary); font-size:0.85rem;"><i class="fa-solid fa-paperclip"></i></a>` : ''}
+                                </div>
                                 <span style="font-size:0.75rem; color:var(--text-muted);">${m.categoria}</span>
                             </div>
                         </td>
@@ -316,9 +319,29 @@
                         </select>
                     </div>
 
-                    <div class="form-group">
-                        <label>Nota Fiscal / Recibo Anexo</label>
-                        <input type="text" class="form-control" name="anexo" placeholder="nf_receita.jpg" value="${isEdit && m.anexo ? m.anexo : ''}">
+                    <div class="form-group full-width">
+                        <label>Anexar Nota Fiscal / Recibo (PDF ou Imagem)</label>
+                        <div class="file-upload-area" id="man-upload-trigger" style="margin-top: 4px; cursor: pointer;">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <span class="file-upload-text" id="man-upload-text">
+                                ${isEdit && m.anexo ? `<strong class="text-success"><i class="fa-solid fa-circle-check"></i> ${m.anexo.split('/').pop()}</strong>` : 'Arraste ou clique para anexar Nota Fiscal'}
+                            </span>
+                            <span class="file-upload-hint">Formatos aceitos: PDF, JPG, PNG, JPEG (Máx. 10MB)</span>
+                            <input type="file" id="man-file-input" style="display:none;" accept="image/*,application/pdf">
+                        </div>
+                        <input type="hidden" name="anexo" id="man-anexo-url" value="${isEdit && m.anexo ? m.anexo : ''}">
+                        
+                        <div id="man-anexo-actions" style="display:${isEdit && m.anexo ? 'flex' : 'none'}; gap:12px; margin-top:8px; align-items:center;">
+                            <a href="${isEdit && m.anexo ? m.anexo : '#'}" id="btn-visualizar-anexo" target="_blank" class="btn btn-secondary" style="height:32px; padding:0 12px; font-size:0.75rem; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                                <i class="fa-solid fa-eye"></i> Visualizar
+                            </a>
+                            <a href="${isEdit && m.anexo ? m.anexo : '#'}" id="btn-baixar-anexo" download class="btn btn-secondary" style="height:32px; padding:0 12px; font-size:0.75rem; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                                <i class="fa-solid fa-download"></i> Baixar
+                            </a>
+                            <button type="button" class="btn btn-danger" id="btn-remover-anexo" style="height:32px; padding:0 12px; font-size:0.75rem; display:inline-flex; align-items:center; gap:6px;">
+                                <i class="fa-solid fa-trash"></i> Remover
+                            </button>
+                        </div>
                     </div>
 
                     <div class="form-group full-width">
@@ -345,6 +368,69 @@
                 });
                 // Initial trigger
                 kmInput.value = veicSel.options[veicSel.selectedIndex].getAttribute('data-km');
+            }
+
+            // File Upload logic
+            const uploadTrigger = document.getElementById('man-upload-trigger');
+            const fileInput = document.getElementById('man-file-input');
+            const uploadText = document.getElementById('man-upload-text');
+            const anexoUrl = document.getElementById('man-anexo-url');
+            const actionsDiv = document.getElementById('man-anexo-actions');
+            const btnVisualizar = document.getElementById('btn-visualizar-anexo');
+            const btnBaixar = document.getElementById('btn-baixar-anexo');
+            const btnRemover = document.getElementById('btn-remover-anexo');
+
+            if (uploadTrigger && fileInput) {
+                uploadTrigger.addEventListener('click', () => fileInput.click());
+                fileInput.addEventListener('change', async (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    try {
+                        uploadText.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando arquivo...';
+                        uploadTrigger.style.pointerEvents = 'none';
+
+                        const res = await fetch('/api/upload', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (!res.ok) {
+                            const err = await res.json();
+                            throw new Error(err.error || 'Erro no upload.');
+                        }
+
+                        const result = await res.json();
+                        anexoUrl.value = result.url;
+                        uploadText.innerHTML = `<strong class="text-success"><i class="fa-solid fa-circle-check"></i> ${result.name}</strong>`;
+                        
+                        // Update action buttons URLs and show div
+                        btnVisualizar.href = result.url;
+                        btnBaixar.href = result.url;
+                        actionsDiv.style.display = 'flex';
+
+                        window.movixApp.showToast('Nota Fiscal anexada com sucesso!', 'success');
+                    } catch (err) {
+                        console.error(err);
+                        window.movixApp.showToast(err.message || 'Erro ao fazer upload do documento.', 'danger');
+                        uploadText.innerText = 'Arraste ou clique para anexar Nota Fiscal';
+                    } finally {
+                        uploadTrigger.style.pointerEvents = 'auto';
+                    }
+                });
+            }
+
+            if (btnRemover) {
+                btnRemover.addEventListener('click', () => {
+                    anexoUrl.value = '';
+                    uploadText.innerText = 'Arraste ou clique para anexar Nota Fiscal';
+                    actionsDiv.style.display = 'none';
+                    fileInput.value = '';
+                    window.movixApp.showToast('Anexo removido da ordem.', 'info');
+                });
             }
 
             document.getElementById('btn-cancelar-modal').addEventListener('click', () => modal.classList.remove('active'));

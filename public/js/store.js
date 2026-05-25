@@ -613,6 +613,71 @@ class MovixStore {
             }
         });
 
+        // 6. Insurance expiration and bill due alerts (Vehicles)
+        this.state.veiculos.forEach(v => {
+            if (v.possuiSeguro === 'Sim') {
+                if (v.validadeContratoSeguro) {
+                    const valDate = new Date(v.validadeContratoSeguro + 'T23:59:59');
+                    const diffTime = valDate - today;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    
+                    if (diffDays < 0) {
+                        alerts.push({
+                            id: `ALT-INS-EXP-${v.id}`,
+                            tipo: 'Seguro vencido',
+                            prioridade: 'Alta',
+                            status: 'Atrasado',
+                            titulo: `Contrato de Seguro Expirado: ${v.placa}`,
+                            desc: `A apólice da seguradora ${v.seguradora || ''} venceu em ${v.validadeContratoSeguro.split('-').reverse().join('/')}`,
+                            link: 'veiculos',
+                            targetId: v.id
+                        });
+                    } else if (diffDays <= 30) {
+                        alerts.push({
+                            id: `ALT-INS-PROX-${v.id}`,
+                            tipo: 'Seguro próximo do vencimento',
+                            prioridade: 'Média',
+                            status: 'Atenção',
+                            titulo: `Seguro a vencer: ${v.placa}`,
+                            desc: `A apólice vence em ${diffDays} dias (${v.validadeContratoSeguro.split('-').reverse().join('/')})`,
+                            link: 'veiculos',
+                            targetId: v.id
+                        });
+                    }
+                }
+
+                if (v.vencimentoBoletoSeguro) {
+                    const bolDate = new Date(v.vencimentoBoletoSeguro + 'T23:59:59');
+                    const diffTime = bolDate - today;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                    if (diffDays < 0) {
+                        alerts.push({
+                            id: `ALT-INS-BILL-EXP-${v.id}`,
+                            tipo: 'Boleto de seguro vencido',
+                            prioridade: 'Alta',
+                            status: 'Atrasado',
+                            titulo: `Boleto de Seguro Atrasado: ${v.placa}`,
+                            desc: `Parcela mensal de R$ ${(parseFloat(v.valorMensalSeguro) || 0).toFixed(2)} venceu em ${v.vencimentoBoletoSeguro.split('-').reverse().join('/')}`,
+                            link: 'veiculos',
+                            targetId: v.id
+                        });
+                    } else if (diffDays <= 10) {
+                        alerts.push({
+                            id: `ALT-INS-BILL-PROX-${v.id}`,
+                            tipo: 'Boleto de seguro a vencer',
+                            prioridade: 'Média',
+                            status: 'Atenção',
+                            titulo: `Boleto de seguro a vencer: ${v.placa}`,
+                            desc: `Parcela mensal de R$ ${(parseFloat(v.valorMensalSeguro) || 0).toFixed(2)} vence em ${diffDays} dias (${v.vencimentoBoletoSeguro.split('-').reverse().join('/')})`,
+                            link: 'veiculos',
+                            targetId: v.id
+                        });
+                    }
+                }
+            }
+        });
+
         return alerts;
     }
 

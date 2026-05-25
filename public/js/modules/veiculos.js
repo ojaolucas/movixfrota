@@ -343,6 +343,97 @@
                         <option value="inativo" ${isEdit && vehicle.status === 'inativo' ? 'selected' : ''}>Inativo</option>
                     </select>
                 </div>
+                <div class="form-group">
+                    <label>Possui Seguro Ativo? <span class="required">*</span></label>
+                    <select class="form-control" name="possuiSeguro" id="veh-possui-seguro" required>
+                        <option value="Não" ${isEdit && vehicle.possuiSeguro === 'Não' ? 'selected' : ''}>Não</option>
+                        <option value="Sim" ${isEdit && vehicle.possuiSeguro === 'Sim' ? 'selected' : ''}>Sim</option>
+                    </select>
+                </div>
+
+                <!-- DOCUMENTATION UPLOAD -->
+                <div class="form-group full-width" style="margin-top:12px; border-top:1px solid var(--border-color); padding-top:16px;">
+                    <h3 style="font-size:1rem; font-family:var(--font-heading); color:var(--text-main); margin-bottom:12px;"><i class="fa-solid fa-file-contract text-primary"></i> Digitalização de Documentos do Veículo</h3>
+                </div>
+
+                <div class="form-group full-width">
+                    <label>Documento do Veículo (CRLV - PDF ou Imagem)</label>
+                    <div class="file-upload-area" id="veh-crlv-upload-trigger" style="margin-top: 4px; cursor: pointer; padding: 16px;">
+                        <i class="fa-solid fa-file-invoice"></i>
+                        <span class="file-upload-text" id="veh-crlv-upload-text" style="font-size:0.8rem;">
+                            ${isEdit && vehicle.docVeiculoAnexo ? `<strong class="text-success"><i class="fa-solid fa-circle-check"></i> ${vehicle.docVeiculoAnexo.split('/').pop()}</strong>` : 'Arraste ou clique para anexar o CRLV'}
+                        </span>
+                        <input type="file" id="veh-crlv-file-input" style="display:none;" accept="image/*,application/pdf">
+                    </div>
+                    <input type="hidden" name="docVeiculoAnexo" id="veh-crlv-anexo-url" value="${isEdit && vehicle.docVeiculoAnexo ? vehicle.docVeiculoAnexo : ''}">
+                    
+                    <div id="veh-crlv-actions" style="display:${isEdit && vehicle.docVeiculoAnexo ? 'flex' : 'none'}; gap:12px; margin-top:8px; align-items:center;">
+                        <a href="${isEdit && vehicle.docVeiculoAnexo ? vehicle.docVeiculoAnexo : '#'}" id="btn-visualizar-crlv" target="_blank" class="btn btn-secondary" style="height:32px; padding:0 12px; font-size:0.75rem; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                            <i class="fa-solid fa-eye"></i> Visualizar
+                        </a>
+                        <button type="button" class="btn btn-danger" id="btn-remover-crlv" style="height:32px; padding:0 12px; font-size:0.75rem; display:inline-flex; align-items:center; gap:6px;">
+                            <i class="fa-solid fa-trash"></i> Remover
+                        </button>
+                    </div>
+                </div>
+
+                <!-- DYNAMIC INSURANCE FIELDS CONTAINER -->
+                <div id="insurance-fields-container" style="grid-column: span 2; display:${isEdit && vehicle.possuiSeguro === 'Sim' ? 'grid' : 'none'}; grid-template-columns: 1fr 1fr; gap: 16px; border-left: 3px solid var(--primary); padding-left: 16px; margin: 8px 0;">
+                    <div style="grid-column: span 2; margin-bottom:-4px;">
+                        <h4 style="font-family:var(--font-heading); color:var(--primary);"><i class="fa-solid fa-shield-halved"></i> Detalhamento da Cobertura de Seguro</h4>
+                    </div>
+                    <div class="form-group">
+                        <label>Seguradora</label>
+                        <input type="text" class="form-control" name="seguradora" value="${isEdit && vehicle.seguradora ? vehicle.seguradora : ''}" placeholder="Ex: Porto Seguro, Azul">
+                    </div>
+                    <div class="form-group">
+                        <label>Número da Apólice</label>
+                        <input type="text" class="form-control" name="apolice" value="${isEdit && vehicle.apolice ? vehicle.apolice : ''}" placeholder="Ex: AP-890234">
+                    </div>
+                    <div class="form-group">
+                        <label>Valor Mensal do Seguro (R$)</label>
+                        <input type="number" class="form-control" name="valorMensalSeguro" step="0.01" min="0" value="${isEdit && vehicle.valorMensalSeguro ? vehicle.valorMensalSeguro : ''}" placeholder="Ex: 350.00">
+                    </div>
+                    <div class="form-group">
+                        <label>Data de Vencimento do Boleto Mensal</label>
+                        <input type="date" class="form-control" name="vencimentoBoletoSeguro" value="${isEdit && vehicle.vencimentoBoletoSeguro ? vehicle.vencimentoBoletoSeguro : ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>Início do Contrato</label>
+                        <input type="date" class="form-control" name="inicioContratoSeguro" value="${isEdit && vehicle.inicioContratoSeguro ? vehicle.inicioContratoSeguro : ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>Validade do Contrato (Expiração)</label>
+                        <input type="date" class="form-control" name="validadeContratoSeguro" value="${isEdit && vehicle.validadeContratoSeguro ? vehicle.validadeContratoSeguro : ''}">
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Contrato do Seguro (PDF ou Imagem)</label>
+                        <div class="file-upload-area" id="veh-seg-upload-trigger" style="margin-top: 4px; cursor: pointer; padding: 16px;">
+                            <i class="fa-solid fa-file-shield"></i>
+                            <span class="file-upload-text" id="veh-seg-upload-text" style="font-size:0.8rem;">
+                                ${isEdit && vehicle.contratoSeguroAnexo ? `<strong class="text-success"><i class="fa-solid fa-circle-check"></i> ${vehicle.contratoSeguroAnexo.split('/').pop()}</strong>` : 'Arraste ou clique para anexar o Contrato de Seguro'}
+                            </span>
+                            <input type="file" id="veh-seg-file-input" style="display:none;" accept="image/*,application/pdf">
+                        </div>
+                        <input type="hidden" name="contratoSeguroAnexo" id="veh-seg-anexo-url" value="${isEdit && vehicle.contratoSeguroAnexo ? vehicle.contratoSeguroAnexo : ''}">
+                        
+                        <div id="veh-seg-actions" style="display:${isEdit && vehicle.contratoSeguroAnexo ? 'flex' : 'none'}; gap:12px; margin-top:8px; align-items:center;">
+                            <a href="${isEdit && vehicle.contratoSeguroAnexo ? vehicle.contratoSeguroAnexo : '#'}" id="btn-visualizar-seg" target="_blank" class="btn btn-secondary" style="height:32px; padding:0 12px; font-size:0.75rem; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                                <i class="fa-solid fa-eye"></i> Visualizar
+                            </a>
+                            <button type="button" class="btn btn-danger" id="btn-remover-seg" style="height:32px; padding:0 12px; font-size:0.75rem; display:inline-flex; align-items:center; gap:6px;">
+                                <i class="fa-solid fa-trash"></i> Remover
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Observações do Seguro</label>
+                        <textarea class="form-control" name="observacoesSeguro" placeholder="Cobertura total, contra terceiros, reboque ilimitado...">${isEdit && vehicle.observacoesSeguro ? vehicle.observacoesSeguro : ''}</textarea>
+                    </div>
+                </div>
+
                 <div class="form-group full-width">
                     <label>Observações</label>
                     <textarea class="form-control" name="observacoes" placeholder="Anotações gerais sobre o veículo">${isEdit && vehicle.observacoes ? vehicle.observacoes : ''}</textarea>
@@ -357,25 +448,165 @@
 
         modal.classList.add('active');
 
+        // Dynamic visibility logic
+        const possuiSeguroSel = document.getElementById('veh-possui-seguro');
+        const insuranceContainer = document.getElementById('insurance-fields-container');
+
+        if (possuiSeguroSel && insuranceContainer) {
+            possuiSeguroSel.addEventListener('change', () => {
+                if (possuiSeguroSel.value === 'Sim') {
+                    insuranceContainer.style.display = 'grid';
+                } else {
+                    insuranceContainer.style.display = 'none';
+                    // clear fields
+                    document.querySelectorAll('#insurance-fields-container input').forEach(input => input.value = '');
+                    document.querySelectorAll('#insurance-fields-container textarea').forEach(txt => txt.value = '');
+                    document.getElementById('veh-seg-anexo-url').value = '';
+                    document.getElementById('veh-seg-upload-text').innerText = 'Arraste ou clique para anexar o Contrato de Seguro';
+                    document.getElementById('veh-seg-actions').style.display = 'none';
+                }
+            });
+        }
+
+        // CRLV File Upload logic
+        const crlvTrigger = document.getElementById('veh-crlv-upload-trigger');
+        const crlvFileInput = document.getElementById('veh-crlv-file-input');
+        const crlvUploadText = document.getElementById('veh-crlv-upload-text');
+        const crlvAnexoUrl = document.getElementById('veh-crlv-anexo-url');
+        const crlvActions = document.getElementById('veh-crlv-actions');
+        const btnVerCrlv = document.getElementById('btn-visualizar-crlv');
+        const btnRemCrlv = document.getElementById('btn-remover-crlv');
+
+        if (crlvTrigger && crlvFileInput) {
+            crlvTrigger.addEventListener('click', () => crlvFileInput.click());
+            crlvFileInput.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                try {
+                    crlvUploadText.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
+                    crlvTrigger.style.pointerEvents = 'none';
+
+                    const res = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!res.ok) {
+                        const err = await res.json();
+                        throw new Error(err.error || 'Erro no upload.');
+                    }
+
+                    const result = await res.json();
+                    crlvAnexoUrl.value = result.url;
+                    crlvUploadText.innerHTML = `<strong class="text-success"><i class="fa-solid fa-circle-check"></i> ${result.name}</strong>`;
+                    
+                    btnVerCrlv.href = result.url;
+                    crlvActions.style.display = 'flex';
+
+                    window.movixApp.showToast('Documento CRLV anexado!', 'success');
+                } catch (err) {
+                    console.error(err);
+                    window.movixApp.showToast(err.message || 'Erro ao enviar CRLV.', 'danger');
+                    crlvUploadText.innerText = 'Arraste ou clique para anexar o CRLV';
+                } finally {
+                    crlvTrigger.style.pointerEvents = 'auto';
+                }
+            });
+        }
+
+        if (btnRemCrlv) {
+            btnRemCrlv.addEventListener('click', () => {
+                crlvAnexoUrl.value = '';
+                crlvUploadText.innerText = 'Arraste ou clique para anexar o CRLV';
+                crlvActions.style.display = 'none';
+                crlvFileInput.value = '';
+                window.movixApp.showToast('CRLV removido.', 'info');
+            });
+        }
+
+        // Insurance File Upload logic
+        const segTrigger = document.getElementById('veh-seg-upload-trigger');
+        const segFileInput = document.getElementById('veh-seg-file-input');
+        const segUploadText = document.getElementById('veh-seg-upload-text');
+        const segAnexoUrl = document.getElementById('veh-seg-anexo-url');
+        const segActions = document.getElementById('veh-seg-actions');
+        const btnVerSeg = document.getElementById('btn-visualizar-seg');
+        const btnRemSeg = document.getElementById('btn-remover-seg');
+
+        if (segTrigger && segFileInput) {
+            segTrigger.addEventListener('click', () => segFileInput.click());
+            segFileInput.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                try {
+                    segUploadText.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
+                    segTrigger.style.pointerEvents = 'none';
+
+                    const res = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!res.ok) {
+                        const err = await res.json();
+                        throw new Error(err.error || 'Erro no upload.');
+                    }
+
+                    const result = await res.json();
+                    segAnexoUrl.value = result.url;
+                    segUploadText.innerHTML = `<strong class="text-success"><i class="fa-solid fa-circle-check"></i> ${result.name}</strong>`;
+                    
+                    btnVerSeg.href = result.url;
+                    segActions.style.display = 'flex';
+
+                    window.movixApp.showToast('Contrato de Seguro anexado!', 'success');
+                } catch (err) {
+                    console.error(err);
+                    window.movixApp.showToast(err.message || 'Erro ao enviar Contrato.', 'danger');
+                    segUploadText.innerText = 'Arraste ou clique para anexar o Contrato de Seguro';
+                } finally {
+                    segTrigger.style.pointerEvents = 'auto';
+                }
+            });
+        }
+
+        if (btnRemSeg) {
+            btnRemSeg.addEventListener('click', () => {
+                segAnexoUrl.value = '';
+                segUploadText.innerText = 'Arraste ou clique para anexar o Contrato de Seguro';
+                segActions.style.display = 'none';
+                segFileInput.value = '';
+                window.movixApp.showToast('Contrato de seguro removido.', 'info');
+            });
+        }
+
         // Modal Action logic
         const saveBtn = document.getElementById('btn-salvar-modal');
         const cancelBtn = document.getElementById('btn-cancelar-modal');
-
+ 
         const closeModal = () => modal.classList.remove('active');
-
+ 
         cancelBtn.addEventListener('click', closeModal);
-
+ 
         saveBtn.addEventListener('click', async () => {
             const form = document.getElementById('form-veiculo');
             if (!form.checkValidity()) {
                 form.reportValidity();
                 return;
             }
-
+ 
             const formData = new FormData(form);
             const data = {};
             formData.forEach((value, key) => data[key] = value);
-
+ 
             try {
                 if (isEdit) {
                     data.historicoKM = vehicle.historicoKM;
@@ -574,6 +805,31 @@
                         <li class="detail-sidebar-info-item"><span>Renavam</span><strong style="font-size:0.75rem;">${vehicle.renavam || '-'}</strong></li>
                         <li class="detail-sidebar-info-item"><span>Chassi</span><strong style="font-size:0.75rem;">${vehicle.chassi || '-'}</strong></li>
                     </ul>
+
+                    <!-- DOCUMENTOS ANEXOS SIDEBAR BUTTONS -->
+                    <div style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+                        <h4 style="font-size:0.85rem; font-family:var(--font-heading); color:var(--text-muted); text-transform:uppercase; margin-bottom:12px;"><i class="fa-solid fa-paperclip"></i> Documentos Anexos</h4>
+                        <div style="display:flex; flex-direction:column; gap:8px;">
+                            ${vehicle.docVeiculoAnexo ? `
+                                <a href="${vehicle.docVeiculoAnexo}" target="_blank" class="btn btn-secondary" style="font-size:0.75rem; text-decoration:none; padding:8px 12px; display:inline-flex; align-items:center; gap:8px; justify-content:center; width:100%;">
+                                    <i class="fa-solid fa-file-pdf text-danger"></i> Visualizar CRLV
+                                </a>
+                            ` : `
+                                <div style="font-size:0.75rem; color:var(--text-muted); text-align:center; padding:8px; border:1px dashed var(--border-color); border-radius:var(--border-radius-sm);">
+                                    CRLV não anexado
+                                </div>
+                            `}
+                            ${vehicle.contratoSeguroAnexo ? `
+                                <a href="${vehicle.contratoSeguroAnexo}" target="_blank" class="btn btn-secondary" style="font-size:0.75rem; text-decoration:none; padding:8px 12px; display:inline-flex; align-items:center; gap:8px; justify-content:center; width:100%;">
+                                    <i class="fa-solid fa-file-shield text-primary"></i> Contrato de Seguro
+                                </a>
+                            ` : (vehicle.possuiSeguro === 'Sim' ? `
+                                <div style="font-size:0.75rem; color:var(--text-muted); text-align:center; padding:8px; border:1px dashed var(--border-color); border-radius:var(--border-radius-sm);">
+                                    Contrato não anexado
+                                </div>
+                            ` : '')}
+                        </div>
+                    </div>
                 </aside>
 
                 <!-- DETAILED TABS CONTENT PANEL -->
@@ -584,6 +840,9 @@
                         <button class="detail-tab-btn active" data-tab="tab-timeline"><i class="fa-solid fa-timeline"></i> Timeline da Vida Útil</button>
                         <button class="detail-tab-btn" data-tab="tab-financeiro"><i class="fa-solid fa-file-invoice-dollar"></i> Balanço Financeiro</button>
                         <button class="detail-tab-btn" data-tab="tab-historicos"><i class="fa-solid fa-clock-rotate-left"></i> Histórico Detalhado</button>
+                        ${vehicle.possuiSeguro === 'Sim' ? `
+                            <button class="detail-tab-btn" data-tab="tab-seguro"><i class="fa-solid fa-shield-halved"></i> Cobertura de Seguro</button>
+                        ` : ''}
                     </div>
 
                     <!-- TIMELINE PANE -->
@@ -626,6 +885,93 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- INSURANCE COV PANE -->
+                    ${vehicle.possuiSeguro === 'Sim' ? `
+                    <div class="detail-tab-pane" id="tab-seguro">
+                        <div class="card">
+                            <div class="card-header-simple" style="display:flex; justify-content:space-between; align-items:center;">
+                                <div>
+                                    <h3 style="margin:0;"><i class="fa-solid fa-shield-halved text-primary"></i> Detalhes do Seguro Ativo</h3>
+                                    <p style="font-size:0.8rem; color:var(--text-muted); margin:4px 0 0 0;">Informações da apólice, vigência e custos mensais</p>
+                                </div>
+                                <div>
+                                    ${(() => {
+                                        if (!vehicle.validadeContratoSeguro) return '<span class="status-pill status-gray">Vigência Indefinida</span>';
+                                        const expDate = new Date(vehicle.validadeContratoSeguro + 'T23:59:59');
+                                        const now = new Date();
+                                        now.setHours(0,0,0,0);
+                                        expDate.setHours(0,0,0,0);
+                                        if (expDate < now) {
+                                            return '<span class="status-pill text-danger" style="background:rgba(239,68,68,0.1); border:1px solid var(--danger); font-weight:700;"><i class="fa-solid fa-triangle-exclamation"></i> Contrato Expirado</span>';
+                                        } else {
+                                            return '<span class="status-pill text-success" style="background:rgba(34,197,94,0.1); border:1px solid var(--success); font-weight:700;"><i class="fa-solid fa-circle-check"></i> Contrato Ativo</span>';
+                                        }
+                                    })()}
+                                </div>
+                            </div>
+
+                            <div style="margin-top: 24px;">
+                                <div class="grid-2" style="gap: 20px;">
+                                    <div>
+                                        <h4 style="font-size:0.95rem; font-family:var(--font-heading); color:var(--text-main); border-bottom:1px solid var(--border-color); padding-bottom:8px; margin-bottom:12px;">Informações Gerais</h4>
+                                        <ul class="detail-sidebar-info-list" style="border:none; padding:0; gap:12px; font-size:0.9rem;">
+                                            <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Seguradora</span><strong>${vehicle.seguradora || '-'}</strong></li>
+                                            <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Nº Apólice</span><strong>${vehicle.apolice || '-'}</strong></li>
+                                            <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Custo Mensal</span><strong>R$ ${(parseFloat(vehicle.valorMensalSeguro) || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong></li>
+                                            <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Próximo Boleto</span><strong>${vehicle.vencimentoBoletoSeguro ? vehicle.vencimentoBoletoSeguro.split('-').reverse().join('/') : '-'}</strong></li>
+                                        </ul>
+                                    </div>
+
+                                    <div>
+                                        <h4 style="font-size:0.95rem; font-family:var(--font-heading); color:var(--text-main); border-bottom:1px solid var(--border-color); padding-bottom:8px; margin-bottom:12px;">Vigência do Contrato</h4>
+                                        <div style="background:var(--bg-light); border-radius:var(--border-radius-md); padding:16px; margin-bottom:16px;">
+                                            <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:var(--text-muted); margin-bottom:8px;">
+                                                <span>Início da Cobertura</span>
+                                                <span>Fim da Cobertura</span>
+                                            </div>
+                                            <div style="display:flex; justify-content:space-between; font-weight:700; color:var(--text-main); font-size:0.95rem; margin-bottom:12px;">
+                                                <span>${vehicle.inicioContratoSeguro ? vehicle.inicioContratoSeguro.split('-').reverse().join('/') : '-'}</span>
+                                                <span>${vehicle.validadeContratoSeguro ? vehicle.validadeContratoSeguro.split('-').reverse().join('/') : '-'}</span>
+                                            </div>
+                                            <!-- Simple timeline bar -->
+                                            <div style="background:var(--border-color); height:6px; border-radius:3px; position:relative; overflow:hidden;">
+                                                ${(() => {
+                                                    if (!vehicle.inicioContratoSeguro || !vehicle.validadeContratoSeguro) return '';
+                                                    const start = new Date(vehicle.inicioContratoSeguro + 'T00:00:00');
+                                                    const end = new Date(vehicle.validadeContratoSeguro + 'T23:59:59');
+                                                    const now = new Date();
+                                                    if (now < start) return '<div style="background:var(--primary); width:0%; height:100%;"></div>';
+                                                    if (now > end) return '<div style="background:var(--danger); width:100%; height:100%;"></div>';
+                                                    const total = end - start;
+                                                    const elapsed = now - start;
+                                                    const percent = Math.min(100, Math.max(0, (elapsed / total) * 100));
+                                                    return `<div style="background:var(--primary); width:${percent}%; height:100%; transition: width 0.3s ease;"></div>`;
+                                                })()}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style="margin-top:20px; border-top:1px solid var(--border-color); padding-top:16px;">
+                                    <h4 style="font-size:0.95rem; font-family:var(--font-heading); color:var(--text-main); margin-bottom:8px;">Observações da Cobertura</h4>
+                                    <p style="font-size:0.85rem; color:var(--text-muted); background:var(--bg-light); padding:12px; border-radius:var(--border-radius-sm); border-left:3px solid var(--border-color); white-space:pre-wrap; margin:0;">${vehicle.observacoesSeguro || 'Nenhuma observação registrada para a cobertura de seguro.'}</p>
+                                </div>
+
+                                ${vehicle.contratoSeguroAnexo ? `
+                                <div style="margin-top:20px; display:flex; gap:12px;">
+                                    <a href="${vehicle.contratoSeguroAnexo}" target="_blank" class="btn btn-secondary" style="font-size:0.8rem; text-decoration:none; display:inline-flex; align-items:center; gap:8px;">
+                                        <i class="fa-solid fa-eye"></i> Visualizar Apólice Anexa
+                                    </a>
+                                    <a href="${vehicle.contratoSeguroAnexo}" download class="btn btn-secondary" style="font-size:0.8rem; text-decoration:none; display:inline-flex; align-items:center; gap:8px;">
+                                        <i class="fa-solid fa-download"></i> Baixar Arquivo
+                                    </a>
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
 
                     <!-- HISTORICAL PANE -->
                     <div class="detail-tab-pane" id="tab-historicos">
