@@ -740,6 +740,8 @@ class MovixStore {
                     }
                 }
             }
+        });
+
         // 7. Tracker Alerts (Rastreadores)
         this.state.veiculos.forEach(v => {
             const isMotorized = v.tipoUnidade !== 'Implemento/Reboque';
