@@ -161,18 +161,20 @@
                 else if (v.status === 'em_manutencao') statusLabel = '<span class="status-pill em_manutencao">Em Oficina</span>';
                 else statusLabel = '<span class="status-pill inativo">Inativo</span>';
 
+                const isTrailer = v.tipoUnidade === 'Implemento/Reboque';
+
                 tbody.innerHTML += `
                     <tr>
                         <td style="font-weight: 700; color: var(--primary);">${v.placa}</td>
                         <td>
                             <div style="display:flex; flex-direction:column;">
                                 <span style="font-weight: 600;">${v.marca} ${v.modelo}</span>
-                                <span style="font-size:0.75rem; color:var(--text-muted);">${v.ano} • ${v.cor}</span>
+                                <span style="font-size:0.75rem; color:var(--text-muted);">${v.ano} • ${v.cor} ${isTrailer ? '• <span class="status-pill warning" style="font-size:0.55rem; padding:1px 4px; line-height:1;">Reboque</span>' : ''}</span>
                             </div>
                         </td>
-                        <td>${v.tipo}</td>
-                        <td>${v.combustivel}</td>
-                        <td style="font-weight: 600;">${parseFloat(v.kmAtual).toLocaleString('pt-BR')} km</td>
+                        <td>${isTrailer ? `Reboque (${v.tipoImplemento || 'Outro'})` : (v.tipo || '-')}</td>
+                        <td>${isTrailer ? '-' : (v.combustivel || '-')}</td>
+                        <td style="font-weight: 600;">${isTrailer ? '-' : `${parseFloat(v.kmAtual || 0).toLocaleString('pt-BR')} km`}</td>
                         <td>${statusLabel}</td>
                         <td style="text-align: center; display: flex; justify-content: center; gap: 8px;">
                             <button class="btn-icon-only" onclick="window.movixRouter.navigateTo('veiculos', '${v.id}')" title="Ver Ficha de Vida Útil">
@@ -281,6 +283,15 @@
 
         modalBody.innerHTML = `
             <form id="form-veiculo" class="form-grid">
+                <!-- TIPO DA UNIDADE -->
+                <div class="form-group full-width" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 8px;">
+                    <label>Tipo da Unidade <span class="required">*</span></label>
+                    <select class="form-control" name="tipoUnidade" id="veh-tipo-unidade" required>
+                        <option value="Veículo Motorizado" ${isEdit && vehicle.tipoUnidade === 'Veículo Motorizado' ? 'selected' : (!isEdit ? 'selected' : '')}>Veículo Motorizado</option>
+                        <option value="Implemento/Reboque" ${isEdit && vehicle.tipoUnidade === 'Implemento/Reboque' ? 'selected' : ''}>Implemento/Reboque</option>
+                    </select>
+                </div>
+
                 <div class="form-group">
                     <label>Marca <span class="required">*</span></label>
                     <input type="text" class="form-control" name="marca" required value="${isEdit ? vehicle.marca : ''}" placeholder="Ex: Scania, Chevrolet">
@@ -298,31 +309,63 @@
                     <input type="text" class="form-control" name="cor" required value="${isEdit ? vehicle.cor : ''}" placeholder="Ex: Branco, Preto">
                 </div>
                 <div class="form-group">
-                    <label>Tipo de Veículo <span class="required">*</span></label>
-                    <select class="form-control" name="tipo" required>
-                        <option value="Caminhão" ${isEdit && vehicle.tipo === 'Caminhão' ? 'selected' : ''}>Caminhão</option>
-                        <option value="Van/Furgão" ${isEdit && vehicle.tipo === 'Van/Furgão' ? 'selected' : ''}>Van/Furgão</option>
-                        <option value="Utilitário" ${isEdit && vehicle.tipo === 'Utilitário' ? 'selected' : ''}>Utilitário</option>
-                        <option value="Passeio" ${isEdit && vehicle.tipo === 'Passeio' ? 'selected' : ''}>Passeio</option>
-                        <option value="Picape" ${isEdit && vehicle.tipo === 'Picape' ? 'selected' : ''}>Picape</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Combustível <span class="required">*</span></label>
-                    <select class="form-control" name="combustivel" required>
-                        <option value="Diesel" ${isEdit && vehicle.combustivel === 'Diesel' ? 'selected' : ''}>Diesel</option>
-                        <option value="Flex" ${isEdit && vehicle.combustivel === 'Flex' ? 'selected' : ''}>Flex</option>
-                        <option value="Gasolina" ${isEdit && vehicle.combustivel === 'Gasolina' ? 'selected' : ''}>Gasolina</option>
-                    </select>
-                </div>
-                <div class="form-group">
                     <label>Placa <span class="required">*</span></label>
                     <input type="text" class="form-control" name="placa" required placeholder="AAA-0000 / ABC1D23" value="${isEdit ? vehicle.placa : ''}" ${isEdit ? 'readonly' : ''}>
                 </div>
                 <div class="form-group">
-                    <label>KM Atual <span class="required">*</span></label>
-                    <input type="number" class="form-control" name="kmAtual" required value="${isEdit ? vehicle.kmAtual : ''}" placeholder="Odômetro" min="0">
+                    <label>Quantidade de Eixos <span class="required">*</span></label>
+                    <input type="number" class="form-control" name="qtdEixos" required min="1" max="10" value="${isEdit ? (vehicle.qtdEixos || 2) : 2}">
                 </div>
+
+                <!-- MOTORIZED VEHICLE FIELDS -->
+                <div id="motorized-fields-container" style="grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label>Tipo de Veículo <span class="required">*</span></label>
+                        <select class="form-control" name="tipo" id="veh-tipo-motorizado" required>
+                            <option value="Caminhão" ${isEdit && vehicle.tipo === 'Caminhão' ? 'selected' : ''}>Caminhão</option>
+                            <option value="Van/Furgão" ${isEdit && vehicle.tipo === 'Van/Furgão' ? 'selected' : ''}>Van/Furgão</option>
+                            <option value="Utilitário" ${isEdit && vehicle.tipo === 'Utilitário' ? 'selected' : ''}>Utilitário</option>
+                            <option value="Passeio" ${isEdit && vehicle.tipo === 'Passeio' ? 'selected' : ''}>Passeio</option>
+                            <option value="Picape" ${isEdit && vehicle.tipo === 'Picape' ? 'selected' : ''}>Picape</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Combustível <span class="required">*</span></label>
+                        <select class="form-control" name="combustivel" id="veh-combustivel" required>
+                            <option value="Diesel" ${isEdit && vehicle.combustivel === 'Diesel' ? 'selected' : ''}>Diesel</option>
+                            <option value="Flex" ${isEdit && vehicle.combustivel === 'Flex' ? 'selected' : ''}>Flex</option>
+                            <option value="Gasolina" ${isEdit && vehicle.combustivel === 'Gasolina' ? 'selected' : ''}>Gasolina</option>
+                        </select>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>KM Atual <span class="required">*</span></label>
+                        <input type="number" class="form-control" name="kmAtual" id="veh-kmatual" required value="${isEdit ? vehicle.kmAtual : ''}" placeholder="Odômetro" min="0">
+                    </div>
+                </div>
+
+                <!-- TRAILER/IMPLEMENT FIELDS -->
+                <div id="trailer-fields-container" style="grid-column: span 2; display: none; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label>Tipo do Implemento <span class="required">*</span></label>
+                        <select class="form-control" name="tipoImplemento" id="veh-tipo-implemento">
+                            <option value="Carrocinha" ${isEdit && vehicle.tipoImplemento === 'Carrocinha' ? 'selected' : ''}>Carrocinha</option>
+                            <option value="Reboque" ${isEdit && vehicle.tipoImplemento === 'Reboque' ? 'selected' : ''}>Reboque</option>
+                            <option value="Carreta" ${isEdit && vehicle.tipoImplemento === 'Carreta' ? 'selected' : ''}>Carreta</option>
+                            <option value="Semirreboque" ${isEdit && vehicle.tipoImplemento === 'Semirreboque' ? 'selected' : ''}>Semirreboque</option>
+                            <option value="Trailer" ${isEdit && vehicle.tipoImplemento === 'Trailer' ? 'selected' : ''}>Trailer</option>
+                            <option value="Outro" ${isEdit && vehicle.tipoImplemento === 'Outro' ? 'selected' : ''}>Outro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Quantidade de Pneus <span class="required">*</span></label>
+                        <input type="number" class="form-control" name="qtdPneus" id="veh-qtdpneus" min="1" value="${isEdit ? vehicle.qtdPneus : ''}" placeholder="Ex: 4, 6, 8, 12">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Capacidade de Carga (kg) <span class="required">*</span></label>
+                        <input type="number" class="form-control" name="capacidadeCarga" id="veh-capacidade" min="0" value="${isEdit ? vehicle.capacidadeCarga : ''}" placeholder="Ex: 15000">
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label>Renavam</label>
                     <input type="text" class="form-control" name="renavam" value="${isEdit && vehicle.renavam ? vehicle.renavam : ''}" placeholder="Apenas números">
@@ -343,7 +386,7 @@
                         <option value="inativo" ${isEdit && vehicle.status === 'inativo' ? 'selected' : ''}>Inativo</option>
                     </select>
                 </div>
-                <div class="form-group">
+                <div class="form-group full-width">
                     <label>Possui Seguro Ativo? <span class="required">*</span></label>
                     <select class="form-control" name="possuiSeguro" id="veh-possui-seguro" required>
                         <option value="Não" ${isEdit && vehicle.possuiSeguro === 'Não' ? 'selected' : ''}>Não</option>
@@ -448,7 +491,51 @@
 
         modal.classList.add('active');
 
-        // Dynamic visibility logic
+        // Dynamic visibility logic for unit type
+        const tipoUnidadeSel = document.getElementById('veh-tipo-unidade');
+        const motorizedContainer = document.getElementById('motorized-fields-container');
+        const trailerContainer = document.getElementById('trailer-fields-container');
+
+        const vehTipoMotorizado = document.getElementById('veh-tipo-motorizado');
+        const vehCombustivel = document.getElementById('veh-combustivel');
+        const vehKmAtual = document.getElementById('veh-kmatual');
+
+        const vehTipoImplemento = document.getElementById('veh-tipo-implemento');
+        const vehQtdPneus = document.getElementById('veh-qtdpneus');
+        const vehCapacidade = document.getElementById('veh-capacidade');
+
+        const handleTipoUnidadeToggle = () => {
+            if (tipoUnidadeSel.value === 'Implemento/Reboque') {
+                motorizedContainer.style.display = 'none';
+                trailerContainer.style.display = 'grid';
+
+                vehTipoMotorizado.removeAttribute('required');
+                vehCombustivel.removeAttribute('required');
+                vehKmAtual.removeAttribute('required');
+
+                vehTipoImplemento.setAttribute('required', '');
+                vehQtdPneus.setAttribute('required', '');
+                vehCapacidade.setAttribute('required', '');
+            } else {
+                motorizedContainer.style.display = 'grid';
+                trailerContainer.style.display = 'none';
+
+                vehTipoMotorizado.setAttribute('required', '');
+                vehCombustivel.setAttribute('required', '');
+                vehKmAtual.setAttribute('required', '');
+
+                vehTipoImplemento.removeAttribute('required');
+                vehQtdPneus.removeAttribute('required');
+                vehCapacidade.removeAttribute('required');
+            }
+        };
+
+        if (tipoUnidadeSel) {
+            tipoUnidadeSel.addEventListener('change', handleTipoUnidadeToggle);
+            handleTipoUnidadeToggle();
+        }
+
+        // Dynamic visibility logic for insurance
         const possuiSeguroSel = document.getElementById('veh-possui-seguro');
         const insuranceContainer = document.getElementById('insurance-fields-container');
 
@@ -797,8 +884,16 @@
 
                     <ul class="detail-sidebar-info-list">
                         <li class="detail-sidebar-info-item"><span>Placa</span><strong>${vehicle.placa}</strong></li>
-                        <li class="detail-sidebar-info-item"><span>Combustível</span><strong>${vehicle.combustivel}</strong></li>
-                        <li class="detail-sidebar-info-item"><span>KM Atual</span><strong>${vehicle.kmAtual.toLocaleString('pt-BR')} km</strong></li>
+                        ${vehicle.tipoUnidade === 'Implemento/Reboque' ? `
+                            <li class="detail-sidebar-info-item"><span>Tipo Implemento</span><strong>${vehicle.tipoImplemento || 'Reboque'}</strong></li>
+                            <li class="detail-sidebar-info-item"><span>Qtd. Eixos</span><strong>${vehicle.qtdEixos || 2}</strong></li>
+                            <li class="detail-sidebar-info-item"><span>Qtd. Pneus</span><strong>${vehicle.qtdPneus || '-'}</strong></li>
+                            <li class="detail-sidebar-info-item"><span>Capacidade</span><strong>${vehicle.capacidadeCarga ? `${parseFloat(vehicle.capacidadeCarga).toLocaleString('pt-BR')} kg` : '-'}</strong></li>
+                        ` : `
+                            <li class="detail-sidebar-info-item"><span>Combustível</span><strong>${vehicle.combustivel || '-'}</strong></li>
+                            <li class="detail-sidebar-info-item"><span>KM Atual</span><strong>${parseFloat(vehicle.kmAtual || 0).toLocaleString('pt-BR')} km</strong></li>
+                            <li class="detail-sidebar-info-item"><span>Qtd. Eixos</span><strong>${vehicle.qtdEixos || 2}</strong></li>
+                        `}
                         <li class="detail-sidebar-info-item"><span>Ano/Modelo</span><strong>${vehicle.ano}</strong></li>
                         <li class="detail-sidebar-info-item"><span>Cor</span><strong>${vehicle.cor}</strong></li>
                         <li class="detail-sidebar-info-item"><span>Aquisição</span><strong>${vehicle.dataAquisicao ? vehicle.dataAquisicao.split('-').reverse().join('/') : '-'}</strong></li>
@@ -860,30 +955,44 @@
 
                     <!-- FINANCIAL BALANCING PANE -->
                     <div class="detail-tab-pane" id="tab-financeiro">
-                        <div class="grid-2">
-                            <div class="card">
+                        ${vehicle.tipoUnidade === 'Implemento/Reboque' ? `
+                            <div class="card" style="max-width: 600px; margin: 0 auto;">
                                 <div class="card-header-simple">
-                                    <h3>Balanço Acumulado de Despesas</h3>
+                                    <h3>Balanço Acumulado de Despesas (Implemento)</h3>
                                     <i class="fa-solid fa-coins text-muted"></i>
                                 </div>
                                 <ul class="detail-sidebar-info-list" style="border:none; padding:0; font-size:0.9rem; gap:16px;">
-                                    <li class="detail-sidebar-info-item"><span>Gasto Combustível</span><strong>R$ ${totalFuelSpent.toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong></li>
                                     <li class="detail-sidebar-info-item"><span>Gasto Oficina/Peças</span><strong>R$ ${totalMaintenanceSpent.toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong></li>
-                                    <li class="detail-sidebar-info-item"><span>Gasto Lubrificantes (Óleo)</span><strong>R$ ${totalOilSpent.toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong></li>
                                     <li class="detail-sidebar-info-item"><span>Custos Operacionais de Viagem</span><strong>R$ ${totalTripsCost.toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong></li>
-                                    <li class="detail-sidebar-info-item" style="border-top:2px solid var(--border-color); padding-top:16px; font-weight:700;"><span>Total de Custos de Vida</span><strong class="text-danger" style="font-size:1.15rem;">R$ ${combinedVehicleCost.toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong></li>
+                                    <li class="detail-sidebar-info-item" style="border-top:2px solid var(--border-color); padding-top:16px; font-weight:700;"><span>Total de Custos de Vida</span><strong class="text-danger" style="font-size:1.15rem;">R$ ${(totalMaintenanceSpent + totalTripsCost).toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong></li>
                                 </ul>
                             </div>
+                        ` : `
+                            <div class="grid-2">
+                                <div class="card">
+                                    <div class="card-header-simple">
+                                        <h3>Balanço Acumulado de Despesas</h3>
+                                        <i class="fa-solid fa-coins text-muted"></i>
+                                    </div>
+                                    <ul class="detail-sidebar-info-list" style="border:none; padding:0; font-size:0.9rem; gap:16px;">
+                                        <li class="detail-sidebar-info-item"><span>Gasto Combustível</span><strong>R$ ${totalFuelSpent.toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong></li>
+                                        <li class="detail-sidebar-info-item"><span>Gasto Oficina/Peças</span><strong>R$ ${totalMaintenanceSpent.toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong></li>
+                                        <li class="detail-sidebar-info-item"><span>Gasto Lubrificantes (Óleo)</span><strong>R$ ${totalOilSpent.toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong></li>
+                                        <li class="detail-sidebar-info-item"><span>Custos Operacionais de Viagem</span><strong>R$ ${totalTripsCost.toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong></li>
+                                        <li class="detail-sidebar-info-item" style="border-top:2px solid var(--border-color); padding-top:16px; font-weight:700;"><span>Total de Custos de Vida</span><strong class="text-danger" style="font-size:1.15rem;">R$ ${combinedVehicleCost.toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong></li>
+                                    </ul>
+                                </div>
 
-                            <div class="card" style="justify-content: center; align-items: center; text-align: center;">
-                                <i class="fa-solid fa-calculator text-primary" style="font-size:3rem; margin-bottom:12px;"></i>
-                                <h3>Custo médio por KM Rodado</h3>
-                                <p style="font-size:2rem; font-weight:800; font-family:var(--font-heading); margin:12px 0; color:var(--text-main);">
-                                    R$ ${(vehicle.kmAtual > 0 ? (combinedVehicleCost / vehicle.kmAtual) : 0).toFixed(2)} / km
-                                </p>
-                                <p style="font-size:0.8rem; color:var(--text-muted);">Estimado dividindo o total gasto acumulado pela quilometragem atual do odômetro.</p>
+                                <div class="card" style="justify-content: center; align-items: center; text-align: center;">
+                                    <i class="fa-solid fa-calculator text-primary" style="font-size:3rem; margin-bottom:12px;"></i>
+                                    <h3>Custo médio por KM Rodado</h3>
+                                    <p style="font-size:2rem; font-weight:800; font-family:var(--font-heading); margin:12px 0; color:var(--text-main);">
+                                        R$ ${(vehicle.kmAtual > 0 ? (combinedVehicleCost / vehicle.kmAtual) : 0).toFixed(2)} / km
+                                    </p>
+                                    <p style="font-size:0.8rem; color:var(--text-muted);">Estimado dividindo o total gasto acumulado pela quilometragem atual do odômetro.</p>
+                                </div>
                             </div>
-                        </div>
+                        `}
                     </div>
 
                     <!-- INSURANCE COV PANE -->
@@ -981,32 +1090,34 @@
                                 <i class="fa-solid fa-list-check text-muted"></i>
                             </div>
 
-                            <!-- Supply table -->
-                            <h4 style="font-family:var(--font-heading); margin-top:12px; border-left:3px solid var(--success); padding-left:8px;">Abastecimentos Recentes</h4>
-                            <div class="table-responsive" style="margin-top:8px;">
-                                <table class="smart-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Data</th>
-                                            <th>Litros</th>
-                                            <th>Valor Total</th>
-                                            <th>KM/L</th>
-                                            <th>Posto</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${fuel.length === 0 ? '<tr><td colspan="5" style="text-align:center;">Sem registros</td></tr>' : fuel.map(f => `
+                            ${vehicle.tipoUnidade === 'Implemento/Reboque' ? '' : `
+                                <!-- Supply table -->
+                                <h4 style="font-family:var(--font-heading); margin-top:12px; border-left:3px solid var(--success); padding-left:8px;">Abastecimentos Recentes</h4>
+                                <div class="table-responsive" style="margin-top:8px;">
+                                    <table class="smart-table">
+                                        <thead>
                                             <tr>
-                                                <td>${f.data.split('-').reverse().join('/')}</td>
-                                                <td>${f.litros} L</td>
-                                                <td style="font-weight:600;">R$ ${f.valorTotal.toFixed(2)}</td>
-                                                <td class="text-success" style="font-weight:700;">${f.kmL} km/L</td>
-                                                <td>${f.posto}</td>
+                                                <th>Data</th>
+                                                <th>Litros</th>
+                                                <th>Valor Total</th>
+                                                <th>KM/L</th>
+                                                <th>Posto</th>
                                             </tr>
-                                        `).join('')}
-                                    </tbody>
-                                </table>
-                            </div>
+                                        </thead>
+                                        <tbody>
+                                            ${fuel.length === 0 ? '<tr><td colspan="5" style="text-align:center;">Sem registros</td></tr>' : fuel.map(f => `
+                                                <tr>
+                                                    <td>${f.data.split('-').reverse().join('/')}</td>
+                                                    <td>${f.litros} L</td>
+                                                    <td style="font-weight:600;">R$ ${f.valorTotal.toFixed(2)}</td>
+                                                    <td class="text-success" style="font-weight:700;">${f.kmL} km/L</td>
+                                                    <td>${f.posto}</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            `}
 
                             <!-- Maintenance Table -->
                             <h4 style="font-family:var(--font-heading); margin-top:24px; border-left:3px solid var(--danger); padding-left:8px;">Manutenções Registradas</h4>

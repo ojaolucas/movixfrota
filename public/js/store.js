@@ -262,12 +262,48 @@ class MovixStore {
         return newAb;
     }
 
+    async updateAbastecimento(id, data) {
+        const res = await fetch(`/api/abastecimentos/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (!res.ok) throw new Error('Erro ao atualizar abastecimento no servidor.');
+        const updatedAb = await res.json();
+        const idx = this.state.abastecimentos.findIndex(a => a.id === id);
+        if (idx !== -1) this.state.abastecimentos[idx] = updatedAb;
+        await this.loadData();
+        return true;
+    }
+
     async deleteAbastecimento(id) {
         const res = await fetch(`/api/abastecimentos/${id}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Erro ao excluir abastecimento.');
         this.state.abastecimentos = this.state.abastecimentos.filter(a => a.id !== id);
         await this.loadData();
         return true;
+    }
+
+    async updatePerfil(data) {
+        const res = await fetch('/api/perfil', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Erro ao atualizar perfil.');
+        }
+        const updatedUser = await res.json();
+        this.activeUser = updatedUser;
+        const idx = this.state.usuarios.findIndex(u => u.id === updatedUser.id);
+        if (idx !== -1) {
+            this.state.usuarios[idx] = updatedUser;
+        }
+        if (this.onSessionChange) {
+            this.onSessionChange(true);
+        }
+        return updatedUser;
     }
 
     // Maintenances

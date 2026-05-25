@@ -55,7 +55,19 @@
                             <option value="12">Últimos 12 meses</option>
                             <option value="3">Últimos 3 meses</option>
                             <option value="1">Este mês</option>
+                            <option value="custom">Personalizado (Por data)</option>
                         </select>
+                    </div>
+
+                    <div class="filter-group" id="report-custom-dates" style="display: none; flex-direction: row; gap: 12px; align-items: center; grid-column: span 1;">
+                        <div style="display:flex; flex-direction:column; flex:1;">
+                            <label>De</label>
+                            <input type="date" class="filter-input" id="report-date-start" style="height: 38px;">
+                        </div>
+                        <div style="display:flex; flex-direction:column; flex:1;">
+                            <label>Até</label>
+                            <input type="date" class="filter-input" id="report-date-end" style="height: 38px;">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -103,7 +115,7 @@
             const reportType = document.getElementById('report-type-sel').value;
             const veicFilter = document.getElementById('report-veic-filter').value;
             const driverFilter = document.getElementById('report-driver-filter').value;
-            const periodVal = parseInt(document.getElementById('report-period-filter').value);
+            const periodFilter = document.getElementById('report-period-filter').value;
 
             const title = document.getElementById('report-sheet-title');
             const thead = document.getElementById('thead-report-output');
@@ -122,10 +134,28 @@
             const maintenance = window.movixStore.getMaintenances();
             const oleos = window.movixStore.getOleos();
 
-            // Calculate dates limit based on periodVal
-            const today = new Date();
-            const limitDate = new Date();
-            limitDate.setMonth(today.getMonth() - periodVal);
+            // Calculate dates limit based on periodFilter
+            let startLimit = null;
+            let endLimit = null;
+
+            if (periodFilter === 'custom') {
+                const startStr = document.getElementById('report-date-start').value;
+                const endStr = document.getElementById('report-date-end').value;
+                if (startStr) startLimit = new Date(startStr + 'T00:00:00');
+                if (endStr) endLimit = new Date(endStr + 'T23:59:59');
+            } else {
+                const periodVal = parseInt(periodFilter);
+                const today = new Date();
+                startLimit = new Date();
+                startLimit.setMonth(today.getMonth() - periodVal);
+            }
+
+            function isDateInRange(dateStr) {
+                const itemDate = new Date(dateStr + 'T12:00:00'); // prevent timezone shift
+                if (startLimit && itemDate < startLimit) return false;
+                if (endLimit && itemDate > endLimit) return false;
+                return true;
+            }
 
             // --- REPORT RENDER CASING ---
             if (reportType === 'fuel_costs') {
@@ -146,7 +176,7 @@
                 const filtered = supplies.filter(a => {
                     const matchVeic = !veicFilter || a.veiculoId === veicFilter;
                     const matchDriver = !driverFilter || a.motoristaId === driverFilter;
-                    const matchDate = new Date(a.data) >= limitDate;
+                    const matchDate = isDateInRange(a.data);
                     return matchVeic && matchDriver && matchDate;
                 });
 
@@ -190,7 +220,7 @@
 
                 const filtered = maintenance.filter(m => {
                     const matchVeic = !veicFilter || m.veiculoId === veicFilter;
-                    const matchDate = new Date(m.data) >= limitDate;
+                    const matchDate = isDateInRange(m.data);
                     return matchVeic && matchDate;
                 });
 
@@ -228,10 +258,10 @@
                     </tr>
                 `;
 
-                // Calculate accumulated financial costs per vehicle
+                // Calculate accumulated financial costs per vehicle within range
                 const rankingData = vehicles.map(v => {
-                    const fuelCosts = supplies.filter(a => a.veiculoId === v.id).reduce((acc, a) => acc + a.valorTotal, 0);
-                    const maintCosts = maintenance.filter(m => m.veiculoId === v.id).reduce((acc, m) => acc + m.valor, 0);
+                    const fuelCosts = supplies.filter(a => a.veiculoId === v.id && isDateInRange(a.data)).reduce((acc, a) => acc + a.valorTotal, 0);
+                    const maintCosts = maintenance.filter(m => m.veiculoId === v.id && isDateInRange(m.data)).reduce((acc, m) => acc + m.valor, 0);
                     return {
                         placa: v.placa,
                         modelo: `${v.marca} ${v.modelo}`,
@@ -275,7 +305,7 @@
 
                 // Calculate drivers average consumption curves
                 const rankingData = drivers.map(m => {
-                    const driverSupplies = supplies.filter(a => a.motoristaId === m.id && a.kmL > 0);
+                    const driverSupplies = supplies.filter(a => a.motoristaId === m.id && a.kmL > 0 && isDateInRange(a.data));
                     const totalL = driverSupplies.reduce((acc, a) => acc + a.litros, 0);
                     const avgKML = driverSupplies.length > 0 
                         ? driverSupplies.reduce((acc, a) => acc + a.kmL, 0) / driverSupplies.length
@@ -325,7 +355,7 @@
 
                 const filtered = oleos.filter(o => {
                     const matchVeic = !veicFilter || o.veiculoId === veicFilter;
-                    const matchDate = new Date(o.dataTroca) >= limitDate;
+                    const matchDate = isDateInRange(o.dataTroca);
                     return matchVeic && matchDate;
                 });
 
@@ -399,6 +429,25 @@
         document.getElementById('report-veic-filter').addEventListener('change', generateReport);
         document.getElementById('report-driver-filter').addEventListener('change', generateReport);
         document.getElementById('report-period-filter').addEventListener('change', generateReport);
+
+        // Custom date toggling and generation
+        const periodFilter = document.getElementById('report-period-filter');
+        const customDatesContainer = document.getElementById('report-custom-dates');
+        const dateStartInput = document.getElementById('report-date-start');
+        const dateEndInput = document.getElementById('report-date-end');
+
+        if (periodFilter && customDatesContainer) {
+            periodFilter.addEventListener('change', () => {
+                if (periodFilter.value === 'custom') {
+                    customDatesContainer.style.display = 'flex';
+                } else {
+                    customDatesContainer.style.display = 'none';
+                }
+            });
+        }
+
+        if (dateStartInput) dateStartInput.addEventListener('change', generateReport);
+        if (dateEndInput) dateEndInput.addEventListener('change', generateReport);
 
         // Simulated print / PDF download
         document.getElementById('btn-export-pdf').addEventListener('click', () => {

@@ -7,6 +7,25 @@
         const vehicles = window.movixStore.getVeiculos();
         const activeUser = window.movixStore.getActiveUser();
         const isVisualizador = activeUser.perfil === 'Visualizador';
+
+        function getPositionsForVehicle(vehicle) {
+            if (!vehicle) return [];
+            const qtdEixos = parseInt(vehicle.qtdEixos) || 2;
+            const isTrailer = vehicle.tipoUnidade === 'Implemento/Reboque';
+            const isMultiAxle = qtdEixos > 2;
+
+            const positions = [];
+            if (!isTrailer && !isMultiAxle) {
+                positions.push('Dianteiro Esquerdo', 'Dianteiro Direito');
+                positions.push('Traseiro Esquerdo', 'Traseiro Direito');
+            } else {
+                for (let i = 1; i <= qtdEixos; i++) {
+                    positions.push(`Eixo ${i} Esquerdo`);
+                    positions.push(`Eixo ${i} Direito`);
+                }
+            }
+            return positions;
+        }
         
         container.innerHTML = `
             <div class="page-header">
@@ -132,38 +151,59 @@
         function renderAxleMap() {
             const container = document.getElementById('axles-visualizer-container');
             const veicId = document.getElementById('axle-vehicle-sel').value;
-            const activeTires = tires.filter(p => p.veiculoAtual === veicId);
-
+            const selectedVeh = vehicles.find(v => v.id === veicId);
             if (!container) return;
 
-            // Axle rendering
-            container.innerHTML = `
-                <div class="tires-visual-grid" style="width:100%; max-width:420px; min-height:300px; display:flex; flex-direction:column; gap:20px; align-items:center; justify-content:center;">
-                    
-                    <!-- Dianteiro Axle -->
+            if (!selectedVeh) {
+                container.innerHTML = '<div class="search-no-results">Selecione um veículo válido.</div>';
+                return;
+            }
+
+            const activeTires = tires.filter(p => p.veiculoAtual === veicId);
+            const qtdEixos = parseInt(selectedVeh.qtdEixos) || 2;
+            const isTrailer = selectedVeh.tipoUnidade === 'Implemento/Reboque';
+            const isMultiAxle = qtdEixos > 2;
+
+            let axlesHTML = '';
+            
+            if (!isTrailer && !isMultiAxle) {
+                axlesHTML = `
+                    <!-- Eixo Dianteiro -->
                     <div style="display:flex; justify-content:space-between; width:100%; align-items:center; position:relative; padding: 0 40px;">
                         <div style="position:absolute; width:100%; height:4px; background-color:#334155; left:0; z-index:1;"></div>
-                        
-                        <!-- Left Front -->
                         ${renderSingleTireCard(activeTires, 'Dianteiro Esquerdo')}
-                        
-                        <!-- Right Front -->
                         ${renderSingleTireCard(activeTires, 'Dianteiro Direito')}
                     </div>
 
                     <!-- Axle structural bridge -->
-                    <div style="width:8px; height:60px; background-color:#334155;"></div>
+                    <div style="width:8px; height:40px; background-color:#334155;"></div>
 
-                    <!-- Traseiro Axle -->
+                    <!-- Eixo Traseiro -->
                     <div style="display:flex; justify-content:space-between; width:100%; align-items:center; position:relative; padding: 0 40px;">
                         <div style="position:absolute; width:100%; height:4px; background-color:#334155; left:0; z-index:1;"></div>
-                        
-                        <!-- Left Rear -->
                         ${renderSingleTireCard(activeTires, 'Traseiro Esquerdo')}
-                        
-                        <!-- Right Rear -->
                         ${renderSingleTireCard(activeTires, 'Traseiro Direito')}
                     </div>
+                `;
+            } else {
+                for (let i = 1; i <= qtdEixos; i++) {
+                    axlesHTML += `
+                        <!-- Eixo ${i} -->
+                        <div style="display:flex; justify-content:space-between; width:100%; align-items:center; position:relative; padding: 0 40px;">
+                            <div style="position:absolute; width:100%; height:4px; background-color:#334155; left:0; z-index:1;"></div>
+                            ${renderSingleTireCard(activeTires, `Eixo ${i} Esquerdo`)}
+                            ${renderSingleTireCard(activeTires, `Eixo ${i} Direito`)}
+                        </div>
+                    `;
+                    if (i < qtdEixos) {
+                        axlesHTML += `<div style="width:8px; height:30px; background-color:#334155;"></div>`;
+                    }
+                }
+            }
+
+            container.innerHTML = `
+                <div class="tires-visual-grid" style="width:100%; max-width:420px; min-height:300px; display:flex; flex-direction:column; gap:12px; align-items:center; justify-content:center; padding: 20px 0;">
+                    ${axlesHTML}
                 </div>
             `;
         }
@@ -172,10 +212,14 @@
             const p = activeTires.find(item => item.posicao === position);
             
             if (!p) {
+                const parts = position.split(' ');
+                const label = parts[parts.length - 1];
+                const prefix = parts.length > 2 ? `${parts[0]} ${parts[1]}` : '';
                 return `
-                    <div style="z-index:2; width:110px; height:80px; background-color:var(--bg-surface-hover); border:2px dashed var(--border-color); border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; font-size:0.7rem; color:var(--text-muted);">
-                        <span>${position.split(' ')[1]}</span>
-                        <strong style="color:var(--danger);">[Vazio]</strong>
+                    <div style="z-index:2; width:110px; height:80px; background-color:var(--bg-surface-hover); border:2px dashed var(--border-color); border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; font-size:0.7rem; color:var(--text-muted);">
+                        ${prefix ? `<span style="font-size:0.6rem; color:var(--text-muted); font-weight:700;">${prefix}</span>` : ''}
+                        <span>${label}</span>
+                        <strong style="color:var(--danger); font-size:0.65rem;">[Vazio]</strong>
                     </div>
                 `;
             }
@@ -257,17 +301,14 @@
                         <label>Instalar no Veículo</label>
                         <select class="form-control" name="veiculoAtual" id="pneu-veic-sel">
                             <option value="">Apenas em Estoque (Sem veículo)</option>
-                            ${vehicles.map(v => `<option value="${v.id}" data-km="${v.kmAtual}">${v.placa} (KM: ${v.kmAtual})</option>`).join('')}
+                            ${vehicles.map(v => `<option value="${v.id}" data-km="${v.kmAtual || 0}">${v.placa} (Eixos: ${v.qtdEixos || 2})</option>`).join('')}
                         </select>
                     </div>
 
                     <div class="form-group">
                         <label>Posição no Veículo</label>
-                        <select class="form-control" name="posicao">
-                            <option value="Dianteiro Esquerdo">Dianteiro Esquerdo</option>
-                            <option value="Dianteiro Direito">Dianteiro Direito</option>
-                            <option value="Traseiro Esquerdo">Traseiro Esquerdo</option>
-                            <option value="Traseiro Direito">Traseiro Direito</option>
+                        <select class="form-control" name="posicao" id="pneu-pos-sel">
+                            <option value="">Apenas Estoque</option>
                         </select>
                     </div>
                 </form>
@@ -279,6 +320,26 @@
             `;
 
             modal.classList.add('active');
+
+            // Dynamic positions updating logic
+            const pneuVeicSel = document.getElementById('pneu-veic-sel');
+            const pneuPosSel = document.getElementById('pneu-pos-sel');
+
+            const handlePneuVeicChange = () => {
+                const veicId = pneuVeicSel.value;
+                if (!veicId) {
+                    pneuPosSel.innerHTML = '<option value="">Estoque (Sem Posição)</option>';
+                    return;
+                }
+                const selectedVeh = vehicles.find(v => v.id === veicId);
+                const positions = getPositionsForVehicle(selectedVeh);
+                pneuPosSel.innerHTML = positions.map(pos => `<option value="${pos}">${pos}</option>`).join('');
+            };
+
+            if (pneuVeicSel && pneuPosSel) {
+                pneuVeicSel.addEventListener('change', handlePneuVeicChange);
+                handlePneuVeicChange();
+            }
 
             document.getElementById('btn-cancelar-modal').addEventListener('click', () => modal.classList.remove('active'));
 
@@ -296,8 +357,8 @@
                 // Auto set initial KM to current Vehicle odometer on installation
                 if (data.veiculoAtual) {
                     const veicOpt = document.getElementById('pneu-veic-sel');
-                    const km = veicOpt.options[veicOpt.selectedIndex].getAttribute('data-km');
-                    data.kmInicial = parseFloat(km) || 0;
+                    const selectedVeh = vehicles.find(v => v.id === data.veiculoAtual);
+                    data.kmInicial = parseFloat(selectedVeh.kmAtual || 0);
                     data.status = 'ok';
                 } else {
                     data.kmInicial = 0;
@@ -341,10 +402,13 @@
                     <div class="form-group">
                         <label>Nova Posição no Veículo <span class="required">*</span></label>
                         <select class="form-control" name="posicao" required>
-                            <option value="Dianteiro Esquerdo" ${p.posicao === 'Dianteiro Esquerdo' ? 'selected' : ''}>Dianteiro Esquerdo</option>
-                            <option value="Dianteiro Direito" ${p.posicao === 'Dianteiro Direito' ? 'selected' : ''}>Dianteiro Direito</option>
-                            <option value="Traseiro Esquerdo" ${p.posicao === 'Traseiro Esquerdo' ? 'selected' : ''}>Traseiro Esquerdo</option>
-                            <option value="Traseiro Direito" ${p.posicao === 'Traseiro Direito' ? 'selected' : ''}>Traseiro Direito</option>
+                            ${(() => {
+                                const currentVehicle = vehicles.find(v => v.id === p.veiculoAtual);
+                                const positions = getPositionsForVehicle(currentVehicle);
+                                return positions.length > 0 
+                                    ? positions.map(pos => `<option value="${pos}" ${p.posicao === pos ? 'selected' : ''}>${pos}</option>`).join('')
+                                    : `<option value="">Estoque</option>`;
+                            })()}
                         </select>
                     </div>
 

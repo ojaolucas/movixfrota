@@ -143,6 +143,16 @@ class MovixApp {
         if (userRole) userRole.innerText = user.cargo;
         if (avatarImg) avatarImg.src = user.foto;
         
+        // Make header avatar clickable for profile update
+        const avatarContainer = document.querySelector('.user-avatar-container');
+        if (avatarContainer) {
+            avatarContainer.style.cursor = 'pointer';
+            if (!avatarContainer.dataset.listenerBound) {
+                avatarContainer.dataset.listenerBound = 'true';
+                avatarContainer.addEventListener('click', () => this.openProfileModal());
+            }
+        }
+        
         // Sidebar menu users visibility
         const userMenu = document.getElementById('sidebar-usuarios-item');
         if (userMenu) {
@@ -165,6 +175,13 @@ class MovixApp {
                 </button>
             `;
             
+            // Click footer card to edit profile
+            const footerCard = userFooter.querySelector('.sidebar-user-footer-card');
+            if (footerCard) {
+                footerCard.style.cursor = 'pointer';
+                footerCard.addEventListener('click', () => this.openProfileModal());
+            }
+            
             // Bind click to logout
             const logoutBtn = document.getElementById('btn-logout');
             if (logoutBtn) {
@@ -174,6 +191,159 @@ class MovixApp {
                 });
             }
         }
+    }
+
+    openProfileModal() {
+        const user = window.movixStore.getActiveUser();
+        if (!user) return;
+
+        const modal = document.getElementById('global-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalBody = document.getElementById('modal-body-content');
+        const modalFooter = document.getElementById('modal-footer-actions');
+
+        modalTitle.innerText = 'Meu Perfil Corporativo';
+
+        modalBody.innerHTML = `
+            <form id="form-meu-perfil" class="form-grid" onsubmit="return false;">
+                <!-- AVATAR UPLOAD -->
+                <div class="form-group full-width" style="display:flex; flex-direction:column; gap:8px;">
+                    <label style="font-weight: 600;">Foto de Perfil</label>
+                    <div style="display:flex; align-items:center; gap:20px; background:var(--bg-surface-hover); padding:16px; border-radius:var(--border-radius-md); border:1px dashed var(--border-color);">
+                        <img id="profile-upload-preview" src="${user.foto || '/img/avatar-default.png'}" style="width:70px; height:70px; border-radius:50%; object-fit:cover; border:2px solid var(--primary); background:#ffffff;">
+                        <div style="display:flex; flex-direction:column; gap:6px;">
+                            <span style="font-size:0.75rem; color:var(--text-muted);">Formatos aceitos: JPG, PNG, WebP (Máx. 5MB)</span>
+                            <button type="button" class="btn btn-secondary" id="btn-profile-trigger-upload" style="height:36px; padding:0 16px;">
+                                <i class="fa-solid fa-cloud-arrow-up text-primary"></i> Selecionar Imagem
+                            </button>
+                            <input type="file" id="profile-file-uploader" accept="image/*" style="display:none;">
+                            <input type="hidden" name="foto" id="profile-foto-url" value="${user.foto || '/img/avatar-default.png'}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Nome Completo <span class="required">*</span></label>
+                    <input type="text" class="form-control" name="nome" required value="${user.nome}">
+                </div>
+                <div class="form-group">
+                    <label>CPF <span class="required">*</span></label>
+                    <input type="text" class="form-control" name="cpf" required value="${user.cpf}" id="profile-cpf-mask">
+                </div>
+                <div class="form-group">
+                    <label>E-mail Corporativo <span class="required">*</span></label>
+                    <input type="email" class="form-control" name="email" required value="${user.email}">
+                </div>
+                <div class="form-group">
+                    <label>Cargo <span class="required">*</span></label>
+                    <input type="text" class="form-control" name="cargo" required value="${user.cargo}">
+                </div>
+                
+                <div class="form-group full-width" style="border-top: 1px solid var(--border-color); padding-top: 16px; margin-top: 8px;">
+                    <label style="font-weight: 700; color: var(--primary);"><i class="fa-solid fa-key"></i> Segurança de Acesso</label>
+                </div>
+                
+                <div class="form-group full-width">
+                    <label>Alterar Senha <span style="color:var(--text-muted); font-weight:normal;">(Deixe em branco para manter a atual)</span></label>
+                    <input type="password" class="form-control" name="senha" placeholder="Digite uma nova senha se desejar mudar" minlength="4">
+                </div>
+            </form>
+        `;
+
+        modalFooter.innerHTML = `
+            <button class="btn btn-secondary" id="btn-profile-cancel">Cancelar</button>
+            <button class="btn btn-primary" id="btn-profile-save">
+                <i class="fa-solid fa-floppy-disk"></i> Salvar Perfil
+            </button>
+        `;
+
+        modal.classList.add('active');
+
+        // Uploader hooks
+        const fileUploader = document.getElementById('profile-file-uploader');
+        const triggerBtn = document.getElementById('btn-profile-trigger-upload');
+        const previewImg = document.getElementById('profile-upload-preview');
+        const hiddenUrlInput = document.getElementById('profile-foto-url');
+
+        triggerBtn.addEventListener('click', () => fileUploader.click());
+
+        fileUploader.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('foto', file);
+
+            try {
+                triggerBtn.disabled = true;
+                triggerBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
+                
+                const response = await fetch('/api/upload/foto', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || 'Erro no upload.');
+                }
+
+                const result = await response.json();
+                previewImg.src = result.url;
+                hiddenUrlInput.value = result.url;
+
+                this.showToast('Sua foto de perfil foi enviada!', 'success');
+            } catch (err) {
+                console.error(err);
+                this.showToast(err.message || 'Falha no upload da foto.', 'danger');
+            } finally {
+                triggerBtn.disabled = false;
+                triggerBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up text-primary"></i> Selecionar Imagem';
+            }
+        });
+
+        // Mask
+        const cpfInput = document.getElementById('profile-cpf-mask');
+        if (cpfInput) {
+            cpfInput.addEventListener('input', (e) => {
+                let v = e.target.value.replace(/\D/g, "");
+                if (v.length > 11) v = v.substring(0, 11);
+                if (v.length > 9) v = v.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
+                else if (v.length > 6) v = v.replace(/^(\d{3})(\d{3})(\d{1,3})$/, "$1.$2.$3");
+                else if (v.length > 3) v = v.replace(/^(\d{3})(\d{1,3})$/, "$1.$2");
+                e.target.value = v;
+            });
+        }
+
+        document.getElementById('btn-profile-cancel').addEventListener('click', () => modal.classList.remove('active'));
+        document.getElementById('close-modal-btn').addEventListener('click', () => modal.classList.remove('active'));
+
+        const saveBtn = document.getElementById('btn-profile-save');
+        saveBtn.addEventListener('click', async () => {
+            const form = document.getElementById('form-meu-perfil');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
+
+            const formData = new FormData(form);
+            const data = {};
+            formData.forEach((value, key) => data[key] = value);
+
+            try {
+                await window.movixStore.updatePerfil(data);
+                this.showToast('Seu perfil foi atualizado com sucesso!', 'success');
+                modal.classList.remove('active');
+            } catch (err) {
+                console.error(err);
+                this.showToast(err.message || 'Erro ao atualizar perfil.', 'danger');
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Salvar Perfil';
+            }
+        });
     }
 
     // --- NOTIFICATION BELL AND DYNAMIC ALERTS PANELS ---

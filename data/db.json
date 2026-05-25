@@ -693,6 +693,15 @@
   ],
   "logs": [
     {
+      "id": "LOG-536RJWH2F",
+      "data": "2026-05-25T01:11:09.582Z",
+      "usuario": "Carlos Silveira",
+      "perfil": "Administrador",
+      "acao": "Login",
+      "entidade": "Sessão",
+      "detalhes": "Login realizado com sucesso (123.456.789-00)"
+    },
+    {
       "id": "LOG-AEG3UOL24",
       "data": "2026-05-24T22:59:22.402Z",
       "usuario": "Carlos Silveira",

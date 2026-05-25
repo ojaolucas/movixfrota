@@ -374,6 +374,44 @@ app.delete('/api/usuarios/:id', requireAuth, requireAdmin, (req, res) => {
     res.json({ success: true });
 });
 
+// ─── EDITAR PERFIL DO USUÁRIO LOGADO ─────────────────────
+app.put('/api/perfil', requireAuth, (req, res) => {
+    const db = readDB();
+    const idx = db.usuarios.findIndex(u => u.id === req.session.userId);
+    if (idx === -1) return res.status(404).json({ error: 'Usuário não encontrado.' });
+
+    const { nome, email, cpf, cargo, senha, foto } = req.body;
+
+    if (nome) db.usuarios[idx].nome = nome;
+    if (email) {
+        const dupEmail = db.usuarios.find(u => u.id !== req.session.userId && u.email && u.email.toLowerCase() === email.toLowerCase());
+        if (dupEmail) return res.status(400).json({ error: 'E-mail já cadastrado.' });
+        db.usuarios[idx].email = email;
+    }
+    if (cpf) {
+        const cpfClean = cpf.replace(/\D/g, '');
+        const dupCPF = db.usuarios.find(u => u.id !== req.session.userId && u.cpf && u.cpf.replace(/\D/g, '') === cpfClean);
+        if (dupCPF) return res.status(400).json({ error: 'CPF já cadastrado.' });
+        db.usuarios[idx].cpf = cpf;
+    }
+    if (cargo) db.usuarios[idx].cargo = cargo;
+    if (foto) db.usuarios[idx].foto = foto;
+
+    if (senha && senha.length >= 4) {
+        db.usuarios[idx].senhaHash = bcrypt.hashSync(senha, 10);
+        delete db.usuarios[idx].senha;
+    }
+
+    addLog(db, req.session.nome, req.session.perfil, 'Edição', 'Perfil', `Usuário ${db.usuarios[idx].nome} atualizou seu próprio perfil`);
+    writeDB(db);
+
+    if (nome) req.session.nome = nome;
+
+    const { senhaHash, senha: _, ...safe } = db.usuarios[idx];
+    res.json(safe);
+});
+
+
 // ─── ABASTECIMENTOS ───────────────────────────────────────
 app.get('/api/abastecimentos', requireAuth, (req, res) => {
     const db = readDB();
@@ -409,6 +447,53 @@ app.post('/api/abastecimentos', requireAuth, (req, res) => {
 
     db.abastecimentos.unshift(ab);
     addLog(db, req.session.nome, req.session.perfil, 'Cadastro', 'Abastecimento', `Registrou abastecimento R$ ${ab.valorTotal.toFixed(2)} - ${veic ? veic.placa : ''}`);
+    writeDB(db);
+    res.json(ab);
+});
+
+app.put('/api/abastecimentos/:id', requireAuth, (req, res) => {
+    const db = readDB();
+    const idx = db.abastecimentos.findIndex(a => a.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Abastecimento não encontrado.' });
+
+    const original = db.abastecimentos[idx];
+    const ab = { ...original, ...req.body };
+    
+    ab.litros = parseFloat(ab.litros) || 0;
+    ab.valorTotal = parseFloat(ab.valorTotal) || 0;
+    ab.kmAtual = parseFloat(ab.kmAtual) || 0;
+    ab.valorLitro = parseFloat(ab.valorLitro) || (ab.litros > 0 ? (ab.valorTotal / ab.litros) : 0);
+
+    const veic = db.veiculos.find(v => v.id === ab.veiculoId);
+    if (veic) {
+        const veicAbs = db.abastecimentos
+            .filter(a => a.veiculoId === ab.veiculoId && a.id !== req.params.id)
+            .sort((a, b) => new Date(a.data) - new Date(b.data));
+            
+        let kmAnterior = 0;
+        for (let i = veicAbs.length - 1; i >= 0; i--) {
+            if (new Date(veicAbs[i].data) <= new Date(ab.data) && veicAbs[i].kmAtual < ab.kmAtual) {
+                kmAnterior = veicAbs[i].kmAtual;
+                break;
+            }
+        }
+        
+        const kmRodado = ab.kmAtual - kmAnterior;
+        ab.kmL = (kmRodado > 0 && ab.litros > 0) ? parseFloat((kmRodado / ab.litros).toFixed(2)) : 0;
+        ab.custoKM = ab.kmL > 0 ? parseFloat((ab.valorLitro / ab.kmL).toFixed(2)) : 0;
+
+        if (ab.kmAtual > veic.kmAtual) {
+            const vidx = db.veiculos.findIndex(v => v.id === ab.veiculoId);
+            db.veiculos[vidx].kmAtual = ab.kmAtual;
+            if (!db.veiculos[vidx].historicoKM) db.veiculos[vidx].historicoKM = [];
+            db.veiculos[vidx].historicoKM.push({ data: ab.data, km: ab.kmAtual });
+        }
+    } else {
+        ab.kmL = 0; ab.custoKM = 0;
+    }
+
+    db.abastecimentos[idx] = ab;
+    addLog(db, req.session.nome, req.session.perfil, 'Edição', 'Abastecimento', `Editou abastecimento R$ ${ab.valorTotal.toFixed(2)} - ${veic ? veic.placa : ''}`);
     writeDB(db);
     res.json(ab);
 });

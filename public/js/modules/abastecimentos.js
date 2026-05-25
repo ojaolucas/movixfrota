@@ -67,7 +67,7 @@
                             <th>Custo Total</th>
                             <th>Consumo KM/L</th>
                             <th>Custo por KM</th>
-                            ${activeUser.perfil === 'Administrador' ? '<th style="width: 80px; text-align: center;">Excluir</th>' : ''}
+                            ${!isVisualizador ? '<th style="width: 120px; text-align: center;">Ações</th>' : ''}
                         </tr>
                     </thead>
                     <tbody id="tbody-abastecimentos">
@@ -136,11 +136,16 @@
                         <td style="font-weight:600; color:var(--text-muted);">
                             ${a.custoKM > 0 ? `R$ ${a.custoKM.toFixed(2)}/km` : 'N/A'}
                         </td>
-                        ${activeUser.perfil === 'Administrador' ? `
-                            <td style="text-align: center;">
-                                <button class="btn-icon-only danger btn-delete" data-id="${a.id}">
-                                    <i class="fa-solid fa-trash-can"></i>
+                        ${!isVisualizador ? `
+                            <td style="text-align: center; display: flex; justify-content: center; gap: 8px;">
+                                <button class="btn-icon-only btn-edit" data-id="${a.id}" title="Editar">
+                                    <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
+                                ${activeUser.perfil === 'Administrador' ? `
+                                    <button class="btn-icon-only danger btn-delete" data-id="${a.id}" title="Excluir">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                ` : ''}
                             </td>
                         ` : ''}
                     </tr>
@@ -179,94 +184,102 @@
             document.getElementById('btn-novo-abastecimento').addEventListener('click', () => openAbastecimentoModal());
         }
 
-        // Delete Trigger (Admin only)
+        // Deletion and Editing Triggers
         document.querySelector('.table-responsive').addEventListener('click', (e) => {
+            const editBtn = e.target.closest('.btn-edit');
             const delBtn = e.target.closest('.btn-delete');
+            
+            if (editBtn) {
+                const id = editBtn.getAttribute('data-id');
+                openAbastecimentoModal(id);
+            }
             if (delBtn) {
                 const id = delBtn.getAttribute('data-id');
                 confirmDeleteAbastecimento(id);
             }
         });
 
-        function openAbastecimentoModal() {
+        function openAbastecimentoModal(id = null) {
+            const isEdit = id !== null;
+            const ab = isEdit ? supplies.find(x => x.id === id) : null;
+
             const modal = document.getElementById('global-modal');
             const modalTitle = document.getElementById('modal-title');
             const modalBody = document.getElementById('modal-body-content');
             const modalFooter = document.getElementById('modal-footer-actions');
 
-            modalTitle.innerText = 'Lançar Abastecimento de Veículo';
+            modalTitle.innerText = isEdit ? `Editar Abastecimento: ${id}` : 'Lançar Abastecimento de Veículo';
 
             modalBody.innerHTML = `
                 <form id="form-abastecimento" class="form-grid">
                     <div class="form-group">
                         <label>Data <span class="required">*</span></label>
-                        <input type="date" class="form-control" name="data" required value="${new Date().toISOString().split('T')[0]}">
+                        <input type="date" class="form-control" name="data" required value="${isEdit ? ab.data : new Date().toISOString().split('T')[0]}">
                     </div>
                     
                     <div class="form-group">
                         <label>Selecione o Veículo <span class="required">*</span></label>
-                        <select class="form-control" name="veiculoId" id="ab-veiculo-sel" required>
-                            ${vehicles.map(v => `<option value="${v.id}" data-km="${v.kmAtual}" data-fuel="${v.combustivel}">${v.placa} - ${v.marca} ${v.modelo} (KM: ${v.kmAtual})</option>`).join('')}
+                        <select class="form-control" name="veiculoId" id="ab-veiculo-sel" required ${isEdit ? 'disabled' : ''}>
+                            ${vehicles.map(v => `<option value="${v.id}" data-km="${v.kmAtual}" data-fuel="${v.combustivel}" ${isEdit && ab.veiculoId === v.id ? 'selected' : ''}>${v.placa} - ${v.marca} ${v.modelo} (KM: ${v.kmAtual})</option>`).join('')}
                         </select>
                     </div>
 
                     <div class="form-group">
                         <label>Selecione o Motorista <span class="required">*</span></label>
                         <select class="form-control" name="motoristaId" required>
-                            ${drivers.map(m => `<option value="${m.id}">${m.nome}</option>`).join('')}
+                            ${drivers.map(m => `<option value="${m.id}" ${isEdit && ab.motoristaId === m.id ? 'selected' : ''}>${m.nome}</option>`).join('')}
                         </select>
                     </div>
 
                     <div class="form-group">
                         <label>KM Odômetro no Abastecimento <span class="required">*</span></label>
-                        <input type="number" class="form-control" name="kmAtual" id="ab-km-input" required placeholder="Ex: 145000" min="0">
+                        <input type="number" class="form-control" name="kmAtual" id="ab-km-input" required placeholder="Ex: 145000" min="0" value="${isEdit ? ab.kmAtual : ''}">
                         <span style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;" id="ab-km-hint"></span>
                     </div>
 
                     <div class="form-group">
                         <label>Litros Abastecidos <span class="required">*</span></label>
-                        <input type="number" class="form-control" name="litros" id="ab-litros-input" required placeholder="Ex: 50" step="0.01" min="0">
+                        <input type="number" class="form-control" name="litros" id="ab-litros-input" required placeholder="Ex: 50" step="0.01" min="0" value="${isEdit ? ab.litros : ''}">
                     </div>
 
                     <div class="form-group">
                         <label>Valor Pago Total (R$) <span class="required">*</span></label>
-                        <input type="number" class="form-control" name="valorTotal" id="ab-total-input" required placeholder="Ex: 300.00" step="0.01" min="0">
+                        <input type="number" class="form-control" name="valorTotal" id="ab-total-input" required placeholder="Ex: 300.00" step="0.01" min="0" value="${isEdit ? ab.valorTotal : ''}">
                     </div>
 
                     <div class="form-group">
                         <label>Valor por Litro (R$)</label>
-                        <input type="number" class="form-control" name="valorLitro" id="ab-litro-input" placeholder="Opcional (Calculado automaticamente)" step="0.01" min="0">
+                        <input type="number" class="form-control" name="valorLitro" id="ab-litro-input" placeholder="Opcional (Calculado automaticamente)" step="0.01" min="0" value="${isEdit ? ab.valorLitro : ''}">
                     </div>
 
                     <div class="form-group">
                         <label>Combustível <span class="required">*</span></label>
                         <select class="form-control" name="combustivel" id="ab-fuel-sel" required>
-                            <option value="Diesel">Diesel</option>
-                            <option value="Gasolina">Gasolina</option>
-                            <option value="Etanol">Etanol</option>
+                            <option value="Diesel" ${isEdit && ab.combustivel === 'Diesel' ? 'selected' : ''}>Diesel</option>
+                            <option value="Gasolina" ${isEdit && ab.combustivel === 'Gasolina' ? 'selected' : ''}>Gasolina</option>
+                            <option value="Etanol" ${isEdit && ab.combustivel === 'Etanol' ? 'selected' : ''}>Etanol</option>
                         </select>
                     </div>
 
                     <div class="form-group full-width">
                         <label>Posto / Estabelecimento <span class="required">*</span></label>
-                        <input type="text" class="form-control" name="posto" required placeholder="Ex: Posto BR - Av. Central">
+                        <input type="text" class="form-control" name="posto" required placeholder="Ex: Posto BR - Av. Central" value="${isEdit ? ab.posto : ''}">
                     </div>
 
                     <div class="form-group full-width">
                         <label>Observações</label>
-                        <textarea class="form-control" name="observacoes" placeholder="Anotações gerais..."></textarea>
+                        <textarea class="form-control" name="observacoes" placeholder="Anotações gerais...">${isEdit && ab.observacoes ? ab.observacoes : ''}</textarea>
                     </div>
                 </form>
             `;
 
             modalFooter.innerHTML = `
                 <button class="btn btn-secondary" id="btn-cancelar-modal">Cancelar</button>
-                <button class="btn btn-primary" id="btn-salvar-modal">Lançar Combustível</button>
+                <button class="btn btn-primary" id="btn-salvar-modal">${isEdit ? 'Salvar Alterações' : 'Lançar Combustível'}</button>
             `;
 
             modal.classList.add('active');
 
-            // Dynamic logic in form fields (autocomplete fields)
             const veicSel = document.getElementById('ab-veiculo-sel');
             const kmInput = document.getElementById('ab-km-input');
             const kmHint = document.getElementById('ab-km-hint');
@@ -276,21 +289,20 @@
             const litroInput = document.getElementById('ab-litro-input');
 
             function syncVehicle() {
+                if (isEdit) return;
                 const opt = veicSel.options[veicSel.selectedIndex];
                 const lastKM = opt.getAttribute('data-km');
                 const fuelType = opt.getAttribute('data-fuel');
                 
                 kmHint.innerText = `O odômetro deve ser maior que o KM atual registrado: ${parseFloat(lastKM).toLocaleString('pt-BR')} km`;
                 kmInput.setAttribute('min', lastKM);
-                kmInput.value = parseInt(lastKM) + 100; // preload logical guess
+                kmInput.value = parseInt(lastKM) + 100;
 
-                // auto select fuel type
                 if (fuelType === 'Diesel') fuelSel.value = 'Diesel';
                 else if (fuelType === 'Gasolina') fuelSel.value = 'Gasolina';
                 else fuelSel.value = 'Etanol';
             }
 
-            // Price/liter auto calculations
             function calculatePricePerLit() {
                 const l = parseFloat(litrosInput.value) || 0;
                 const tot = parseFloat(totalInput.value) || 0;
@@ -303,7 +315,7 @@
             litrosInput.addEventListener('input', calculatePricePerLit);
             totalInput.addEventListener('input', calculatePricePerLit);
 
-            syncVehicle(); // execute initial load
+            if (!isEdit) syncVehicle();
 
             document.getElementById('btn-cancelar-modal').addEventListener('click', () => modal.classList.remove('active'));
 
@@ -314,27 +326,36 @@
                     return;
                 }
 
-                // Check plate vehicle minimum odometer rule
-                const opt = veicSel.options[veicSel.selectedIndex];
-                const lastKM = parseFloat(opt.getAttribute('data-km'));
-                const enteredKM = parseFloat(kmInput.value);
-                if (enteredKM < lastKM) {
-                    window.movixApp.showToast(`O KM digitado (${enteredKM}) é menor que o KM atual registrado do veículo (${lastKM})!`, 'danger');
-                    return;
+                if (!isEdit) {
+                    const opt = veicSel.options[veicSel.selectedIndex];
+                    const lastKM = parseFloat(opt.getAttribute('data-km'));
+                    const enteredKM = parseFloat(kmInput.value);
+                    if (enteredKM < lastKM) {
+                        window.movixApp.showToast(`O KM digitado (${enteredKM}) é menor que o KM atual registrado do veículo (${lastKM})!`, 'danger');
+                        return;
+                    }
                 }
 
                 const formData = new FormData(form);
                 const data = {};
                 formData.forEach((value, key) => data[key] = value);
+                if (isEdit) {
+                    data.veiculoId = ab.veiculoId;
+                }
 
                 try {
-                    await window.movixStore.addAbastecimento(data);
-                    window.movixApp.showToast('Abastecimento registrado com sucesso!', 'success');
+                    if (isEdit) {
+                        await window.movixStore.updateAbastecimento(id, data);
+                        window.movixApp.showToast('Abastecimento atualizado com sucesso!', 'success');
+                    } else {
+                        await window.movixStore.addAbastecimento(data);
+                        window.movixApp.showToast('Abastecimento registrado com sucesso!', 'success');
+                    }
                     modal.classList.remove('active');
-                    updateTable();
+                    renderAbastecimentos(container);
                 } catch (e) {
                     console.error(e);
-                    window.movixApp.showToast(e.message || 'Erro ao registrar abastecimento.', 'danger');
+                    window.movixApp.showToast(e.message || 'Erro ao salvar abastecimento.', 'danger');
                 }
             });
         }
@@ -367,7 +388,7 @@
                     await window.movixStore.deleteAbastecimento(id);
                     window.movixApp.showToast('Abastecimento removido com sucesso.', 'success');
                     modal.classList.remove('active');
-                    updateTable();
+                    renderAbastecimentos(container);
                 } catch (e) {
                     console.error(e);
                     window.movixApp.showToast(e.message || 'Erro ao remover abastecimento.', 'danger');

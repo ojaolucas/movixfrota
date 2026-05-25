@@ -280,12 +280,8 @@
 
                     <div class="form-group">
                         <label>Categoria <span class="required">*</span></label>
-                        <select class="form-control" name="categoria" required>
-                            <option value="Mecânica" ${isEdit && m.categoria === 'Mecânica' ? 'selected' : ''}>Mecânica Geral</option>
-                            <option value="Elétrica" ${isEdit && m.categoria === 'Elétrica' ? 'selected' : ''}>Elétrica / Bateria</option>
-                            <option value="Pneus" ${isEdit && m.categoria === 'Pneus' ? 'selected' : ''}>Pneus / Suspensão</option>
-                            <option value="Lubrificantes" ${isEdit && m.categoria === 'Lubrificantes' ? 'selected' : ''}>Lubrificantes / Filtros</option>
-                            <option value="Freios" ${isEdit && m.categoria === 'Freios' ? 'selected' : ''}>Freios / Segurança</option>
+                        <select class="form-control" name="categoria" id="man-cat-sel" required>
+                            <!-- Dynamically populated -->
                         </select>
                     </div>
 
@@ -358,16 +354,51 @@
 
             modal.classList.add('active');
 
-            // Autocomplete KM
-            if (!isEdit) {
-                const veicSel = document.getElementById('man-veic-sel');
-                const kmInput = document.getElementById('man-km-input');
-                veicSel.addEventListener('change', () => {
-                    const lastKM = veicSel.options[veicSel.selectedIndex].getAttribute('data-km');
-                    kmInput.value = lastKM;
-                });
-                // Initial trigger
-                kmInput.value = veicSel.options[veicSel.selectedIndex].getAttribute('data-km');
+            // Autocomplete KM and Categories update dynamically based on unit type
+            const veicSel = document.getElementById('man-veic-sel');
+            const kmInput = document.getElementById('man-km-input');
+            const catSel = document.getElementById('man-cat-sel');
+
+            const handleVehicleChange = () => {
+                const selectedOption = veicSel.options[veicSel.selectedIndex];
+                if (!selectedOption) return;
+
+                const veicId = veicSel.value;
+                const selectedVeh = vehicles.find(v => v.id === veicId);
+                const isTrailer = selectedVeh && selectedVeh.tipoUnidade === 'Implemento/Reboque';
+
+                const curVal = isEdit ? m.categoria : catSel.value;
+
+                if (isTrailer) {
+                    catSel.innerHTML = `
+                        <option value="Suspensão" ${curVal === 'Suspensão' ? 'selected' : ''}>Suspensão</option>
+                        <option value="Rolamentos" ${curVal === 'Rolamentos' ? 'selected' : ''}>Rolamentos</option>
+                        <option value="Estrutura" ${curVal === 'Estrutura' ? 'selected' : ''}>Estrutura</option>
+                        <option value="Solda" ${curVal === 'Solda' ? 'selected' : ''}>Solda</option>
+                        <option value="Parte elétrica" ${curVal === 'Parte elétrica' ? 'selected' : ''}>Parte elétrica</option>
+                        <option value="Pneus" ${curVal === 'Pneus' ? 'selected' : ''}>Pneus</option>
+                        <option value="Lubrificação" ${curVal === 'Lubrificação' ? 'selected' : ''}>Lubrificação</option>
+                    `;
+                    kmInput.removeAttribute('required');
+                    if (!isEdit) kmInput.value = '0';
+                    kmInput.closest('.form-group').querySelector('label').innerHTML = 'KM Programado / Executado';
+                } else {
+                    catSel.innerHTML = `
+                        <option value="Mecânica" ${curVal === 'Mecânica' ? 'selected' : ''}>Mecânica Geral</option>
+                        <option value="Elétrica" ${curVal === 'Elétrica' ? 'selected' : ''}>Elétrica / Bateria</option>
+                        <option value="Pneus" ${curVal === 'Pneus' ? 'selected' : ''}>Pneus / Suspensão</option>
+                        <option value="Lubrificantes" ${curVal === 'Lubrificantes' ? 'selected' : ''}>Lubrificantes / Filtros</option>
+                        <option value="Freios" ${curVal === 'Freios' ? 'selected' : ''}>Freios / Segurança</option>
+                    `;
+                    kmInput.setAttribute('required', '');
+                    if (!isEdit) kmInput.value = selectedOption.getAttribute('data-km') || '0';
+                    kmInput.closest('.form-group').querySelector('label').innerHTML = 'KM Programado / Executado <span class="required">*</span>';
+                }
+            };
+
+            if (veicSel) {
+                veicSel.addEventListener('change', handleVehicleChange);
+                handleVehicleChange();
             }
 
             // File Upload logic
