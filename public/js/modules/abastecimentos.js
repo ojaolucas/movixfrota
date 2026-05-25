@@ -244,12 +244,12 @@
 
                     <div class="form-group">
                         <label>Valor Pago Total (R$) <span class="required">*</span></label>
-                        <input type="number" class="form-control" name="valorTotal" id="ab-total-input" required placeholder="Ex: 300.00" step="0.01" min="0" value="${isEdit ? ab.valorTotal : ''}">
+                        <input type="number" class="form-control" name="valorTotal" id="ab-total-input" required placeholder="Calculado automaticamente ou manual" step="0.01" min="0" value="${isEdit ? ab.valorTotal : ''}">
                     </div>
 
                     <div class="form-group">
-                        <label>Valor por Litro (R$)</label>
-                        <input type="number" class="form-control" name="valorLitro" id="ab-litro-input" placeholder="Opcional (Calculado automaticamente)" step="0.01" min="0" value="${isEdit ? ab.valorLitro : ''}">
+                        <label>Valor por Litro (R$) <span class="required">*</span></label>
+                        <input type="number" class="form-control" name="valorLitro" id="ab-litro-input" required placeholder="Ex: 6.20" step="0.001" min="0" value="${isEdit ? ab.valorLitro : ''}">
                     </div>
 
                     <div class="form-group">
@@ -303,17 +303,37 @@
                 else fuelSel.value = 'Etanol';
             }
 
-            function calculatePricePerLit() {
-                const l = parseFloat(litrosInput.value) || 0;
-                const tot = parseFloat(totalInput.value) || 0;
-                if (l > 0 && tot > 0) {
-                    litroInput.value = (tot / l).toFixed(2);
+            function autoCalculate() {
+                const active = document.activeElement;
+                const litros = parseFloat(litrosInput.value) || 0;
+                const total = parseFloat(totalInput.value) || 0;
+                const litro = parseFloat(litroInput.value) || 0;
+
+                if (active === litrosInput) {
+                    if (litro > 0) {
+                        totalInput.value = (litros * litro).toFixed(2);
+                    } else if (total > 0 && litros > 0) {
+                        litroInput.value = (total / litros).toFixed(3);
+                    }
+                } else if (active === litroInput) {
+                    if (litros > 0) {
+                        totalInput.value = (litros * litro).toFixed(2);
+                    } else if (total > 0 && litro > 0) {
+                        litrosInput.value = (total / litro).toFixed(2);
+                    }
+                } else if (active === totalInput) {
+                    if (litros > 0) {
+                        litroInput.value = (total / litros).toFixed(3);
+                    } else if (litro > 0) {
+                        litrosInput.value = (total / litro).toFixed(2);
+                    }
                 }
             }
 
             veicSel.addEventListener('change', syncVehicle);
-            litrosInput.addEventListener('input', calculatePricePerLit);
-            totalInput.addEventListener('input', calculatePricePerLit);
+            litrosInput.addEventListener('input', autoCalculate);
+            litroInput.addEventListener('input', autoCalculate);
+            totalInput.addEventListener('input', autoCalculate);
 
             if (!isEdit) syncVehicle();
 
@@ -321,6 +341,13 @@
 
             document.getElementById('btn-salvar-modal').addEventListener('click', async () => {
                 const form = document.getElementById('form-abastecimento');
+                
+                const litros = parseFloat(litrosInput.value) || 0;
+                const litro = parseFloat(litroInput.value) || 0;
+                if (!totalInput.value && litros > 0 && litro > 0) {
+                    totalInput.value = (litros * litro).toFixed(2);
+                }
+
                 if (!form.checkValidity()) {
                     form.reportValidity();
                     return;
