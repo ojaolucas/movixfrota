@@ -633,9 +633,9 @@ class MovixStore {
 
         // 5. Unpaid Traffic Fine Alerts (Multas)
         (this.state.multas || []).forEach(m => {
+            const v = this.getVeiculo(m.veiculoId);
+            const label = v ? v.placa : 'Frota';
             if (m.status === 'Não Pago') {
-                const v = this.getVeiculo(m.veiculoId);
-                const label = v ? v.placa : 'Frota';
                 const infraDate = new Date(m.data + 'T00:00:00');
                 const limitDate = new Date();
                 limitDate.setDate(limitDate.getDate() - 30);
@@ -663,6 +663,17 @@ class MovixStore {
                         targetId: m.id
                     });
                 }
+            } else if (m.status === 'Recorrendo') {
+                alerts.push({
+                    id: `ALT-MUL-REC-${m.id}`,
+                    tipo: 'Multa em recurso',
+                    prioridade: 'Baixa',
+                    status: 'Atenção',
+                    titulo: `Multa em Recurso: ${label}`,
+                    desc: `Valor de R$ ${(parseFloat(m.valor) || 0).toFixed(2)} sob recurso jurídico (${m.descricao.substring(0, 30)}...)`,
+                    link: 'multas',
+                    targetId: m.id
+                });
             }
         });
 
@@ -742,6 +753,7 @@ class MovixStore {
         const oleos = this.getOleos();
         const viagens = this.getViagens();
         const alerts = this.getAlerts();
+        const today = new Date();
 
         // 1. KM total
         let kmTotal = 0;
@@ -761,7 +773,34 @@ class MovixStore {
         let totalPneus = pneus.reduce((acc, p) => acc + (p.custo || 0), 0);
         let totalLubrificantes = oleos.reduce((acc, o) => acc + (o.valor || 0), 0);
 
-        // 3. Averages
+        // Calculate dynamic Insurance Cost
+        let totalSeguroMensal = 0;
+        let totalSeguroGeral = 0;
+        veiculos.forEach(v => {
+            if (v.possuiSeguro === 'Sim' && v.valorMensalSeguro) {
+                const monthly = parseFloat(v.valorMensalSeguro) || 0;
+                totalSeguroMensal += monthly;
+                
+                let months = 6; // default historical months
+                if (v.inicioContratoSeguro) {
+                    const start = new Date(v.inicioContratoSeguro + 'T00:00:00');
+                    const elapsedMs = today - start;
+                    const elapsedMonths = Math.floor(elapsedMs / (1000 * 60 * 60 * 24 * 30.4));
+                    months = Math.max(1, elapsedMonths);
+                }
+                totalSeguroGeral += monthly * months;
+            }
+        });
+
+        // 3. Averages and active statuses
+        const veiculosAtivos = veiculos.filter(v => v.status !== 'inativo' && (v.tipoUnidade === 'Veículo Motorizado' || !v.tipoUnidade)).length;
+        const implementosCadastrados = veiculos.filter(v => v.tipoUnidade === 'Implemento/Reboque').length;
+        const veiculosEmManutencaoCount = veiculos.filter(v => v.status === 'em_manutencao' && (v.tipoUnidade === 'Veículo Motorizado' || !v.tipoUnidade)).length;
+        const implementosEmManutencaoCount = veiculos.filter(v => v.status === 'em_manutencao' && v.tipoUnidade === 'Implemento/Reboque').length;
+
+        const totalCustoOperacional = totalCombustivel + totalManutencao + totalPneus + totalSeguroGeral;
+        const mediaCustoOperacional = veiculosAtivos > 0 ? (totalCustoOperacional / veiculosAtivos) : 0;
+
         const manutRealizadas = manutencoes.filter(m => m.status === 'Realizada');
         const mediaCustoManutencao = manutRealizadas.length > 0 ? (totalManutencao / manutRealizadas.length) : 0;
 
@@ -791,7 +830,14 @@ class MovixStore {
             totalGastoLubrificantes: totalLubrificantes,
             mediaCustoManutencao: mediaCustoManutencao,
             mediaKMLGeral: mediaKMLGeral || 9.8,
-            veiculosEmManutencao: veiculos.filter(v => v.status === 'em_manutencao').length,
+            veiculosEmManutencao: veiculosEmManutencaoCount,
+            implementosEmManutencao: implementosEmManutencaoCount,
+            veiculosAtivosCount: veiculosAtivos,
+            implementosCount: implementosCadastrados,
+            totalGastoSeguros: totalSeguroGeral,
+            totalSeguroMensal: totalSeguroMensal,
+            totalCustoOperacional: totalCustoOperacional,
+            mediaCustoOperacional: mediaCustoOperacional,
             veiculosAtrasados: contagemManutencaoAtrasada,
             documentosVencidos: 0,
             cnhsVencidas: contagemCNHsVencidas,
