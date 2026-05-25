@@ -627,7 +627,11 @@ class MovixStore {
                         link: 'pneus',
                         targetId: p.id
                     });
-           // 5. Unpaid Traffic Fine Alerts (Multas)
+                }
+            }
+        });
+
+        // 5. Unpaid Traffic Fine Alerts (Multas)
         (this.state.multas || []).forEach(m => {
             if (m.status === 'Não Pago') {
                 const v = this.getVeiculo(m.veiculoId);
