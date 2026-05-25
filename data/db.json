@@ -9,7 +9,7 @@
       "perfil": "Administrador",
       "status": "ativo",
       "foto": "/img/avatar-default.png",
-      "senhaHash": "$2a$10$io7xoEcVbOlfOsHemNUXaeTK5rTJt3KJqR2MHKspx5cVfrnpHvsgG",
+      "senhaHash": "$2a$10$HcgPmimnksdoJkshap7XTe51PMGi.N7tWc1nM50z1Oce8QLVsg4Ia",
       "dataCadastro": "2024-01-01"
     },
     {
@@ -21,7 +21,7 @@
       "perfil": "Gestor",
       "status": "ativo",
       "foto": "/img/avatar-default.png",
-      "senhaHash": "$2a$10$JY44EFPgookbCedt7Bc/KuVGkUV8lAGNNHbn3ThO9Ds2zJ23qnWGu",
+      "senhaHash": "$2a$10$SDqfIMPqU/rcNgv1XT.Iyeg0L1qHqjaL9pChVwZUNklOCkijgVeAG",
       "dataCadastro": "2024-01-01"
     },
     {
@@ -33,7 +33,7 @@
       "perfil": "Operacional",
       "status": "ativo",
       "foto": "/img/avatar-default.png",
-      "senhaHash": "$2a$10$ID8hkBJO0wRhaT7egun8f.KWsj9BRtmGrcGS/FG3j6GfgK8fijlS2",
+      "senhaHash": "$2a$10$kyiTpe6IOCopy2.UMxdG2O/PNz9fqSf6Lz/gB1C87AWcLifcAdfCq",
       "dataCadastro": "2024-01-01"
     },
     {
@@ -45,7 +45,7 @@
       "perfil": "Visualizador",
       "status": "ativo",
       "foto": "/img/avatar-default.png",
-      "senhaHash": "$2a$10$9E7pxZOkP8bYjeLCUsQuvOLoe4fRvnwjr6KyQWjurdXDaPduTfHj2",
+      "senhaHash": "$2a$10$jzhH4nbnxxxtWsaiF8c24u93Ipe6I1JLkxac7XpyoROPsgymaWwMq",
       "dataCadastro": "2024-01-01"
     }
   ],
@@ -284,56 +284,78 @@
       "foto": "/img/avatar-default.png"
     }
   ],
-  "documentos": [
+  "multas": [
     {
-      "id": "D-1",
-      "tipo": "Licenciamento CRLV",
-      "referenciaType": "veiculo",
-      "referenciaId": "V-1",
-      "emissao": "2025-01-10",
-      "vencimento": "2026-01-10",
-      "arquivo": "crlv_scania.pdf",
-      "obs": "Licenciamento anual quitado."
+      "id": "MUL-1",
+      "veiculoId": "V-1",
+      "data": "2026-05-10",
+      "horario": "14:30",
+      "descricao": "Excesso de velocidade (acima de 20% do limite)",
+      "valor": 195.23,
+      "motoristaId": "M-1",
+      "status": "Não Pago",
+      "observacoes": "Autuação na Rodovia Presidente Dutra KM 120.",
+      "anexo": "",
+      "historico": [
+        {
+          "data": "2026-05-10T14:30:00Z",
+          "usuario": "Sistema",
+          "acao": "Cadastro Inicial",
+          "status": "Não Pago"
+        }
+      ]
     },
     {
-      "id": "D-2",
-      "tipo": "Seguro Frota Bradesco",
-      "referenciaType": "veiculo",
-      "referenciaId": "V-1",
-      "emissao": "2025-02-15",
-      "vencimento": "2026-02-15",
-      "arquivo": "apolice_scania.pdf",
-      "obs": "Franquia reduzida."
+      "id": "MUL-2",
+      "veiculoId": "V-3",
+      "data": "2026-05-12",
+      "horario": "09:15",
+      "descricao": "Avanço de sinal vermelho",
+      "valor": 293.47,
+      "motoristaId": "M-2",
+      "status": "Pago",
+      "observacoes": "Comprovante anexado.",
+      "anexo": "",
+      "historico": [
+        {
+          "data": "2026-05-12T09:15:00Z",
+          "usuario": "Sistema",
+          "acao": "Cadastro Inicial",
+          "status": "Não Pago"
+        },
+        {
+          "data": "2026-05-13T10:00:00Z",
+          "usuario": "Carlos Silveira",
+          "acao": "Pagamento efetuado",
+          "status": "Pago"
+        }
+      ]
     },
     {
-      "id": "D-3",
-      "tipo": "Licenciamento CRLV",
-      "referenciaType": "veiculo",
-      "referenciaId": "V-2",
-      "emissao": "2024-05-15",
-      "vencimento": "2025-05-15",
-      "arquivo": "crlv_cargo.pdf",
-      "obs": "Licenciamento vencido!"
-    },
-    {
-      "id": "D-4",
-      "tipo": "Multa de Trânsito",
-      "referenciaType": "veiculo",
-      "referenciaId": "V-3",
-      "emissao": "2026-03-01",
-      "vencimento": "2026-06-01",
-      "arquivo": "multa_sprinter.pdf",
-      "obs": "Excesso de velocidade."
-    },
-    {
-      "id": "D-5",
-      "tipo": "CNH Digital",
-      "referenciaType": "motorista",
-      "referenciaId": "M-3",
-      "emissao": "2021-04-10",
-      "vencimento": "2026-04-10",
-      "arquivo": "cnh_julio.pdf",
-      "obs": "CNH expirada."
+      "id": "MUL-3",
+      "veiculoId": "V-2",
+      "data": "2026-04-15",
+      "horario": "16:45",
+      "descricao": "Estacionamento em local proibido",
+      "valor": 130.16,
+      "motoristaId": "",
+      "status": "Recorrendo",
+      "observacoes": "Aguardando parecer da JARI.",
+      "anexo": "",
+      "historico": [
+        {
+          "data": "2026-04-15T16:45:00Z",
+          "usuario": "Sistema",
+          "acao": "Cadastro Inicial",
+          "status": "Não Pago"
+        },
+        {
+          "data": "2026-04-18T14:20:00Z",
+          "usuario": "Renata Souza",
+          "acao": "Entrada em recurso administrativo",
+          "status": "Recorrendo"
+        }
+      ]
     }
   ],
   "abastecimentos": [
@@ -693,44 +715,8 @@
   ],
   "logs": [
     {
-      "id": "LOG-536RJWH2F",
-      "data": "2026-05-25T01:11:09.582Z",
-      "usuario": "Carlos Silveira",
-      "perfil": "Administrador",
-      "acao": "Login",
-      "entidade": "Sessão",
-      "detalhes": "Login realizado com sucesso (123.456.789-00)"
-    },
-    {
-      "id": "LOG-AEG3UOL24",
-      "data": "2026-05-24T22:59:22.402Z",
-      "usuario": "Carlos Silveira",
-      "perfil": "Administrador",
-      "acao": "Login",
-      "entidade": "Sessão",
-      "detalhes": "Login realizado com sucesso (123.456.789-00)"
-    },
-    {
-      "id": "LOG-IPTI3ENGK",
-      "data": "2026-05-24T02:09:29.519Z",
-      "usuario": "Carlos Silveira",
-      "perfil": "Administrador",
-      "acao": "Login",
-      "entidade": "Sessão",
-      "detalhes": "Login realizado com sucesso (123.456.789-00)"
-    },
-    {
-      "id": "LOG-9JJ2VQ7PN",
-      "data": "2026-05-23T16:40:07.690Z",
-      "usuario": "Carlos Silveira",
-      "perfil": "Administrador",
-      "acao": "Login",
-      "entidade": "Sessão",
-      "detalhes": "Login realizado com sucesso (123.456.789-00)"
-    },
-    {
       "id": "LOG-INIT",
-      "data": "2026-05-23T16:38:51.435Z",
+      "data": "2026-05-25T02:25:22.712Z",
       "usuario": "Sistema",
       "perfil": "Administrador",
       "acao": "Inicialização",

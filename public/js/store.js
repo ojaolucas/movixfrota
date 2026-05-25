@@ -7,7 +7,7 @@ class MovixStore {
             usuarios: [],
             veiculos: [],
             motoristas: [],
-            documentos: [],
+            multas: [],
             abastecimentos: [],
             manutencoes: [],
             pneus: [],
@@ -45,10 +45,10 @@ class MovixStore {
     // Load all data collections from REST API
     async loadData() {
         try {
-            const [veiculos, motoristas, documentos, abastecimentos, manutencoes, pneus, oleos, viagens, logs] = await Promise.all([
+            const [veiculos, motoristas, multas, abastecimentos, manutencoes, pneus, oleos, viagens, logs] = await Promise.all([
                 fetch('/api/veiculos').then(r => r.json()),
                 fetch('/api/motoristas').then(r => r.json()),
-                fetch('/api/documentos').then(r => r.json()),
+                fetch('/api/multas').then(r => r.json()),
                 fetch('/api/abastecimentos').then(r => r.json()),
                 fetch('/api/manutencoes').then(r => r.json()),
                 fetch('/api/pneus').then(r => r.json()),
@@ -59,7 +59,7 @@ class MovixStore {
 
             this.state.veiculos = veiculos;
             this.state.motoristas = motoristas;
-            this.state.documentos = documentos;
+            this.state.multas = multas;
             this.state.abastecimentos = abastecimentos;
             this.state.manutencoes = manutencoes;
             this.state.pneus = pneus;
@@ -420,26 +420,42 @@ class MovixStore {
         return true;
     }
 
-    // Documents
-    getDocumentos() { return this.state.documentos; }
+    // Multas
+    getMultas() { return this.state.multas || []; }
+    getMulta(id) { return (this.state.multas || []).find(m => m.id === id); }
 
-    async addDocumento(doc) {
-        const res = await fetch('/api/documentos', {
+    async addMulta(multa) {
+        const res = await fetch('/api/multas', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(doc)
+            body: JSON.stringify(multa)
         });
-        if (!res.ok) throw new Error('Erro ao salvar documento.');
-        const newDoc = await res.json();
-        this.state.documentos.push(newDoc);
+        if (!res.ok) throw new Error('Erro ao registrar multa.');
+        const newMulta = await res.json();
+        if (!this.state.multas) this.state.multas = [];
+        this.state.multas.push(newMulta);
         await this.loadData();
-        return newDoc;
+        return newMulta;
     }
 
-    async deleteDocumento(id) {
-        const res = await fetch(`/api/documentos/${id}`, { method: 'DELETE' });
-        if (!res.ok) throw new Error('Erro ao excluir documento.');
-        this.state.documentos = this.state.documentos.filter(d => d.id !== id);
+    async updateMulta(id, data) {
+        const res = await fetch(`/api/multas/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (!res.ok) throw new Error('Erro ao atualizar dados da multa.');
+        const updatedMulta = await res.json();
+        const idx = this.state.multas.findIndex(m => m.id === id);
+        if (idx !== -1) this.state.multas[idx] = updatedMulta;
+        await this.loadData();
+        return true;
+    }
+
+    async deleteMulta(id) {
+        const res = await fetch(`/api/multas/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Erro ao excluir multa.');
+        this.state.multas = this.state.multas.filter(m => m.id !== id);
         await this.loadData();
         return true;
     }
@@ -611,39 +627,36 @@ class MovixStore {
                         link: 'pneus',
                         targetId: p.id
                     });
-                }
-            }
-        });
+           // 5. Unpaid Traffic Fine Alerts (Multas)
+        (this.state.multas || []).forEach(m => {
+            if (m.status === 'Não Pago') {
+                const v = this.getVeiculo(m.veiculoId);
+                const label = v ? v.placa : 'Frota';
+                const infraDate = new Date(m.data + 'T00:00:00');
+                const limitDate = new Date();
+                limitDate.setDate(limitDate.getDate() - 30);
 
-        // 5. Vehicle Document alerts
-        this.state.documentos.forEach(doc => {
-            if (doc.vencimento) {
-                const expDate = new Date(doc.vencimento);
-                const isVeic = doc.referenciaType === 'veiculo';
-                const refObj = isVeic ? this.getVeiculo(doc.referenciaId) : this.getMotorista(doc.referenciaId);
-                const label = isVeic ? (refObj ? refObj.placa : 'Veículo') : (refObj ? refObj.nome : 'Motorista');
-
-                if (expDate < today) {
+                if (infraDate < limitDate) {
                     alerts.push({
-                        id: `ALT-DOC-EXP-${doc.id}`,
-                        tipo: 'Documento vencido',
+                        id: `ALT-MUL-EXP-${m.id}`,
+                        tipo: 'Multa vencida',
                         prioridade: 'Alta',
                         status: 'Atrasado',
-                        titulo: `Documento Vencido: ${doc.tipo}`,
-                        desc: `${doc.tipo} do ${isVeic ? 'veículo' : 'motorista'} [${label}] expirado em ${doc.vencimento.split('-').reverse().join('/')}`,
-                        link: 'documentos',
-                        targetId: doc.id
+                        titulo: `Multa Crítica pendente: ${label}`,
+                        desc: `Valor de R$ ${(parseFloat(m.valor) || 0).toFixed(2)} registrado em ${m.data.split('-').reverse().join('/')}`,
+                        link: 'multas',
+                        targetId: m.id
                     });
-                } else if (expDate <= tenDaysFromNow) {
+                } else {
                     alerts.push({
-                        id: `ALT-DOC-PROX-${doc.id}`,
-                        tipo: 'Seguro próximo do vencimento',
+                        id: `ALT-MUL-PRX-${m.id}`,
+                        tipo: 'Multa próxima do vencimento',
                         prioridade: 'Média',
                         status: 'Atenção',
-                        titulo: `Documento a vencer: ${doc.tipo}`,
-                        desc: `${doc.tipo} do ${isVeic ? 'veículo' : 'motorista'} [${label}] expira em ${doc.vencimento.split('-').reverse().join('/')}`,
-                        link: 'documentos',
-                        targetId: doc.id
+                        titulo: `Multa pendente de pagamento: ${label}`,
+                        desc: `Valor de R$ ${(parseFloat(m.valor) || 0).toFixed(2)} registrado em ${m.data.split('-').reverse().join('/')}`,
+                        link: 'multas',
+                        targetId: m.id
                     });
                 }
             }
@@ -705,7 +718,7 @@ class MovixStore {
                             prioridade: 'Média',
                             status: 'Atenção',
                             titulo: `Boleto de seguro a vencer: ${v.placa}`,
-                            desc: `Parcela mensal de R$ ${(parseFloat(v.valorMensalSeguro) || 0).toFixed(2)} vence em ${diffDays} dias (${v.vencimentoBoletoSeguro.split('-').reverse().join('/')})`,
+                            desc: `Parcela mensal de R$ ${(parseFloat(v.valorMensalSeguro) || 0).toFixed(2)} venceu em ${diffDays} dias (${v.vencimentoBoletoSeguro.split('-').reverse().join('/')})`,
                             link: 'veiculos',
                             targetId: v.id
                         });
@@ -758,11 +771,13 @@ class MovixStore {
         });
         const mediaKMLGeral = validKMLCount > 0 ? (mediaKMLTotal / validKMLCount) : 0;
 
-        const contagemDocumentosVencidos = alerts.filter(a => a.tipo === 'Documento vencido').length;
         const contagemCNHsVencidas = alerts.filter(a => a.tipo === 'CNH vencida').length;
         const contagemManutencaoAtrasada = alerts.filter(a => a.tipo === 'Manutenção atrasada').length;
         const contagemOleosVencidos = alerts.filter(a => a.tipo === 'Óleo vencido').length;
         const contagemPneusTroca = alerts.filter(a => a.prioridade === 'Alta' && a.tipo === 'Pneu próximo da troca').length;
+
+        const totalMultasVal = (this.state.multas || []).reduce((acc, m) => acc + (parseFloat(m.valor) || 0), 0);
+        const totalMultasCount = (this.state.multas || []).length;
 
         return {
             kmTotalFrota: kmTotal || 148200,
@@ -774,11 +789,13 @@ class MovixStore {
             mediaKMLGeral: mediaKMLGeral || 9.8,
             veiculosEmManutencao: veiculos.filter(v => v.status === 'em_manutencao').length,
             veiculosAtrasados: contagemManutencaoAtrasada,
-            documentosVencidos: contagemDocumentosVencidos,
+            documentosVencidos: 0,
             cnhsVencidas: contagemCNHsVencidas,
             oleosProximos: alerts.filter(a => a.tipo === 'Óleo próximo da troca').length,
             oleosVencidos: contagemOleosVencidos,
-            pneusTroca: contagemPneusTroca
+            pneusTroca: contagemPneusTroca,
+            totalMultas: totalMultasCount,
+            valorTotalMultas: totalMultasVal
         };
     }
 }

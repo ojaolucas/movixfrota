@@ -659,28 +659,67 @@ app.put('/api/viagens/:id', requireAuth, (req, res) => {
     res.json(db.viagens[idx]);
 });
 
-// ─── DOCUMENTOS ───────────────────────────────────────────
-app.get('/api/documentos', requireAuth, (req, res) => {
+// ─── MULTAS ───────────────────────────────────────────────
+app.get('/api/multas', requireAuth, (req, res) => {
     const db = readDB();
-    res.json(db.documentos);
+    res.json(db.multas || []);
 });
 
-app.post('/api/documentos', requireAuth, (req, res) => {
+app.post('/api/multas', requireAuth, (req, res) => {
     const db = readDB();
-    const doc = { ...req.body };
-    doc.id = 'DOC-' + uuidv4().substr(0, 8).toUpperCase();
-    db.documentos.push(doc);
-    addLog(db, req.session.nome, req.session.perfil, 'Cadastro', 'Documento', `Anexou documento ${doc.tipo}`);
+    if (!db.multas) db.multas = [];
+    const m = { ...req.body };
+    m.id = 'MUL-' + uuidv4().substr(0, 8).toUpperCase();
+    m.valor = parseFloat(m.valor) || 0;
+    m.historico = [
+        {
+            data: new Date().toISOString(),
+            usuario: req.session.nome,
+            acao: 'Cadastro Inicial',
+            status: m.status || 'Não Pago'
+        }
+    ];
+    db.multas.push(m);
+    addLog(db, req.session.nome, req.session.perfil, 'Cadastro', 'Multa', `Registrou multa no valor de R$ ${m.valor.toFixed(2)}`);
     writeDB(db);
-    res.json(doc);
+    res.json(m);
 });
 
-app.delete('/api/documentos/:id', requireAuth, requireAdmin, (req, res) => {
+app.put('/api/multas/:id', requireAuth, (req, res) => {
     const db = readDB();
-    const doc = db.documentos.find(d => d.id === req.params.id);
-    if (!doc) return res.status(404).json({ error: 'Documento não encontrado.' });
-    db.documentos = db.documentos.filter(d => d.id !== req.params.id);
-    addLog(db, req.session.nome, req.session.perfil, 'Exclusão', 'Documento', `Removeu documento ${doc.tipo}`);
+    const idx = db.multas.findIndex(m => m.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Multa não encontrada.' });
+    const original = db.multas[idx];
+    const updated = { ...original, ...req.body };
+    updated.valor = parseFloat(updated.valor) || 0;
+    
+    if (!updated.historico) updated.historico = [];
+    
+    let actionDesc = 'Dados da multa editados';
+    if (original.status !== updated.status) {
+        actionDesc = `Status alterado de "${original.status}" para "${updated.status}"`;
+    }
+    
+    updated.historico.push({
+        data: new Date().toISOString(),
+        usuario: req.session.nome,
+        acao: actionDesc,
+        status: updated.status
+    });
+
+    db.multas[idx] = updated;
+    addLog(db, req.session.nome, req.session.perfil, 'Edição', 'Multa', `Atualizou dados da multa ${req.params.id}`);
+    writeDB(db);
+    res.json(updated);
+});
+
+app.delete('/api/multas/:id', requireAuth, requireAdmin, (req, res) => {
+    const db = readDB();
+    const idx = db.multas.findIndex(m => m.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Multa não encontrada.' });
+    const original = db.multas[idx];
+    db.multas = db.multas.filter(m => m.id !== req.params.id);
+    addLog(db, req.session.nome, req.session.perfil, 'Exclusão', 'Multa', `Excluiu multa ${req.params.id}`);
     writeDB(db);
     res.json({ success: true });
 });
@@ -730,7 +769,10 @@ app.get('/api/metricas', requireAuth, (req, res) => {
     const cnhVencidas = db.motoristas.filter(m => new Date(m.dataVencimentoCNH) < today).length;
     const cnhAVencer = db.motoristas.filter(m => { const d = new Date(m.dataVencimentoCNH); return d >= today && d <= tenDays; }).length;
     const manutAtrasadas = db.manutencoes.filter(m => m.status === 'Atrasada').length;
-    const docsVencidos = db.documentos.filter(d => d.vencimento && new Date(d.vencimento) < today).length;
+
+    // Multas metrics
+    const totalMultasVal = (db.multas || []).reduce((acc, m) => acc + (parseFloat(m.valor) || 0), 0);
+    const totalMultasCount = (db.multas || []).length;
 
     res.json({
         kmTotalFrota: kmTotal || 148200,
@@ -745,7 +787,8 @@ app.get('/api/metricas', requireAuth, (req, res) => {
         cnhsVencidas: cnhVencidas,
         cnhsAVencer: cnhAVencer,
         manutencaoAtrasada: manutAtrasadas,
-        documentosVencidos: docsVencidos
+        totalMultas: totalMultasCount,
+        valorTotalMultas: totalMultasVal
     });
 });
 
@@ -767,12 +810,36 @@ app.get('/api/alertas', requireAuth, (req, res) => {
         alerts.push({ id: `ALT-MAN-${m.id}`, prioridade: 'Alta', titulo: `Manutenção Atrasada: ${v ? v.placa : ''}`, desc: `O.S. ${m.tipo} agendada para ${m.km} KM`, link: 'manutencoes', targetId: m.id });
     });
 
-    db.documentos.filter(d => d.vencimento).forEach(d => {
-        const exp = new Date(d.vencimento);
-        const ref = d.referenciaType === 'veiculo' ? db.veiculos.find(v => v.id === d.referenciaId) : db.motoristas.find(m => m.id === d.referenciaId);
-        const label = ref ? (d.referenciaType === 'veiculo' ? ref.placa : ref.nome) : '';
-        if (exp < today) alerts.push({ id: `ALT-DOC-EXP-${d.id}`, prioridade: 'Alta', titulo: `Documento Vencido: ${d.tipo}`, desc: `[${label}] venceu em ${d.vencimento}`, link: 'documentos', targetId: d.id });
-        else if (exp <= tenDays) alerts.push({ id: `ALT-DOC-PRX-${d.id}`, prioridade: 'Média', titulo: `Documento a Vencer: ${d.tipo}`, desc: `[${label}] vence em ${d.vencimento}`, link: 'documentos', targetId: d.id });
+    // Multas alertas pendentes
+    (db.multas || []).forEach(m => {
+        if (m.status === 'Não Pago') {
+            const v = db.veiculos.find(veh => veh.id === m.veiculoId);
+            const label = v ? v.placa : 'Frota';
+            
+            const infraDate = new Date(m.data);
+            const limitDate = new Date();
+            limitDate.setDate(limitDate.getDate() - 30);
+            
+            if (infraDate < limitDate) {
+                alerts.push({
+                    id: `ALT-MUL-EXP-${m.id}`,
+                    prioridade: 'Alta',
+                    titulo: `Multa Crítica pendente: ${label}`,
+                    desc: `Valor de R$ ${m.valor.toFixed(2)} registrado em ${m.data.split('-').reverse().join('/')}`,
+                    link: 'multas',
+                    targetId: m.id
+                });
+            } else {
+                alerts.push({
+                    id: `ALT-MUL-PRX-${m.id}`,
+                    prioridade: 'Média',
+                    titulo: `Multa pendente de pagamento: ${label}`,
+                    desc: `Valor de R$ ${m.valor.toFixed(2)} registrado em ${m.data.split('-').reverse().join('/')}`,
+                    link: 'multas',
+                    targetId: m.id
+                });
+            }
+        }
     });
 
     db.pneus.filter(p => p.veiculoAtual).forEach(p => {
@@ -841,12 +908,52 @@ function getSeedData() {
         { id: 'M-5', nome: 'Douglas Costa', cpf: '567.890.123-45', rg: '56.789.012-3', cnh: '543210987', categoriaCNH: 'C', dataVencimentoCNH: '2028-02-28', telefone: '(19) 94321-0987', email: 'douglas.costa@movix.com.br', endereco: 'Rua Tiradentes, 89 - Santos/SP', status: 'ativo', observacoes: '', foto: '/img/avatar-default.png' }
     ];
 
-    const documentos = [
-        { id: 'D-1', tipo: 'Licenciamento CRLV', referenciaType: 'veiculo', referenciaId: 'V-1', emissao: '2025-01-10', vencimento: '2026-01-10', arquivo: 'crlv_scania.pdf', obs: 'Licenciamento anual quitado.' },
-        { id: 'D-2', tipo: 'Seguro Frota Bradesco', referenciaType: 'veiculo', referenciaId: 'V-1', emissao: '2025-02-15', vencimento: '2026-02-15', arquivo: 'apolice_scania.pdf', obs: 'Franquia reduzida.' },
-        { id: 'D-3', tipo: 'Licenciamento CRLV', referenciaType: 'veiculo', referenciaId: 'V-2', emissao: '2024-05-15', vencimento: '2025-05-15', arquivo: 'crlv_cargo.pdf', obs: 'Licenciamento vencido!' },
-        { id: 'D-4', tipo: 'Multa de Trânsito', referenciaType: 'veiculo', referenciaId: 'V-3', emissao: '2026-03-01', vencimento: '2026-06-01', arquivo: 'multa_sprinter.pdf', obs: 'Excesso de velocidade.' },
-        { id: 'D-5', tipo: 'CNH Digital', referenciaType: 'motorista', referenciaId: 'M-3', emissao: '2021-04-10', vencimento: '2026-04-10', arquivo: 'cnh_julio.pdf', obs: 'CNH expirada.' }
+    const multas = [
+        {
+            id: 'MUL-1',
+            veiculoId: 'V-1',
+            data: '2026-05-10',
+            horario: '14:30',
+            descricao: 'Excesso de velocidade (acima de 20% do limite)',
+            valor: 195.23,
+            motoristaId: 'M-1',
+            status: 'Não Pago',
+            observacoes: 'Autuação na Rodovia Presidente Dutra KM 120.',
+            anexo: '',
+            historico: [{ data: '2026-05-10T14:30:00Z', usuario: 'Sistema', acao: 'Cadastro Inicial', status: 'Não Pago' }]
+        },
+        {
+            id: 'MUL-2',
+            veiculoId: 'V-3',
+            data: '2026-05-12',
+            horario: '09:15',
+            descricao: 'Avanço de sinal vermelho',
+            valor: 293.47,
+            motoristaId: 'M-2',
+            status: 'Pago',
+            observacoes: 'Comprovante anexado.',
+            anexo: '',
+            historico: [
+                { data: '2026-05-12T09:15:00Z', usuario: 'Sistema', acao: 'Cadastro Inicial', status: 'Não Pago' },
+                { data: '2026-05-13T10:00:00Z', usuario: 'Carlos Silveira', acao: 'Pagamento efetuado', status: 'Pago' }
+            ]
+        },
+        {
+            id: 'MUL-3',
+            veiculoId: 'V-2',
+            data: '2026-04-15',
+            horario: '16:45',
+            descricao: 'Estacionamento em local proibido',
+            valor: 130.16,
+            motoristaId: '',
+            status: 'Recorrendo',
+            observacoes: 'Aguardando parecer da JARI.',
+            anexo: '',
+            historico: [
+                { data: '2026-04-15T16:45:00Z', usuario: 'Sistema', acao: 'Cadastro Inicial', status: 'Não Pago' },
+                { data: '2026-04-18T14:20:00Z', usuario: 'Renata Souza', acao: 'Entrada em recurso administrativo', status: 'Recorrendo' }
+            ]
+        }
     ];
 
     const abastecimentos = [
@@ -893,7 +1000,7 @@ function getSeedData() {
         { id: 'LOG-INIT', data: new Date().toISOString(), usuario: 'Sistema', perfil: 'Administrador', acao: 'Inicialização', entidade: 'Banco de Dados', detalhes: 'Base de dados inicializada com dados semente. Senha padrão: movix@2026' }
     ];
 
-    return { usuarios, veiculos, motoristas, documentos, abastecimentos, manutencoes, pneus, oleos, viagens, logs };
+    return { usuarios, veiculos, motoristas, multas, abastecimentos, manutencoes, pneus, oleos, viagens, logs };
 }
 
 // ─── Inicializar BD se não existir ───────────────────────

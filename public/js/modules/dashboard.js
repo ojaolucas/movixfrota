@@ -5,12 +5,33 @@
     function renderDashboard(container) {
         const metrics = window.movixStore.getMetrics();
         const alerts = window.movixStore.getAlerts();
+
+        const multas = window.movixStore.getMultas();
+        const vehicles = window.movixStore.getVeiculos();
+        
+        // Calculate vehicle with most multas
+        const multaCounts = {};
+        multas.forEach(m => {
+            if (m.veiculoId) {
+                multaCounts[m.veiculoId] = (multaCounts[m.veiculoId] || 0) + 1;
+            }
+        });
+        
+        let mostMultasPlaca = '-';
+        let maxMultas = 0;
+        Object.entries(multaCounts).forEach(([veicId, count]) => {
+            if (count > maxMultas) {
+                maxMultas = count;
+                const v = vehicles.find(item => item.id === veicId);
+                if (v) mostMultasPlaca = `${v.placa} (${count}x)`;
+            }
+        });
         
         // Define color helpers for active theme
         const isDark = document.body.classList.contains('theme-dark');
         const textMuted = isDark ? '#9ca3af' : '#64748b';
         const borderColor = isDark ? '#1f293d' : '#e2e8f0';
-
+ 
         // 1. Compile Alertas HTML
         let alertsHTML = '';
         if (alerts.length === 0) {
@@ -26,7 +47,7 @@
                 const priorityWeight = { 'Alta': 3, 'Média': 2, 'Baixa': 1 };
                 return priorityWeight[b.prioridade] - priorityWeight[a.prioridade];
             });
-
+ 
             sortedAlerts.forEach(a => {
                 const dotClass = a.prioridade === 'Alta' ? 'high' : (a.prioridade === 'Média' ? 'medium' : 'low');
                 const badgeClass = a.prioridade === 'Alta' ? 'high' : (a.prioridade === 'Média' ? 'medium' : 'low');
@@ -43,7 +64,7 @@
                 `;
             });
         }
-
+ 
         // 2. Render Page Frame
         container.innerHTML = `
             <div class="page-header">
@@ -57,7 +78,7 @@
                     </button>
                 </div>
             </div>
-
+ 
             <!-- DYNAMIC STATS GRID (INDICADORES) -->
             <div class="grid-4">
                 <div class="card stat-card">
@@ -68,7 +89,7 @@
                     </div>
                     <div class="stat-icon primary"><i class="fa-solid fa-route"></i></div>
                 </div>
-
+ 
                 <div class="card stat-card">
                     <div class="stat-info">
                         <span class="stat-label">Custo Combustível</span>
@@ -77,7 +98,7 @@
                     </div>
                     <div class="stat-icon success"><i class="fa-solid fa-gas-pump"></i></div>
                 </div>
-
+ 
                 <div class="card stat-card">
                     <div class="stat-info">
                         <span class="stat-label">Custo Manutenção</span>
@@ -86,7 +107,7 @@
                     </div>
                     <div class="stat-icon danger"><i class="fa-solid fa-screwdriver-wrench"></i></div>
                 </div>
-
+ 
                 <div class="card stat-card">
                     <div class="stat-info">
                         <span class="stat-label">Veículos Operando</span>
@@ -96,7 +117,7 @@
                     <div class="stat-icon info"><i class="fa-solid fa-truck"></i></div>
                 </div>
             </div>
-
+ 
             <!-- SECOND STAT ROW (COMPUTED ITEMS) -->
             <div class="grid-4" style="margin-top: -12px;">
                 <div class="card stat-card" style="padding: 14px 20px;">
@@ -109,26 +130,26 @@
                 
                 <div class="card stat-card" style="padding: 14px 20px;">
                     <div class="stat-info" style="gap: 2px;">
-                        <span class="stat-label" style="font-size: 0.75rem;">Média Gasto Manutenção</span>
-                        <span class="stat-value" style="font-size: 1.3rem;">R$ ${metrics.mediaCustoManutencao.toFixed(0)}</span>
+                        <span class="stat-label" style="font-size: 0.75rem;">Total de Multas</span>
+                        <span class="stat-value" style="font-size: 1.3rem;">${metrics.totalMultas || 0} multas</span>
                     </div>
-                    <div class="stat-icon danger" style="width:38px; height:38px; font-size:1rem;"><i class="fa-solid fa-calculator"></i></div>
+                    <div class="stat-icon danger" style="width:38px; height:38px; font-size:1rem;"><i class="fa-solid fa-ticket"></i></div>
                 </div>
-
+ 
                 <div class="card stat-card" style="padding: 14px 20px;">
                     <div class="stat-info" style="gap: 2px;">
-                        <span class="stat-label" style="font-size: 0.75rem;">CNHs Expiradas</span>
-                        <span class="stat-value ${metrics.cnhsVencidas > 0 ? 'text-danger' : ''}" style="font-size: 1.3rem;">${metrics.cnhsVencidas}</span>
+                        <span class="stat-label" style="font-size: 0.75rem;">Valor Total em Multas</span>
+                        <span class="stat-value" style="font-size: 1.3rem;">R$ ${(metrics.valorTotalMultas || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                     </div>
-                    <div class="stat-icon warning" style="width:38px; height:38px; font-size:1rem;"><i class="fa-solid fa-user-xmark"></i></div>
+                    <div class="stat-icon warning" style="width:38px; height:38px; font-size:1rem;"><i class="fa-solid fa-sack-dollar"></i></div>
                 </div>
-
+ 
                 <div class="card stat-card" style="padding: 14px 20px;">
                     <div class="stat-info" style="gap: 2px;">
-                        <span class="stat-label" style="font-size: 0.75rem;">Trocas Óleo Pendentes</span>
-                        <span class="stat-value ${metrics.oleosVencidos > 0 ? 'text-danger' : ''}" style="font-size: 1.3rem;">${metrics.oleosVencidos} vencidas</span>
+                        <span class="stat-label" style="font-size: 0.75rem;">Veículo Mais Autuado</span>
+                        <span class="stat-value" style="font-size: 1.15rem; font-weight:700;">${mostMultasPlaca}</span>
                     </div>
-                    <div class="stat-icon primary" style="width:38px; height:38px; font-size:1rem;"><i class="fa-solid fa-oil-can"></i></div>
+                    <div class="stat-icon primary" style="width:38px; height:38px; font-size:1rem;"><i class="fa-solid fa-triangle-exclamation"></i></div>
                 </div>
             </div>
 

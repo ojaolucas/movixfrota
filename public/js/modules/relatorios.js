@@ -30,6 +30,7 @@
                             <option value="vehicle_costs">Ranking de Despesas por Veículo</option>
                             <option value="driver_performance">Ranking de Consumo (KM/L) por Motorista</option>
                             <option value="oil_timeline">Cronograma Histórico de Trocas de Óleo</option>
+                            <option value="multas_report">Relatório e Custos de Multas</option>
                         </select>
                     </div>
 
@@ -383,6 +384,70 @@
                 });
 
                 renderReportChart('bar', plaques, values, 'Custo com Óleo/Filtros Acumulado (R$)', '#0ea5e9', textMuted, borderColor);
+            } else if (reportType === 'multas_report') {
+                title.innerText = 'Relatório de Multas da Frota';
+                thead.innerHTML = `
+                    <tr>
+                        <th>Data</th>
+                        <th>Veículo</th>
+                        <th>Motorista</th>
+                        <th>Descrição da Infração</th>
+                        <th>Custo da Multa</th>
+                        <th>Situação</th>
+                    </tr>
+                `;
+
+                const multas = window.movixStore.getMultas();
+                const filtered = multas.filter(m => {
+                    const matchVeic = !veicFilter || m.veiculoId === veicFilter;
+                    
+                    let matchDriver = true;
+                    if (driverFilter) {
+                        matchDriver = m.motoristaId === driverFilter;
+                    }
+                    
+                    const matchDate = isDateInRange(m.data);
+                    return matchVeic && matchDriver && matchDate;
+                });
+
+                if (filtered.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="search-no-results">Nenhuma multa encontrada no período.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = filtered.map(m => {
+                    const v = vehicles.find(item => item.id === m.veiculoId);
+                    const d = drivers.find(item => item.id === m.motoristaId);
+                    
+                    let statusPill = '';
+                    if (m.status === 'Pago') {
+                        statusPill = '<span class="status-pill ok">Pago</span>';
+                    } else if (m.status === 'Não Pago') {
+                        statusPill = '<span class="status-pill vencido">Não Pago</span>';
+                    } else {
+                        statusPill = '<span class="status-pill atencao">Recorrendo</span>';
+                    }
+
+                    return `
+                        <tr>
+                            <td>${m.data.split('-').reverse().join('/')}</td>
+                            <td style="font-weight:700; color:var(--primary);">${v ? v.placa : '-'}</td>
+                            <td style="font-weight:600;">${d ? d.nome : '<span style="color:var(--text-muted); font-style:italic;">Sem motorista</span>'}</td>
+                            <td>${m.descricao}</td>
+                            <td style="font-weight:700;">R$ ${(parseFloat(m.valor) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                            <td>${statusPill}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                // Chart: Fines by Vehicle
+                const plaques = [...new Set(filtered.map(m => vehicles.find(v=>v.id===m.veiculoId)?.placa || ''))].slice(0, 5);
+                const values = plaques.map(p => {
+                    const veicId = vehicles.find(v=>v.placa===p)?.id;
+                    return filtered.filter(m => m.veiculoId === veicId).reduce((acc, m) => acc + (parseFloat(m.valor) || 0), 0);
+                });
+
+                renderReportChart('bar', plaques, values, 'Custo de Multas Acumulado (R$)', '#f59e0b', textMuted, borderColor);
             }
         }
 
