@@ -60,7 +60,7 @@
                         </select>
                     </div>
 
-                    <div class="filter-group" id="report-custom-dates" style="display: none; flex-direction: row; gap: 12px; align-items: center; grid-column: span 1;">
+                    <div class="filter-group" id="report-custom-dates" style="display: none; flex-direction: row; gap: 12px; align-items: center; grid-column: span 2;">
                         <div style="display:flex; flex-direction:column; flex:1;">
                             <label>De</label>
                             <input type="date" class="filter-input" id="report-date-start" style="height: 38px;">
@@ -74,7 +74,7 @@
             </div>
 
             <!-- DYNAMIC REPORT CONTENT GRID -->
-            <div style="display: grid; grid-template-columns: 1.6fr 1fr; gap: 24px; margin-top: 12px;">
+            <div class="grid-1-6-1" style="margin-top: 12px;">
                 
                 <!-- REPORT DATA SHEET -->
                 <div class="card" style="min-height: 400px; display:flex; flex-direction:column;">

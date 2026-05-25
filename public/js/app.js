@@ -60,10 +60,35 @@ class MovixApp {
     setupSidebar() {
         const sidebar = document.getElementById('sidebar');
         const toggleBtn = document.getElementById('sidebar-toggle');
+        
+        let backdrop = document.getElementById('sidebar-backdrop');
+        if (!backdrop) {
+            backdrop = document.createElement('div');
+            backdrop.id = 'sidebar-backdrop';
+            backdrop.className = 'sidebar-backdrop';
+            document.body.appendChild(backdrop);
+        }
 
         toggleBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('collapsed');
-            document.body.classList.toggle('sidebar-collapsed-body');
+            if (window.innerWidth <= 992) {
+                sidebar.classList.toggle('active');
+                backdrop.classList.toggle('active');
+            } else {
+                sidebar.classList.toggle('collapsed');
+                document.body.classList.toggle('sidebar-collapsed-body');
+            }
+        });
+
+        backdrop.addEventListener('click', () => {
+            sidebar.classList.remove('active');
+            backdrop.classList.remove('active');
+        });
+
+        sidebar.addEventListener('click', (e) => {
+            if (window.innerWidth <= 992 && e.target.closest('.sidebar-link')) {
+                sidebar.classList.remove('active');
+                backdrop.classList.remove('active');
+            }
         });
     }
 

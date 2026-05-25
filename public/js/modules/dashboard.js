@@ -154,7 +154,7 @@
             </div>
 
             <!-- CHARTS AND ALERTS AREA -->
-            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-top: 12px;">
+            <div class="grid-2-1" style="margin-top: 12px;">
                 
                 <!-- Main Cost Chart -->
                 <div class="card" style="min-height: 380px;">

@@ -39,7 +39,7 @@
                 </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+            <div class="grid-2-1">
                 
                 <!-- SECURITY LOGS TABLE -->
                 <div class="card" style="min-height: 480px; display:flex; flex-direction:column;">

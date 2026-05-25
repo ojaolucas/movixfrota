@@ -715,6 +715,15 @@
   ],
   "logs": [
     {
+      "id": "LOG-NRMDZWCEB",
+      "data": "2026-05-25T02:51:28.283Z",
+      "usuario": "Carlos Silveira",
+      "perfil": "Administrador",
+      "acao": "Login",
+      "entidade": "Sessão",
+      "detalhes": "Login realizado com sucesso (123.456.789-00)"
+    },
+    {
       "id": "LOG-PGLFWDWAT",
       "data": "2026-05-25T02:40:10.188Z",
       "usuario": "Carlos Silveira",

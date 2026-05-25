@@ -318,7 +318,7 @@
                 </div>
 
                 <!-- MOTORIZED VEHICLE FIELDS -->
-                <div id="motorized-fields-container" style="grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div id="motorized-fields-container" class="grid-1-1" style="grid-column: span 2;">
                     <div class="form-group">
                         <label>Tipo de Veículo <span class="required">*</span></label>
                         <select class="form-control" name="tipo" id="veh-tipo-motorizado" required>
@@ -344,7 +344,7 @@
                 </div>
 
                 <!-- TRAILER/IMPLEMENT FIELDS -->
-                <div id="trailer-fields-container" style="grid-column: span 2; display: none; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div id="trailer-fields-container" class="grid-1-1" style="grid-column: span 2; display: none;">
                     <div class="form-group">
                         <label>Tipo do Implemento <span class="required">*</span></label>
                         <select class="form-control" name="tipoImplemento" id="veh-tipo-implemento">
@@ -421,7 +421,7 @@
                 </div>
 
                 <!-- DYNAMIC INSURANCE FIELDS CONTAINER -->
-                <div id="insurance-fields-container" style="grid-column: span 2; display:${isEdit && vehicle.possuiSeguro === 'Sim' ? 'grid' : 'none'}; grid-template-columns: 1fr 1fr; gap: 16px; border-left: 3px solid var(--primary); padding-left: 16px; margin: 8px 0;">
+                <div id="insurance-fields-container" class="grid-1-1" style="grid-column: span 2; display:${isEdit && vehicle.possuiSeguro === 'Sim' ? 'grid' : 'none'}; border-left: 3px solid var(--primary); padding-left: 16px; margin: 8px 0;">
                     <div style="grid-column: span 2; margin-bottom:-4px;">
                         <h4 style="font-family:var(--font-heading); color:var(--primary);"><i class="fa-solid fa-shield-halved"></i> Detalhamento da Cobertura de Seguro</h4>
                     </div>

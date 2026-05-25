@@ -24,7 +24,7 @@
             </div>
 
             <!-- COMBINED VISUAL SEMAPHORES AND HISTORY -->
-            <div style="display: grid; grid-template-columns: 1fr 1.8fr; gap: 24px;">
+            <div class="grid-1-1-8">
                 
                 <!-- TRAFFIC-LIGHT STATUS CARDS (SEMAFOROS) -->
                 <div class="card" style="display:flex; flex-direction:column; gap:16px;">

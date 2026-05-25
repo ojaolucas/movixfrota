@@ -26,7 +26,7 @@
 
             <!-- FILTERS PANEL -->
             <div class="filters-card">
-                <div class="filters-row" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                <div class="filters-row">
                     <div class="filter-group">
                         <label>Buscar Descrição / Tipo</label>
                         <input type="text" class="filter-input" id="search-multas" placeholder="Ex: Velocidade, Sinal...">
@@ -544,7 +544,7 @@
             }
 
             modalBody.innerHTML = `
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                <div class="grid-1-1">
                     <div>
                         <h4 style="font-family:var(--font-heading); color:var(--primary); margin-bottom:12px;"><i class="fa-solid fa-circle-info"></i> Informações da Infração</h4>
                         <ul class="detail-sidebar-info-list" style="border:none; padding:0; font-size:0.85rem; display:flex; flex-direction:column; gap:10px;">

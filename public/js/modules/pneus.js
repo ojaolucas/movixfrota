@@ -43,7 +43,7 @@
             </div>
 
             <!-- COMBINED VISUAL AXLE MAP AND DATA LIST -->
-            <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px;">
+            <div class="grid-1-2-1">
                 
                 <!-- TIRES LIST -->
                 <div class="card" style="min-height: 480px;">
