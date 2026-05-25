@@ -181,7 +181,7 @@
             </div>
 
             <!-- ADMINISTRATIVE BLOCKS GRID -->
-            <div class="grid-3" style="margin-top: -12px;">
+            <div class="grid-4" style="margin-top: -12px;">
                 <div class="card stat-card">
                     <div class="stat-info">
                         <span class="stat-label">Custos com Seguros</span>
@@ -189,6 +189,15 @@
                         <span class="stat-delta text-success"><i class="fa-solid fa-shield-halved"></i> Contratos de seguro</span>
                     </div>
                     <div class="stat-icon success"><i class="fa-solid fa-shield-halved"></i></div>
+                </div>
+
+                <div class="card stat-card">
+                    <div class="stat-info">
+                        <span class="stat-label">Custos com Rastreamento</span>
+                        <span class="stat-value" style="font-size:1.35rem;">R$ ${metrics.totalGastoRastreamento.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <span class="stat-delta text-info"><i class="fa-solid fa-satellite-dish"></i> R$ ${metrics.totalRastreamentoMensal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês</span>
+                    </div>
+                    <div class="stat-icon info"><i class="fa-solid fa-satellite-dish"></i></div>
                 </div>
 
                 <div class="card stat-card">

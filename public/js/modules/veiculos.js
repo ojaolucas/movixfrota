@@ -477,6 +477,275 @@
                     </div>
                 </div>
 
+                <!-- SECTION: VEICULO RASTREADOR -->
+                <div class="form-group full-width" style="border-top: 1px solid var(--border-color); padding-top: 16px; margin-top: 12px;">
+                    <label>Possui Sistema de Rastreamento? <span class="required">*</span></label>
+                    <select class="form-control" name="possuiRastreador" id="veh-possui-rastreador" required>
+                        <option value="Não" ${isEdit && vehicle.possuiRastreador === 'Não' ? 'selected' : ''}>Não</option>
+                        <option value="Sim" ${isEdit && vehicle.possuiRastreador === 'Sim' ? 'selected' : ''}>Sim</option>
+                    </select>
+                </div>
+
+                <div id="tracker-fields-container" class="grid-1-1" style="grid-column: span 2; display:${isEdit && vehicle.possuiRastreador === 'Sim' ? 'grid' : 'none'}; border-left: 3px solid var(--primary); padding-left: 16px; margin: 8px 0;">
+                    <div style="grid-column: span 2; margin-bottom:-4px;">
+                        <h4 style="font-family:var(--font-heading); color:var(--primary);"><i class="fa-solid fa-satellite-dish"></i> Detalhamento do Sistema de Rastreamento</h4>
+                    </div>
+                    <div class="form-group">
+                        <label>Empresa Fornecedora</label>
+                        <input type="text" class="form-control" name="empresaRastreador" value="${isEdit && vehicle.empresaRastreador ? vehicle.empresaRastreador : ''}" placeholder="Ex: Sascar, Autotrac">
+                    </div>
+                    <div class="form-group">
+                        <label>Modelo do Equipamento</label>
+                        <input type="text" class="form-control" name="modeloRastreador" value="${isEdit && vehicle.modeloRastreador ? vehicle.modeloRastreador : ''}" placeholder="Ex: SASCAR-V4">
+                    </div>
+                    <div class="form-group">
+                        <label>ID / Número do Rastreador</label>
+                        <input type="text" class="form-control" name="idRastreador" value="${isEdit && vehicle.idRastreador ? vehicle.idRastreador : ''}" placeholder="Ex: RST-89043">
+                    </div>
+                    <div class="form-group">
+                        <label>IMEI / Código do Dispositivo</label>
+                        <input type="text" class="form-control" name="imeiRastreador" value="${isEdit && vehicle.imeiRastreador ? vehicle.imeiRastreador : ''}" placeholder="IMEI de 15 dígitos">
+                    </div>
+                    <div class="form-group">
+                        <label>Data de Instalação</label>
+                        <input type="date" class="form-control" name="dataInstalacaoRastreador" value="${isEdit && vehicle.dataInstalacaoRastreador ? vehicle.dataInstalacaoRastreador : ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>Status do Rastreador <span class="required">*</span></label>
+                        <select class="form-control" name="statusRastreador">
+                            <option value="Ativo" ${isEdit && vehicle.statusRastreador === 'Ativo' ? 'selected' : ''}>Ativo</option>
+                            <option value="Inativo" ${isEdit && vehicle.statusRastreador === 'Inativo' ? 'selected' : ''}>Inativo</option>
+                            <option value="Em manutenção" ${isEdit && vehicle.statusRastreador === 'Em manutenção' ? 'selected' : ''}>Em manutenção</option>
+                            <option value="Cancelado" ${isEdit && vehicle.statusRastreador === 'Cancelado' ? 'selected' : ''}>Cancelado</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Valor Mensal do Serviço (R$)</label>
+                        <input type="number" class="form-control" name="valorMensalRastreador" step="0.01" min="0" value="${isEdit && vehicle.valorMensalRastreador ? vehicle.valorMensalRastreador : ''}" placeholder="Ex: 120.00">
+                    </div>
+                    <div class="form-group">
+                        <label>Início do Contrato</label>
+                        <input type="date" class="form-control" name="inicioContratoRastreador" value="${isEdit && vehicle.inicioContratoRastreador ? vehicle.inicioContratoRastreador : ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>Vencimento do Contrato</label>
+                        <input type="date" class="form-control" name="validadeContratoRastreador" value="${isEdit && vehicle.validadeContratoRastreador ? vehicle.validadeContratoRastreador : ''}">
+                    </div>
+
+                    <!-- MULTIPLE ANEXOS RASTREADOR -->
+                    <div class="form-group full-width" style="margin-top:8px; margin-bottom: 0;">
+                        <h4 style="font-family:var(--font-heading); color:var(--text-muted); font-size:0.85rem; text-transform:uppercase;"><i class="fa-solid fa-paperclip"></i> Anexos do Rastreador</h4>
+                    </div>
+
+                    <!-- Contrato -->
+                    <div class="form-group">
+                        <label>Contrato de Rastreamento</label>
+                        <div class="file-upload-area" id="veh-ras-contrato-upload-trigger" style="margin-top: 4px; cursor: pointer; padding: 12px;">
+                            <i class="fa-solid fa-file-contract"></i>
+                            <span class="file-upload-text" id="veh-ras-contrato-upload-text" style="font-size:0.75rem;">
+                                ${isEdit && vehicle.rastreadorContratoAnexo ? `<strong class="text-success"><i class="fa-solid fa-circle-check"></i> ${vehicle.rastreadorContratoAnexo.split('/').pop()}</strong>` : 'Anexar Contrato'}
+                            </span>
+                            <input type="file" id="veh-ras-contrato-file-input" style="display:none;" accept="image/*,application/pdf">
+                        </div>
+                        <input type="hidden" name="rastreadorContratoAnexo" id="veh-ras-contrato-anexo-url" value="${isEdit && vehicle.rastreadorContratoAnexo ? vehicle.rastreadorContratoAnexo : ''}">
+                        <div id="veh-ras-contrato-actions" style="display:${isEdit && vehicle.rastreadorContratoAnexo ? 'flex' : 'none'}; gap:12px; margin-top:8px; align-items:center;">
+                            <a href="${isEdit && vehicle.rastreadorContratoAnexo ? vehicle.rastreadorContratoAnexo : '#'}" id="btn-ver-ras-contrato" target="_blank" class="btn btn-secondary" style="height:28px; padding:0 8px; font-size:0.7rem; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">Ver</a>
+                            <button type="button" class="btn btn-danger" id="btn-rem-ras-contrato" style="height:28px; padding:0 8px; font-size:0.7rem; display:inline-flex; align-items:center; gap:4px;">Remover</button>
+                        </div>
+                    </div>
+
+                    <!-- Nota Fiscal -->
+                    <div class="form-group">
+                        <label>Nota Fiscal do Equipamento</label>
+                        <div class="file-upload-area" id="veh-ras-nf-upload-trigger" style="margin-top: 4px; cursor: pointer; padding: 12px;">
+                            <i class="fa-solid fa-file-invoice-dollar"></i>
+                            <span class="file-upload-text" id="veh-ras-nf-upload-text" style="font-size:0.75rem;">
+                                ${isEdit && vehicle.rastreadorNotaFiscalAnexo ? `<strong class="text-success"><i class="fa-solid fa-circle-check"></i> ${vehicle.rastreadorNotaFiscalAnexo.split('/').pop()}</strong>` : 'Anexar Nota Fiscal'}
+                            </span>
+                            <input type="file" id="veh-ras-nf-file-input" style="display:none;" accept="image/*,application/pdf">
+                        </div>
+                        <input type="hidden" name="rastreadorNotaFiscalAnexo" id="veh-ras-nf-anexo-url" value="${isEdit && vehicle.rastreadorNotaFiscalAnexo ? vehicle.rastreadorNotaFiscalAnexo : ''}">
+                        <div id="veh-ras-nf-actions" style="display:${isEdit && vehicle.rastreadorNotaFiscalAnexo ? 'flex' : 'none'}; gap:12px; margin-top:8px; align-items:center;">
+                            <a href="${isEdit && vehicle.rastreadorNotaFiscalAnexo ? vehicle.rastreadorNotaFiscalAnexo : '#'}" id="btn-ver-ras-nf" target="_blank" class="btn btn-secondary" style="height:28px; padding:0 8px; font-size:0.7rem; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">Ver</a>
+                            <button type="button" class="btn btn-danger" id="btn-rem-ras-nf" style="height:28px; padding:0 8px; font-size:0.7rem; display:inline-flex; align-items:center; gap:4px;">Remover</button>
+                        </div>
+                    </div>
+
+                    <!-- Ordem de Serviço -->
+                    <div class="form-group">
+                        <label>Ordem de Serviço (O.S.)</label>
+                        <div class="file-upload-area" id="veh-ras-os-upload-trigger" style="margin-top: 4px; cursor: pointer; padding: 12px;">
+                            <i class="fa-solid fa-file-signature"></i>
+                            <span class="file-upload-text" id="veh-ras-os-upload-text" style="font-size:0.75rem;">
+                                ${isEdit && vehicle.rastreadorOrdemServicoAnexo ? `<strong class="text-success"><i class="fa-solid fa-circle-check"></i> ${vehicle.rastreadorOrdemServicoAnexo.split('/').pop()}</strong>` : 'Anexar O.S.'}
+                            </span>
+                            <input type="file" id="veh-ras-os-file-input" style="display:none;" accept="image/*,application/pdf">
+                        </div>
+                        <input type="hidden" name="rastreadorOrdemServicoAnexo" id="veh-ras-os-anexo-url" value="${isEdit && vehicle.rastreadorOrdemServicoAnexo ? vehicle.rastreadorOrdemServicoAnexo : ''}">
+                        <div id="veh-ras-os-actions" style="display:${isEdit && vehicle.rastreadorOrdemServicoAnexo ? 'flex' : 'none'}; gap:12px; margin-top:8px; align-items:center;">
+                            <a href="${isEdit && vehicle.rastreadorOrdemServicoAnexo ? vehicle.rastreadorOrdemServicoAnexo : '#'}" id="btn-ver-ras-os" target="_blank" class="btn btn-secondary" style="height:28px; padding:0 8px; font-size:0.7rem; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">Ver</a>
+                            <button type="button" class="btn btn-danger" id="btn-rem-ras-os" style="height:28px; padding:0 8px; font-size:0.7rem; display:inline-flex; align-items:center; gap:4px;">Remover</button>
+                        </div>
+                    </div>
+
+                    <!-- Comprovantes -->
+                    <div class="form-group">
+                        <label>Outros Comprovantes</label>
+                        <div class="file-upload-area" id="veh-ras-comp-upload-trigger" style="margin-top: 4px; cursor: pointer; padding: 12px;">
+                            <i class="fa-solid fa-receipt"></i>
+                            <span class="file-upload-text" id="veh-ras-comp-upload-text" style="font-size:0.75rem;">
+                                ${isEdit && vehicle.rastreadorComprovanteAnexo ? `<strong class="text-success"><i class="fa-solid fa-circle-check"></i> ${vehicle.rastreadorComprovanteAnexo.split('/').pop()}</strong>` : 'Anexar Comprovantes'}
+                            </span>
+                            <input type="file" id="veh-ras-comp-file-input" style="display:none;" accept="image/*,application/pdf">
+                        </div>
+                        <input type="hidden" name="rastreadorComprovanteAnexo" id="veh-ras-comp-anexo-url" value="${isEdit && vehicle.rastreadorComprovanteAnexo ? vehicle.rastreadorComprovanteAnexo : ''}">
+                        <div id="veh-ras-comp-actions" style="display:${isEdit && vehicle.rastreadorComprovanteAnexo ? 'flex' : 'none'}; gap:12px; margin-top:8px; align-items:center;">
+                            <a href="${isEdit && vehicle.rastreadorComprovanteAnexo ? vehicle.rastreadorComprovanteAnexo : '#'}" id="btn-ver-ras-comp" target="_blank" class="btn btn-secondary" style="height:28px; padding:0 8px; font-size:0.7rem; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">Ver</a>
+                            <button type="button" class="btn btn-danger" id="btn-rem-ras-comp" style="height:28px; padding:0 8px; font-size:0.7rem; display:inline-flex; align-items:center; gap:4px;">Remover</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Observações do Rastreador</label>
+                        <textarea class="form-control" name="observacoesRastreador" placeholder="Detalhes da instalação, restrições ou termos de fidelidade...">${isEdit && vehicle.observacoesRastreador ? vehicle.observacoesRastreador : ''}</textarea>
+                    </div>
+                </div>
+
+                <!-- SECTION: CONTROLE DE EXTINTOR -->
+                <div class="form-group full-width" style="border-top: 1px solid var(--border-color); padding-top: 16px; margin-top: 12px;">
+                    <label>Possui Controle de Extintor de Incêndio? <span class="required">*</span></label>
+                    <select class="form-control" name="possuiExtintor" id="veh-possui-extintor" required>
+                        <option value="Não" ${isEdit && vehicle.possuiExtintor === 'Não' ? 'selected' : ''}>Não</option>
+                        <option value="Sim" ${isEdit && vehicle.possuiExtintor === 'Sim' ? 'selected' : ''}>Sim</option>
+                    </select>
+                </div>
+
+                <div id="extinguisher-fields-container" class="grid-1-1" style="grid-column: span 2; display:${isEdit && vehicle.possuiExtintor === 'Sim' ? 'grid' : 'none'}; border-left: 3px solid var(--danger); padding-left: 16px; margin: 8px 0;">
+                    <div style="grid-column: span 2; margin-bottom:-4px;">
+                        <h4 style="font-family:var(--font-heading); color:var(--danger);"><i class="fa-solid fa-fire-extinguisher"></i> Detalhamento do Controle de Extintor</h4>
+                    </div>
+                    <div class="form-group">
+                        <label>Tipo do Extintor</label>
+                        <select class="form-control" name="tipoExtintor">
+                            <option value="ABC" ${isEdit && vehicle.tipoExtintor === 'ABC' ? 'selected' : ''}>ABC (Pó Químico)</option>
+                            <option value="BC" ${isEdit && vehicle.tipoExtintor === 'BC' ? 'selected' : ''}>BC (Gás Carbônico)</option>
+                            <option value="Água" ${isEdit && vehicle.tipoExtintor === 'Água' ? 'selected' : ''}>Água Pressurizada</option>
+                            <option value="Outro" ${isEdit && vehicle.tipoExtintor === 'Outro' ? 'selected' : ''}>Outro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Capacidade (kg/L)</label>
+                        <input type="text" class="form-control" name="capacidadeExtintor" value="${isEdit && vehicle.capacidadeExtintor ? vehicle.capacidadeExtintor : ''}" placeholder="Ex: 2kg, 4kg, 6L">
+                    </div>
+                    <div class="form-group">
+                        <label>Número do Selo INMETRO</label>
+                        <input type="text" class="form-control" name="seloExtintor" value="${isEdit && vehicle.seloExtintor ? vehicle.seloExtintor : ''}" placeholder="Ex: INM-90234">
+                    </div>
+                    <div class="form-group">
+                        <label>Data de Fabricação</label>
+                        <input type="date" class="form-control" name="dataFabricacaoExtintor" value="${isEdit && vehicle.dataFabricacaoExtintor ? vehicle.dataFabricacaoExtintor : ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>Data da Última Recarga</label>
+                        <input type="date" class="form-control" name="dataRecargaExtintor" value="${isEdit && vehicle.dataRecargaExtintor ? vehicle.dataRecargaExtintor : ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>Data de Validade (Vencimento)</label>
+                        <input type="date" class="form-control" name="validadeExtintor" value="${isEdit && vehicle.validadeExtintor ? vehicle.validadeExtintor : ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>Data da Próxima Recarga</label>
+                        <input type="date" class="form-control" name="proximaRecargaExtintor" value="${isEdit && vehicle.proximaRecargaExtintor ? vehicle.proximaRecargaExtintor : ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>Status do Extintor <span class="required">*</span></label>
+                        <select class="form-control" name="statusExtintor">
+                            <option value="Regular" ${isEdit && vehicle.statusExtintor === 'Regular' ? 'selected' : ''}>Regular</option>
+                            <option value="Próximo do vencimento" ${isEdit && vehicle.statusExtintor === 'Próximo do vencimento' ? 'selected' : ''}>Próximo do vencimento</option>
+                            <option value="Vencido" ${isEdit && vehicle.statusExtintor === 'Vencido' ? 'selected' : ''}>Vencido</option>
+                            <option value="Em manutenção" ${isEdit && vehicle.statusExtintor === 'Em manutenção' ? 'selected' : ''}>Em manutenção</option>
+                        </select>
+                    </div>
+
+                    <!-- MULTIPLE ANEXOS EXTINTOR -->
+                    <div class="form-group full-width" style="margin-top:8px; margin-bottom: 0;">
+                        <h4 style="font-family:var(--font-heading); color:var(--text-muted); font-size:0.85rem; text-transform:uppercase;"><i class="fa-solid fa-paperclip"></i> Anexos do Extintor</h4>
+                    </div>
+
+                    <!-- Certificado -->
+                    <div class="form-group">
+                        <label>Certificado de Conformidade</label>
+                        <div class="file-upload-area" id="veh-ext-cert-upload-trigger" style="margin-top: 4px; cursor: pointer; padding: 12px;">
+                            <i class="fa-solid fa-file-lines"></i>
+                            <span class="file-upload-text" id="veh-ext-cert-upload-text" style="font-size:0.75rem;">
+                                ${isEdit && vehicle.extintorCertificadoAnexo ? `<strong class="text-success"><i class="fa-solid fa-circle-check"></i> ${vehicle.extintorCertificadoAnexo.split('/').pop()}</strong>` : 'Anexar Certificado'}
+                            </span>
+                            <input type="file" id="veh-ext-cert-file-input" style="display:none;" accept="image/*,application/pdf">
+                        </div>
+                        <input type="hidden" name="extintorCertificadoAnexo" id="veh-ext-cert-anexo-url" value="${isEdit && vehicle.extintorCertificadoAnexo ? vehicle.extintorCertificadoAnexo : ''}">
+                        <div id="veh-ext-cert-actions" style="display:${isEdit && vehicle.extintorCertificadoAnexo ? 'flex' : 'none'}; gap:12px; margin-top:8px; align-items:center;">
+                            <a href="${isEdit && vehicle.extintorCertificadoAnexo ? vehicle.extintorCertificadoAnexo : '#'}" id="btn-ver-ext-cert" target="_blank" class="btn btn-secondary" style="height:28px; padding:0 8px; font-size:0.7rem; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">Ver</a>
+                            <button type="button" class="btn btn-danger" id="btn-rem-ext-cert" style="height:28px; padding:0 8px; font-size:0.7rem; display:inline-flex; align-items:center; gap:4px;">Remover</button>
+                        </div>
+                    </div>
+
+                    <!-- Comprovante -->
+                    <div class="form-group">
+                        <label>Comprovante de Recarga</label>
+                        <div class="file-upload-area" id="veh-ext-comp-upload-trigger" style="margin-top: 4px; cursor: pointer; padding: 12px;">
+                            <i class="fa-solid fa-receipt"></i>
+                            <span class="file-upload-text" id="veh-ext-comp-upload-text" style="font-size:0.75rem;">
+                                ${isEdit && vehicle.extintorComprovanteAnexo ? `<strong class="text-success"><i class="fa-solid fa-circle-check"></i> ${vehicle.extintorComprovanteAnexo.split('/').pop()}</strong>` : 'Anexar Comprovante'}
+                            </span>
+                            <input type="file" id="veh-ext-comp-file-input" style="display:none;" accept="image/*,application/pdf">
+                        </div>
+                        <input type="hidden" name="extintorComprovanteAnexo" id="veh-ext-comp-anexo-url" value="${isEdit && vehicle.extintorComprovanteAnexo ? vehicle.extintorComprovanteAnexo : ''}">
+                        <div id="veh-ext-comp-actions" style="display:${isEdit && vehicle.extintorComprovanteAnexo ? 'flex' : 'none'}; gap:12px; margin-top:8px; align-items:center;">
+                            <a href="${isEdit && vehicle.extintorComprovanteAnexo ? vehicle.extintorComprovanteAnexo : '#'}" id="btn-ver-ext-comp" target="_blank" class="btn btn-secondary" style="height:28px; padding:0 8px; font-size:0.7rem; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">Ver</a>
+                            <button type="button" class="btn btn-danger" id="btn-rem-ext-comp" style="height:28px; padding:0 8px; font-size:0.7rem; display:inline-flex; align-items:center; gap:4px;">Remover</button>
+                        </div>
+                    </div>
+
+                    <!-- Laudo -->
+                    <div class="form-group">
+                        <label>Laudo Técnico</label>
+                        <div class="file-upload-area" id="veh-ext-laudo-upload-trigger" style="margin-top: 4px; cursor: pointer; padding: 12px;">
+                            <i class="fa-solid fa-file-shield"></i>
+                            <span class="file-upload-text" id="veh-ext-laudo-upload-text" style="font-size:0.75rem;">
+                                ${isEdit && vehicle.extintorLaudoAnexo ? `<strong class="text-success"><i class="fa-solid fa-circle-check"></i> ${vehicle.extintorLaudoAnexo.split('/').pop()}</strong>` : 'Anexar Laudo'}
+                            </span>
+                            <input type="file" id="veh-ext-laudo-file-input" style="display:none;" accept="image/*,application/pdf">
+                        </div>
+                        <input type="hidden" name="extintorLaudoAnexo" id="veh-ext-laudo-anexo-url" value="${isEdit && vehicle.extintorLaudoAnexo ? vehicle.extintorLaudoAnexo : ''}">
+                        <div id="veh-ext-laudo-actions" style="display:${isEdit && vehicle.extintorLaudoAnexo ? 'flex' : 'none'}; gap:12px; margin-top:8px; align-items:center;">
+                            <a href="${isEdit && vehicle.extintorLaudoAnexo ? vehicle.extintorLaudoAnexo : '#'}" id="btn-ver-ext-laudo" target="_blank" class="btn btn-secondary" style="height:28px; padding:0 8px; font-size:0.7rem; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">Ver</a>
+                            <button type="button" class="btn btn-danger" id="btn-rem-ext-laudo" style="height:28px; padding:0 8px; font-size:0.7rem; display:inline-flex; align-items:center; gap:4px;">Remover</button>
+                        </div>
+                    </div>
+
+                    <!-- Nota Fiscal -->
+                    <div class="form-group">
+                        <label>Nota Fiscal da Compra</label>
+                        <div class="file-upload-area" id="veh-ext-nf-upload-trigger" style="margin-top: 4px; cursor: pointer; padding: 12px;">
+                            <i class="fa-solid fa-file-invoice-dollar"></i>
+                            <span class="file-upload-text" id="veh-ext-nf-upload-text" style="font-size:0.75rem;">
+                                ${isEdit && vehicle.extintorNotaFiscalAnexo ? `<strong class="text-success"><i class="fa-solid fa-circle-check"></i> ${vehicle.extintorNotaFiscalAnexo.split('/').pop()}</strong>` : 'Anexar Nota Fiscal'}
+                            </span>
+                            <input type="file" id="veh-ext-nf-file-input" style="display:none;" accept="image/*,application/pdf">
+                        </div>
+                        <input type="hidden" name="extintorNotaFiscalAnexo" id="veh-ext-nf-anexo-url" value="${isEdit && vehicle.extintorNotaFiscalAnexo ? vehicle.extintorNotaFiscalAnexo : ''}">
+                        <div id="veh-ext-nf-actions" style="display:${isEdit && vehicle.extintorNotaFiscalAnexo ? 'flex' : 'none'}; gap:12px; margin-top:8px; align-items:center;">
+                            <a href="${isEdit && vehicle.extintorNotaFiscalAnexo ? vehicle.extintorNotaFiscalAnexo : '#'}" id="btn-ver-ext-nf" target="_blank" class="btn btn-secondary" style="height:28px; padding:0 8px; font-size:0.7rem; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">Ver</a>
+                            <button type="button" class="btn btn-danger" id="btn-rem-ext-nf" style="height:28px; padding:0 8px; font-size:0.7rem; display:inline-flex; align-items:center; gap:4px;">Remover</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Observações do Extintor</label>
+                        <textarea class="form-control" name="observacoesExtintor" placeholder="Histórico de recargas, empresa responsável ou observações técnicas...">${isEdit && vehicle.observacoesExtintor ? vehicle.observacoesExtintor : ''}</textarea>
+                    </div>
+                </div>
+
                 <div class="form-group full-width">
                     <label>Observações</label>
                     <textarea class="form-control" name="observacoes" placeholder="Anotações gerais sobre o veículo">${isEdit && vehicle.observacoes ? vehicle.observacoes : ''}</textarea>
@@ -674,6 +943,127 @@
                 window.movixApp.showToast('Contrato de seguro removido.', 'info');
             });
         }
+
+        // Dynamic visibility logic for Tracker
+        const possuiRastreadorSel = document.getElementById('veh-possui-rastreador');
+        const trackerContainer = document.getElementById('tracker-fields-container');
+        if (possuiRastreadorSel && trackerContainer) {
+            possuiRastreadorSel.addEventListener('change', () => {
+                if (possuiRastreadorSel.value === 'Sim') {
+                    trackerContainer.style.display = 'grid';
+                } else {
+                    trackerContainer.style.display = 'none';
+                    document.querySelectorAll('#tracker-fields-container input').forEach(input => input.value = '');
+                    document.querySelectorAll('#tracker-fields-container textarea').forEach(txt => txt.value = '');
+                    document.getElementById('veh-ras-contrato-upload-text').innerText = 'Anexar Contrato';
+                    document.getElementById('veh-ras-nf-upload-text').innerText = 'Anexar Nota Fiscal';
+                    document.getElementById('veh-ras-os-upload-text').innerText = 'Anexar O.S.';
+                    document.getElementById('veh-ras-comp-upload-text').innerText = 'Anexar Comprovantes';
+                    document.getElementById('veh-ras-contrato-actions').style.display = 'none';
+                    document.getElementById('veh-ras-nf-actions').style.display = 'none';
+                    document.getElementById('veh-ras-os-actions').style.display = 'none';
+                    document.getElementById('veh-ras-comp-actions').style.display = 'none';
+                }
+            });
+        }
+
+        // Generic upload helper for Tracker and Extinguisher files to keep code DRY and elegant
+        const setupFieldUpload = (triggerId, inputId, textId, urlId, actionsId, verBtnId, remBtnId, successMsg) => {
+            const trigger = document.getElementById(triggerId);
+            const input = document.getElementById(inputId);
+            const text = document.getElementById(textId);
+            const urlInput = document.getElementById(urlId);
+            const actions = document.getElementById(actionsId);
+            const verBtn = document.getElementById(verBtnId);
+            const remBtn = document.getElementById(remBtnId);
+
+            if (trigger && input) {
+                trigger.addEventListener('click', () => input.click());
+                input.addEventListener('change', async (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    try {
+                        text.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
+                        trigger.style.pointerEvents = 'none';
+
+                        const res = await fetch('/api/upload', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (!res.ok) {
+                            const err = await res.json();
+                            throw new Error(err.error || 'Erro no upload.');
+                        }
+
+                        const result = await res.json();
+                        urlInput.value = result.url;
+                        text.innerHTML = `<strong class="text-success"><i class="fa-solid fa-circle-check"></i> ${result.name}</strong>`;
+                        
+                        verBtn.href = result.url;
+                        actions.style.display = 'flex';
+
+                        window.movixApp.showToast(successMsg, 'success');
+                    } catch (err) {
+                        console.error(err);
+                        window.movixApp.showToast(err.message || 'Erro ao carregar anexo.', 'danger');
+                        text.innerText = 'Tentar novamente';
+                    } finally {
+                        trigger.style.pointerEvents = 'auto';
+                    }
+                });
+            }
+
+            if (remBtn) {
+                remBtn.addEventListener('click', () => {
+                    urlInput.value = '';
+                    text.innerText = 'Arraste ou clique para anexar';
+                    actions.style.display = 'none';
+                    input.value = '';
+                    window.movixApp.showToast('Anexo removido.', 'info');
+                });
+            }
+        };
+
+        // Binds Tracker file uploads
+        setupFieldUpload('veh-ras-contrato-upload-trigger', 'veh-ras-contrato-file-input', 'veh-ras-contrato-upload-text', 'veh-ras-contrato-anexo-url', 'veh-ras-contrato-actions', 'btn-ver-ras-contrato', 'btn-rem-ras-contrato', 'Contrato de rastreador anexado!');
+        setupFieldUpload('veh-ras-nf-upload-trigger', 'veh-ras-nf-file-input', 'veh-ras-nf-upload-text', 'veh-ras-nf-anexo-url', 'veh-ras-nf-actions', 'btn-ver-ras-nf', 'btn-rem-ras-nf', 'Nota fiscal do rastreador anexada!');
+        setupFieldUpload('veh-ras-os-upload-trigger', 'veh-ras-os-file-input', 'veh-ras-os-upload-text', 'veh-ras-os-anexo-url', 'veh-ras-os-actions', 'btn-ver-ras-os', 'btn-rem-ras-os', 'Ordem de serviço do rastreador anexada!');
+        setupFieldUpload('veh-ras-comp-upload-trigger', 'veh-ras-comp-file-input', 'veh-ras-comp-upload-text', 'veh-ras-comp-anexo-url', 'veh-ras-comp-actions', 'btn-ver-ras-comp', 'btn-rem-ras-comp', 'Comprovante do rastreador anexado!');
+
+        // Dynamic visibility logic for Extinguisher
+        const possuiExtintorSel = document.getElementById('veh-possui-extintor');
+        const extinguisherContainer = document.getElementById('extinguisher-fields-container');
+        if (possuiExtintorSel && extinguisherContainer) {
+            possuiExtintorSel.addEventListener('change', () => {
+                if (possuiExtintorSel.value === 'Sim') {
+                    extinguisherContainer.style.display = 'grid';
+                } else {
+                    extinguisherContainer.style.display = 'none';
+                    document.querySelectorAll('#extinguisher-fields-container input').forEach(input => input.value = '');
+                    document.querySelectorAll('#extinguisher-fields-container select').forEach(sel => sel.value = 'ABC');
+                    document.querySelectorAll('#extinguisher-fields-container textarea').forEach(txt => txt.value = '');
+                    document.getElementById('veh-ext-cert-upload-text').innerText = 'Anexar Certificado';
+                    document.getElementById('veh-ext-comp-upload-text').innerText = 'Anexar Comprovante';
+                    document.getElementById('veh-ext-laudo-upload-text').innerText = 'Anexar Laudo';
+                    document.getElementById('veh-ext-nf-upload-text').innerText = 'Anexar Nota Fiscal';
+                    document.getElementById('veh-ext-cert-actions').style.display = 'none';
+                    document.getElementById('veh-ext-comp-actions').style.display = 'none';
+                    document.getElementById('veh-ext-laudo-actions').style.display = 'none';
+                    document.getElementById('veh-ext-nf-actions').style.display = 'none';
+                }
+            });
+        }
+
+        // Binds Extinguisher file uploads
+        setupFieldUpload('veh-ext-cert-upload-trigger', 'veh-ext-cert-file-input', 'veh-ext-cert-upload-text', 'veh-ext-cert-anexo-url', 'veh-ext-cert-actions', 'btn-ver-ext-cert', 'btn-rem-ext-cert', 'Certificado do extintor anexado!');
+        setupFieldUpload('veh-ext-comp-upload-trigger', 'veh-ext-comp-file-input', 'veh-ext-comp-upload-text', 'veh-ext-comp-anexo-url', 'veh-ext-comp-actions', 'btn-ver-ext-comp', 'btn-rem-ext-comp', 'Comprovante do extintor anexado!');
+        setupFieldUpload('veh-ext-laudo-upload-trigger', 'veh-ext-laudo-file-input', 'veh-ext-laudo-upload-text', 'veh-ext-laudo-anexo-url', 'veh-ext-laudo-actions', 'btn-ver-ext-laudo', 'btn-rem-ext-laudo', 'Laudo do extintor anexado!');
+        setupFieldUpload('veh-ext-nf-upload-trigger', 'veh-ext-nf-file-input', 'veh-ext-nf-upload-text', 'veh-ext-nf-anexo-url', 'veh-ext-nf-actions', 'btn-ver-ext-nf', 'btn-rem-ext-nf', 'Nota fiscal do extintor anexada!');
 
         // Modal Action logic
         const saveBtn = document.getElementById('btn-salvar-modal');
@@ -923,6 +1313,16 @@
                                     Contrato não anexado
                                 </div>
                             ` : '')}
+                            ${vehicle.rastreadorContratoAnexo ? `
+                                <a href="${vehicle.rastreadorContratoAnexo}" target="_blank" class="btn btn-secondary" style="font-size:0.75rem; text-decoration:none; padding:8px 12px; display:inline-flex; align-items:center; gap:8px; justify-content:center; width:100%;">
+                                    <i class="fa-solid fa-file-contract text-info"></i> Contrato Rastreamento
+                                </a>
+                            ` : ''}
+                            ${vehicle.extintorCertificadoAnexo ? `
+                                <a href="${vehicle.extintorCertificadoAnexo}" target="_blank" class="btn btn-secondary" style="font-size:0.75rem; text-decoration:none; padding:8px 12px; display:inline-flex; align-items:center; gap:8px; justify-content:center; width:100%;">
+                                    <i class="fa-solid fa-file-lines text-warning"></i> Certificado Extintor
+                                </a>
+                            ` : ''}
                         </div>
                     </div>
                 </aside>
@@ -937,6 +1337,12 @@
                         <button class="detail-tab-btn" data-tab="tab-historicos"><i class="fa-solid fa-clock-rotate-left"></i> Histórico Detalhado</button>
                         ${vehicle.possuiSeguro === 'Sim' ? `
                             <button class="detail-tab-btn" data-tab="tab-seguro"><i class="fa-solid fa-shield-halved"></i> Cobertura de Seguro</button>
+                        ` : ''}
+                        ${vehicle.possuiRastreador === 'Sim' ? `
+                            <button class="detail-tab-btn" data-tab="tab-rastreador"><i class="fa-solid fa-satellite-dish"></i> Rastreador</button>
+                        ` : ''}
+                        ${vehicle.possuiExtintor === 'Sim' ? `
+                            <button class="detail-tab-btn" data-tab="tab-extintor"><i class="fa-solid fa-fire-extinguisher"></i> Extintor</button>
                         ` : ''}
                     </div>
 
@@ -1077,6 +1483,101 @@
                                     </a>
                                 </div>
                                 ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    <!-- RASTREADOR PANE -->
+                    ${vehicle.possuiRastreador === 'Sim' ? `
+                    <div class="detail-tab-pane" id="tab-rastreador">
+                        <div class="card">
+                            <div class="card-header-simple">
+                                <h3><i class="fa-solid fa-satellite-dish text-primary"></i> Detalhes do Sistema de Rastreamento</h3>
+                                <span class="status-pill ${vehicle.statusRastreador === 'Ativo' ? 'ok' : 'atencao'}">${vehicle.statusRastreador || 'Ativo'}</span>
+                            </div>
+
+                            <div style="margin-top: 24px;">
+                                <div class="grid-2" style="gap: 20px;">
+                                    <div>
+                                        <h4 style="font-size:0.95rem; font-family:var(--font-heading); color:var(--text-main); border-bottom:1px solid var(--border-color); padding-bottom:8px; margin-bottom:12px;">Especificações Técnicas</h4>
+                                        <ul class="detail-sidebar-info-list" style="border:none; padding:0; gap:12px; font-size:0.9rem;">
+                                            <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Fornecedora</span><strong>${vehicle.empresaRastreador || '-'}</strong></li>
+                                            <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Modelo</span><strong>${vehicle.modeloRastreador || '-'}</strong></li>
+                                            <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>ID Equipamento</span><strong>${vehicle.idRastreador || '-'}</strong></li>
+                                            <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Código IMEI</span><strong>${vehicle.imeiRastreador || '-'}</strong></li>
+                                            <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Data Instalação</span><strong>${vehicle.dataInstalacaoRastreador ? vehicle.dataInstalacaoRastreador.split('-').reverse().join('/') : '-'}</strong></li>
+                                        </ul>
+                                    </div>
+
+                                    <div>
+                                        <h4 style="font-size:0.95rem; font-family:var(--font-heading); color:var(--text-main); border-bottom:1px solid var(--border-color); padding-bottom:8px; margin-bottom:12px;">Dados do Contrato</h4>
+                                        <ul class="detail-sidebar-info-list" style="border:none; padding:0; gap:12px; font-size:0.9rem;">
+                                            <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Valor Mensal</span><strong>R$ ${(parseFloat(vehicle.valorMensalRastreador) || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong></li>
+                                            <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Início Cobertura</span><strong>${vehicle.inicioContratoRastreador ? vehicle.inicioContratoRastreador.split('-').reverse().join('/') : '-'}</strong></li>
+                                            <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Vencimento</span><strong>${vehicle.validadeContratoRastreador ? vehicle.validadeContratoRastreador.split('-').reverse().join('/') : '-'}</strong></li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div style="margin-top:20px; border-top:1px solid var(--border-color); padding-top:16px;">
+                                    <h4 style="font-size:0.95rem; font-family:var(--font-heading); color:var(--text-main); margin-bottom:8px;">Observações</h4>
+                                    <p style="font-size:0.85rem; color:var(--text-muted); background:var(--bg-light); padding:12px; border-radius:var(--border-radius-sm); border-left:3px solid var(--border-color); white-space:pre-wrap; margin:0;">${vehicle.observacoesRastreador || 'Nenhuma observação registrada.'}</p>
+                                </div>
+
+                                <div style="margin-top:20px; display:flex; flex-wrap:wrap; gap:12px;">
+                                    ${vehicle.rastreadorContratoAnexo ? `<a href="${vehicle.rastreadorContratoAnexo}" target="_blank" class="btn btn-secondary" style="font-size:0.8rem; display:inline-flex; align-items:center; gap:8px;"><i class="fa-solid fa-file-contract text-primary"></i> Contrato</a>` : ''}
+                                    ${vehicle.rastreadorNotaFiscalAnexo ? `<a href="${vehicle.rastreadorNotaFiscalAnexo}" target="_blank" class="btn btn-secondary" style="font-size:0.8rem; display:inline-flex; align-items:center; gap:8px;"><i class="fa-solid fa-file-invoice-dollar text-success"></i> Nota Fiscal</a>` : ''}
+                                    ${vehicle.rastreadorOrdemServicoAnexo ? `<a href="${vehicle.rastreadorOrdemServicoAnexo}" target="_blank" class="btn btn-secondary" style="font-size:0.8rem; display:inline-flex; align-items:center; gap:8px;"><i class="fa-solid fa-file-signature text-warning"></i> O.S. Instalação</a>` : ''}
+                                    ${vehicle.rastreadorComprovanteAnexo ? `<a href="${vehicle.rastreadorComprovanteAnexo}" target="_blank" class="btn btn-secondary" style="font-size:0.8rem; display:inline-flex; align-items:center; gap:8px;"><i class="fa-solid fa-receipt text-danger"></i> Comprovantes</a>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
+
+                    <!-- EXTINTOR PANE -->
+                    ${vehicle.possuiExtintor === 'Sim' ? `
+                    <div class="detail-tab-pane" id="tab-extintor">
+                        <div class="card">
+                            <div class="card-header-simple">
+                                <h3><i class="fa-solid fa-fire-extinguisher text-danger"></i> Detalhes do Controle do Extintor</h3>
+                                <span class="status-pill ${vehicle.statusExtintor === 'Regular' ? 'ok' : (vehicle.statusExtintor === 'Em manutenção' ? 'atencao' : 'atrasada')}">${vehicle.statusExtintor || 'Regular'}</span>
+                            </div>
+
+                            <div style="margin-top: 24px;">
+                                <div class="grid-2" style="gap: 20px;">
+                                    <div>
+                                        <h4 style="font-size:0.95rem; font-family:var(--font-heading); color:var(--text-main); border-bottom:1px solid var(--border-color); padding-bottom:8px; margin-bottom:12px;">Especificações Técnicas</h4>
+                                        <ul class="detail-sidebar-info-list" style="border:none; padding:0; gap:12px; font-size:0.9rem;">
+                                            <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Tipo de Carga</span><strong>${vehicle.tipoExtintor || '-'}</strong></li>
+                                            <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Capacidade</span><strong>${vehicle.capacidadeExtintor || '-'}</strong></li>
+                                            <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Nº Selo INMETRO</span><strong>${vehicle.seloExtintor || '-'}</strong></li>
+                                            <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Data Fabricação</span><strong>${vehicle.dataFabricacaoExtintor ? vehicle.dataFabricacaoExtintor.split('-').reverse().join('/') : '-'}</strong></li>
+                                        </ul>
+                                    </div>
+
+                                    <div>
+                                        <h4 style="font-size:0.95rem; font-family:var(--font-heading); color:var(--text-main); border-bottom:1px solid var(--border-color); padding-bottom:8px; margin-bottom:12px;">Cronograma de Recarga & Validade</h4>
+                                        <ul class="detail-sidebar-info-list" style="border:none; padding:0; gap:12px; font-size:0.9rem;">
+                                            <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Última Recarga</span><strong>${vehicle.dataRecargaExtintor ? vehicle.dataRecargaExtintor.split('-').reverse().join('/') : '-'}</strong></li>
+                                            <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Data de Validade</span><strong>${vehicle.validadeExtintor ? vehicle.validadeExtintor.split('-').reverse().join('/') : '-'}</strong></li>
+                                            <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Próxima Recarga</span><strong>${vehicle.proximaRecargaExtintor ? vehicle.proximaRecargaExtintor.split('-').reverse().join('/') : '-'}</strong></li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div style="margin-top:20px; border-top:1px solid var(--border-color); padding-top:16px;">
+                                    <h4 style="font-size:0.95rem; font-family:var(--font-heading); color:var(--text-main); margin-bottom:8px;">Observações</h4>
+                                    <p style="font-size:0.85rem; color:var(--text-muted); background:var(--bg-light); padding:12px; border-radius:var(--border-radius-sm); border-left:3px solid var(--border-color); white-space:pre-wrap; margin:0;">${vehicle.observacoesExtintor || 'Nenhuma observação registrada.'}</p>
+                                </div>
+
+                                <div style="margin-top:20px; display:flex; flex-wrap:wrap; gap:12px;">
+                                    ${vehicle.extintorCertificadoAnexo ? `<a href="${vehicle.extintorCertificadoAnexo}" target="_blank" class="btn btn-secondary" style="font-size:0.8rem; display:inline-flex; align-items:center; gap:8px;"><i class="fa-solid fa-file-lines text-primary"></i> Certificado</a>` : ''}
+                                    ${vehicle.extintorComprovanteAnexo ? `<a href="${vehicle.extintorComprovanteAnexo}" target="_blank" class="btn btn-secondary" style="font-size:0.8rem; display:inline-flex; align-items:center; gap:8px;"><i class="fa-solid fa-receipt text-success"></i> Recarga</a>` : ''}
+                                    ${vehicle.extintorLaudoAnexo ? `<a href="${vehicle.extintorLaudoAnexo}" target="_blank" class="btn btn-secondary" style="font-size:0.8rem; display:inline-flex; align-items:center; gap:8px;"><i class="fa-solid fa-file-shield text-warning"></i> Laudo Técnico</a>` : ''}
+                                    ${vehicle.extintorNotaFiscalAnexo ? `<a href="${vehicle.extintorNotaFiscalAnexo}" target="_blank" class="btn btn-secondary" style="font-size:0.8rem; display:inline-flex; align-items:center; gap:8px;"><i class="fa-solid fa-file-invoice-dollar text-danger"></i> Nota Fiscal</a>` : ''}
+                                </div>
                             </div>
                         </div>
                     </div>

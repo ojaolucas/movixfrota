@@ -740,6 +740,138 @@ class MovixStore {
                     }
                 }
             }
+        // 7. Tracker Alerts (Rastreadores)
+        this.state.veiculos.forEach(v => {
+            const isMotorized = v.tipoUnidade !== 'Implemento/Reboque';
+            const isActive = v.status !== 'inativo';
+            
+            if (isMotorized && isActive && v.possuiRastreador === 'Não') {
+                alerts.push({
+                    id: `ALT-TRA-MISS-${v.id}`,
+                    tipo: 'Veículo sem rastreador',
+                    prioridade: 'Baixa',
+                    status: 'Atenção',
+                    titulo: `Sem Rastreador: ${v.placa}`,
+                    desc: `Veículo motorizado ativo está sem sistema de rastreamento instalado.`,
+                    link: 'veiculos',
+                    targetId: v.id
+                });
+            }
+
+            if (v.possuiRastreador === 'Sim') {
+                if (v.statusRastreador === 'Inativo') {
+                    alerts.push({
+                        id: `ALT-TRA-INAT-${v.id}`,
+                        tipo: 'Rastreador inativo',
+                        prioridade: 'Média',
+                        status: 'Atenção',
+                        titulo: `Rastreador Inativo: ${v.placa}`,
+                        desc: `Dispositivo de rastreamento está inativo para este veículo.`,
+                        link: 'veiculos',
+                        targetId: v.id
+                    });
+                }
+
+                if (v.validadeContratoRastreador) {
+                    const valDate = new Date(v.validadeContratoRastreador + 'T23:59:59');
+                    const diffTime = valDate - today;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                    if (diffDays < 0) {
+                        alerts.push({
+                            id: `ALT-TRA-EXP-${v.id}`,
+                            tipo: 'Contrato vencido',
+                            prioridade: 'Alta',
+                            status: 'Atrasado',
+                            titulo: `Contrato de Rastreador Expirado: ${v.placa}`,
+                            desc: `O contrato de rastreamento venceu em ${v.validadeContratoRastreador.split('-').reverse().join('/')}`,
+                            link: 'veiculos',
+                            targetId: v.id
+                        });
+                    } else if (diffDays <= 30) {
+                        alerts.push({
+                            id: `ALT-TRA-PROX-${v.id}`,
+                            tipo: 'Contrato próximo do vencimento',
+                            prioridade: 'Média',
+                            status: 'Atenção',
+                            titulo: `Rastreador a vencer: ${v.placa}`,
+                            desc: `O contrato vence em ${diffDays} dias (${v.validadeContratoRastreador.split('-').reverse().join('/')})`,
+                            link: 'veiculos',
+                            targetId: v.id
+                        });
+                    }
+                }
+            }
+        });
+
+        // 8. Fire Extinguisher Alerts (Extintores)
+        this.state.veiculos.forEach(v => {
+            const isMotorized = v.tipoUnidade !== 'Implemento/Reboque';
+            const isActive = v.status !== 'inativo';
+
+            if (isMotorized && isActive && v.possuiExtintor === 'Não') {
+                alerts.push({
+                    id: `ALT-EXT-MISS-${v.id}`,
+                    tipo: 'Veículo sem extintor',
+                    prioridade: 'Média',
+                    status: 'Atenção',
+                    titulo: `Sem Extintor: ${v.placa}`,
+                    desc: `Veículo motorizado ativo está sem extintor de incêndio cadastrado.`,
+                    link: 'veiculos',
+                    targetId: v.id
+                });
+            }
+
+            if (v.possuiExtintor === 'Sim') {
+                if (v.validadeExtintor) {
+                    const valDate = new Date(v.validadeExtintor + 'T23:59:59');
+                    const diffTime = valDate - today;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                    if (diffDays < 0) {
+                        alerts.push({
+                            id: `ALT-EXT-EXP-${v.id}`,
+                            tipo: 'Extintor vencido',
+                            prioridade: 'Alta',
+                            status: 'Atrasado',
+                            titulo: `Extintor Vencido: ${v.placa}`,
+                            desc: `A validade do extintor expirou em ${v.validadeExtintor.split('-').reverse().join('/')}`,
+                            link: 'veiculos',
+                            targetId: v.id
+                        });
+                    } else if (diffDays <= 30) {
+                        alerts.push({
+                            id: `ALT-EXT-PROX-${v.id}`,
+                            tipo: 'Extintores próximos da validade',
+                            prioridade: 'Média',
+                            status: 'Atenção',
+                            titulo: `Validade de Extintor próxima: ${v.placa}`,
+                            desc: `O extintor vencerá em ${diffDays} dias (${v.validadeExtintor.split('-').reverse().join('/')})`,
+                            link: 'veiculos',
+                            targetId: v.id
+                        });
+                    }
+                }
+
+                if (v.proximaRecargaExtintor) {
+                    const recDate = new Date(v.proximaRecargaExtintor + 'T23:59:59');
+                    const diffTime = recDate - today;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                    if (diffDays >= 0 && diffDays <= 15) {
+                        alerts.push({
+                            id: `ALT-EXT-REC-${v.id}`,
+                            tipo: 'Recargas próximas',
+                            prioridade: 'Média',
+                            status: 'Atenção',
+                            titulo: `Recarga de Extintor próxima: ${v.placa}`,
+                            desc: `A recarga do extintor está agendada para daqui a ${diffDays} dias (${v.proximaRecargaExtintor.split('-').reverse().join('/')})`,
+                            link: 'veiculos',
+                            targetId: v.id
+                        });
+                    }
+                }
+            }
         });
 
         return alerts;
@@ -792,13 +924,32 @@ class MovixStore {
             }
         });
 
+        // Calculate Tracker Costs
+        let totalRastreamentoMensal = 0;
+        let totalGastoRastreamento = 0;
+        veiculos.forEach(v => {
+            if (v.possuiRastreador === 'Sim' && v.valorMensalRastreador) {
+                const monthly = parseFloat(v.valorMensalRastreador) || 0;
+                totalRastreamentoMensal += monthly;
+                
+                let months = 6; // default historical months
+                if (v.inicioContratoRastreador) {
+                    const start = new Date(v.inicioContratoRastreador + 'T00:00:00');
+                    const elapsedMs = today - start;
+                    const elapsedMonths = Math.floor(elapsedMs / (1000 * 60 * 60 * 24 * 30.4));
+                    months = Math.max(1, elapsedMonths);
+                }
+                totalGastoRastreamento += monthly * months;
+            }
+        });
+
         // 3. Averages and active statuses
         const veiculosAtivos = veiculos.filter(v => v.status !== 'inativo' && (v.tipoUnidade === 'Veículo Motorizado' || !v.tipoUnidade)).length;
         const implementosCadastrados = veiculos.filter(v => v.tipoUnidade === 'Implemento/Reboque').length;
         const veiculosEmManutencaoCount = veiculos.filter(v => v.status === 'em_manutencao' && (v.tipoUnidade === 'Veículo Motorizado' || !v.tipoUnidade)).length;
         const implementosEmManutencaoCount = veiculos.filter(v => v.status === 'em_manutencao' && v.tipoUnidade === 'Implemento/Reboque').length;
 
-        const totalCustoOperacional = totalCombustivel + totalManutencao + totalPneus + totalSeguroGeral;
+        const totalCustoOperacional = totalCombustivel + totalManutencao + totalPneus + totalSeguroGeral + totalGastoRastreamento;
         const mediaCustoOperacional = veiculosAtivos > 0 ? (totalCustoOperacional / veiculosAtivos) : 0;
 
         const manutRealizadas = manutencoes.filter(m => m.status === 'Realizada');
@@ -836,6 +987,8 @@ class MovixStore {
             implementosCount: implementosCadastrados,
             totalGastoSeguros: totalSeguroGeral,
             totalSeguroMensal: totalSeguroMensal,
+            totalGastoRastreamento: totalGastoRastreamento,
+            totalRastreamentoMensal: totalRastreamentoMensal,
             totalCustoOperacional: totalCustoOperacional,
             mediaCustoOperacional: mediaCustoOperacional,
             veiculosAtrasados: contagemManutencaoAtrasada,

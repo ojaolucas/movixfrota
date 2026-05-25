@@ -715,6 +715,24 @@
   ],
   "logs": [
     {
+      "id": "LOG-IEPQQVAW5",
+      "data": "2026-05-25T03:39:32.989Z",
+      "usuario": "Carlos Silveira",
+      "perfil": "Administrador",
+      "acao": "Logout",
+      "entidade": "Sessão",
+      "detalhes": "Usuário encerrou a sessão."
+    },
+    {
+      "id": "LOG-2DZTE7RON",
+      "data": "2026-05-25T03:35:24.832Z",
+      "usuario": "Carlos Silveira",
+      "perfil": "Administrador",
+      "acao": "Login",
+      "entidade": "Sessão",
+      "detalhes": "Login realizado com sucesso (123.456.789-00)"
+    },
+    {
       "id": "LOG-QMITGLBCR",
       "data": "2026-05-25T03:31:54.842Z",
       "usuario": "Carlos Silveira",
