@@ -8,6 +8,9 @@
         const multas = window.movixStore.getMultas();
         const vehicles = window.movixStore.getVeiculos();
         const drivers = window.movixStore.getMotoristas();
+        const manutencoes = window.movixStore.getMaintenances();
+        const pneus = window.movixStore.getPneus();
+        const abastecimentos = window.movixStore.getAbastecimentos();
         const today = new Date();
 
         // 1. Calculate top vehicles with most fines
