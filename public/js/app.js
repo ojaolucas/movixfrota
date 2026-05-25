@@ -72,6 +72,21 @@ class MovixApp {
         const form = document.getElementById('form-login');
         if (!form) return;
 
+        const loginIdentifier = document.getElementById('login-identifier');
+        if (loginIdentifier) {
+            loginIdentifier.addEventListener('input', (e) => {
+                let value = e.target.value;
+                if (/^\d/.test(value.trim())) {
+                    let v = value.replace(/\D/g, "");
+                    if (v.length > 11) v = v.substring(0, 11);
+                    if (v.length > 9) v = v.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
+                    else if (v.length > 6) v = v.replace(/^(\d{3})(\d{3})(\d{1,3})$/, "$1.$2.$3");
+                    else if (v.length > 3) v = v.replace(/^(\d{3})(\d{1,3})$/, "$1.$2");
+                    e.target.value = v;
+                }
+            });
+        }
+
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const identifier = document.getElementById('login-identifier').value.trim();

@@ -724,6 +724,11 @@ app.delete('/api/multas/:id', requireAuth, requireAdmin, (req, res) => {
     res.json({ success: true });
 });
 
+// ─── LEGIACY DOCUMENTS FALLBACK (CACHE COMPATIBILITY) ─────
+app.get('/api/documentos', requireAuth, (req, res) => {
+    res.json([]);
+});
+
 // ─── LOGS DE AUDITORIA ────────────────────────────────────
 app.get('/api/logs', requireAuth, (req, res) => {
     const db = readDB();

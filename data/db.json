@@ -715,6 +715,15 @@
   ],
   "logs": [
     {
+      "id": "LOG-PGLFWDWAT",
+      "data": "2026-05-25T02:40:10.188Z",
+      "usuario": "Carlos Silveira",
+      "perfil": "Administrador",
+      "acao": "Login",
+      "entidade": "Sessão",
+      "detalhes": "Login realizado com sucesso (12345678900)"
+    },
+    {
       "id": "LOG-INIT",
       "data": "2026-05-25T02:25:22.712Z",
       "usuario": "Sistema",
