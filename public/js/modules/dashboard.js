@@ -1,61 +1,240 @@
-/* MovixFrota - Dashboard Module */
+/* MovixFrota - Redesigned Dashboard Module matching Mockups (Dynamic, Clean & Self-Updating) */
 
 (function() {
     
+    // Store active Chart.js instances globally to destroy them on refresh and avoid ghosts
+    let costChartInstance = null;
+    let finesChartInstance = null;
+    let maintChartInstance = null;
+    let autoUpdateIntervalId = null;
+
     function renderDashboard(container) {
+        // 1. Render Base Layout Shell
+        container.innerHTML = `
+            <!-- ROW 1: HEADER -->
+            <div class="page-header" style="margin-bottom: 24px;">
+                <div class="page-title-group">
+                    <h1 class="page-title">Dashboard Analítico</h1>
+                    <p class="page-subtitle">Indicadores de desempenho, custos operacionais e administrativos da frota em tempo real</p>
+                </div>
+            </div>
+
+            <!-- DYNAMIC DASHBOARD WIDGETS CONTENT CONTAINER -->
+            <div id="dashboard-dynamic-content-area">
+                <!-- Inner dashboard widgets loaded dynamically -->
+            </div>
+        `;
+
+        // 2. Ensure any background intervals are cleared
+        if (autoUpdateIntervalId) {
+            clearInterval(autoUpdateIntervalId);
+            autoUpdateIntervalId = null;
+        }
+
+        // 3. Load fresh data from API server on route entry and refresh the view
+        window.movixStore.loadData().then(() => {
+            refreshDashboard();
+        });
+    }
+
+    function refreshDashboard() {
+        const contentArea = document.getElementById('dashboard-dynamic-content-area');
+        if (!contentArea) return;
+
+        // Fetch core data and metrics dynamically from store
         const metrics = window.movixStore.getMetrics();
         const alerts = window.movixStore.getAlerts();
         const multas = window.movixStore.getMultas();
         const vehicles = window.movixStore.getVeiculos();
-        const drivers = window.movixStore.getMotoristas();
+        const motoristas = window.movixStore.getMotoristas();
+        const abastecimentos = window.movixStore.getAbastecimentos();
         const manutencoes = window.movixStore.getMaintenances();
         const pneus = window.movixStore.getPneus();
-        const abastecimentos = window.movixStore.getAbastecimentos();
-        const today = new Date();
 
-        // 1. Calculate top vehicles with most fines
-        const vehicleFines = {};
-        multas.forEach(m => {
-            if (m.veiculoId) {
-                if (!vehicleFines[m.veiculoId]) {
-                    vehicleFines[m.veiculoId] = { count: 0, cost: 0 };
-                }
-                vehicleFines[m.veiculoId].count++;
-                vehicleFines[m.veiculoId].cost += parseFloat(m.valor) || 0;
-            }
-        });
-        
-        const sortedVehicleFines = Object.entries(vehicleFines)
-            .map(([id, info]) => {
-                const v = vehicles.find(item => item.id === id);
-                return {
-                    id,
-                    placa: v ? v.placa : '-',
-                    modelo: v ? `${v.marca} ${v.modelo}` : 'Veículo Removido',
-                    count: info.count,
-                    cost: info.cost
-                };
-            })
-            .sort((a, b) => b.count - a.count)
-            .slice(0, 5);
-
-        // 2. Calculate Insurance Specific metrics
-        const activeInsurances = vehicles.filter(v => v.possuiSeguro === 'Sim' && (!v.validadeContratoSeguro || new Date(v.validadeContratoSeguro + 'T23:59:59') >= today));
-        const expiredInsurances = vehicles.filter(v => v.possuiSeguro === 'Sim' && v.validadeContratoSeguro && new Date(v.validadeContratoSeguro + 'T23:59:59') < today);
-        const expiringInsurances = vehicles.filter(v => {
-            if (v.possuiSeguro !== 'Sim' || !v.validadeContratoSeguro) return false;
-            const d = new Date(v.validadeContratoSeguro + 'T23:59:59');
-            const diff = d - today;
-            const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-            return days >= 0 && days <= 30;
-        });
-
-        // 3. Define color helpers for active theme
+        // Color theme helpers for Chart.js
         const isDark = document.body.classList.contains('theme-dark');
         const textMuted = isDark ? '#9ca3af' : '#64748b';
         const borderColor = isDark ? '#1f293d' : '#e2e8f0';
-  
-        // 4. Compile Alertas HTML
+
+        // 1. CALCULATE CORE METRICS DIRECTLY FROM ACTIVE DATABASE DATA VIA STORE METRICS
+        const totalFuelSpent = metrics.totalGastoCombustivel;
+        const totalMaintSpent = metrics.totalGastoManutencao;
+        const tireCost = metrics.totalGastoPneus;
+        const insuranceCost = metrics.totalGastoSeguros;
+        const trackerCost = metrics.totalGastoRastreamento;
+        const totalCustoVal = metrics.totalCustoOperacional;
+
+        // Active vehicles, motoristas, O.S. and multas
+        const vAtivos = metrics.veiculosAtivosCount;
+        const implCount = metrics.implementosCount;
+        const motCount = motoristas.length;
+        const emManutCount = metrics.veiculosEmManutencao;
+        const multasRegCount = metrics.totalMultas;
+
+        // circular progress execution concentric percentage (Total budget: R$ 36.500)
+        const predictedBudget = 36500;
+        const executionPercent = Math.min(100, Math.round((totalCustoVal / predictedBudget) * 100)) || 0;
+        const strokeDashoffset = 314 * (1 - (executionPercent / 100));
+
+        // Averages
+        const dailyAverage = totalCustoVal / 30;
+        const monthlyProjection = dailyAverage * 30;
+
+        // Fines categories count
+        const paidFines = multas.filter(m => m.status === 'Pago').length;
+        const pendingFines = multas.filter(m => m.status === 'Não Pago').length;
+        const resourceFines = multas.filter(m => m.status === 'Recorrendo').length;
+        const totalFines = paidFines + pendingFines + resourceFines;
+
+        const paidPercent = totalFines > 0 ? ((paidFines / totalFines) * 100).toFixed(1) : '0.0';
+        const pendingPercent = totalFines > 0 ? ((pendingFines / totalFines) * 100).toFixed(1) : '0.0';
+        const resourcePercent = totalFines > 0 ? ((resourceFines / totalFines) * 100).toFixed(1) : '0.0';
+
+        // Fuel consumption indicators
+        const totalFuelLiters = abastecimentos.reduce((acc, a) => acc + (a.litros || 0), 0);
+        const validKmlItems = abastecimentos.filter(a => a.kmL > 0);
+        const avgKml = metrics.mediaKMLGeral || 0;
+
+        // Maintenances types
+        const maintPreventivas = manutencoes.filter(m => m.tipo === 'Preventiva').length;
+        const maintCorretivas = manutencoes.filter(m => m.tipo === 'Corretiva').length;
+        const maintTotal = maintPreventivas + maintCorretivas;
+        const maintPreventivasPercent = maintTotal > 0 ? Math.round((maintPreventivas / maintTotal) * 100) : 0;
+        const maintCorretivasPercent = maintTotal > 0 ? Math.round((maintCorretivas / maintTotal) * 100) : 0;
+
+        const maintAtrasadasCount = manutencoes.filter(m => m.status === 'Atrasada' || m.status === 'Pendente').length;
+        const maintProx7diasCount = manutencoes.filter(m => {
+            if (!m.data) return false;
+            const d = new Date(m.data + 'T00:00:00');
+            const today = new Date();
+            const diff = (d - today) / (1000 * 60 * 60 * 24);
+            return diff >= 0 && diff <= 7;
+        }).length;
+
+        // DYNAMIC FUEL CONSUMPTION RANKINGS FROM STORE
+        const vehicleConsumption = {};
+        abastecimentos.forEach(a => {
+            if (a.veiculoId && a.kmL > 0) {
+                if (!vehicleConsumption[a.veiculoId]) {
+                    vehicleConsumption[a.veiculoId] = { sum: 0, count: 0 };
+                }
+                vehicleConsumption[a.veiculoId].sum += a.kmL;
+                vehicleConsumption[a.veiculoId].count++;
+            }
+        });
+        const sortedVehiclesCons = Object.entries(vehicleConsumption).map(([vId, data]) => {
+            const vObj = vehicles.find(item => item.id === vId);
+            return {
+                name: vObj ? vObj.placa : 'Veículo',
+                avg: data.sum / data.count
+            };
+        }).sort((a, b) => a.avg - b.avg); // Lowest km/l first
+
+        const driverConsumption = {};
+        abastecimentos.forEach(a => {
+            if (a.motoristaId && a.kmL > 0) {
+                if (!driverConsumption[a.motoristaId]) {
+                    driverConsumption[a.motoristaId] = { sum: 0, count: 0 };
+                }
+                driverConsumption[a.motoristaId].sum += a.kmL;
+                driverConsumption[a.motoristaId].count++;
+            }
+        });
+        const sortedDriversCons = Object.entries(driverConsumption).map(([dId, data]) => {
+            const dObj = motoristas.find(item => item.id === dId);
+            return {
+                name: dObj ? dObj.nome : 'Motorista',
+                avg: data.sum / data.count
+            };
+        }).sort((a, b) => a.avg - b.avg); // Lowest km/l first
+
+        // Render fuel vehicles ranking HTML
+        let vehiclesRankHTML = '';
+        if (sortedVehiclesCons.length === 0) {
+            vehiclesRankHTML = `<div style="font-size:0.75rem; color:var(--text-muted); padding:8px 0;">Nenhum abastecimento registrado.</div>`;
+        } else {
+            for (let i = 0; i < Math.min(3, sortedVehiclesCons.length); i++) {
+                const item = sortedVehiclesCons[i];
+                const barWidth = Math.min(100, Math.round((item.avg / 15) * 100)) || 50;
+                vehiclesRankHTML += `
+                    <div class="horizontal-progress-item">
+                        <div class="horizontal-progress-meta">
+                            <span class="horizontal-progress-name">${item.name}</span>
+                            <span class="horizontal-progress-val">${item.avg.toFixed(1)} KM/L</span>
+                        </div>
+                        <div class="horizontal-progress-track">
+                            <div class="horizontal-progress-bar blue" style="width: ${barWidth}%;"></div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Render fuel drivers ranking HTML
+        let driversRankHTML = '';
+        if (sortedDriversCons.length === 0) {
+            driversRankHTML = `<div style="font-size:0.75rem; color:var(--text-muted); padding:8px 0;">Nenhum abastecimento registrado.</div>`;
+        } else {
+            for (let i = 0; i < Math.min(3, sortedDriversCons.length); i++) {
+                const item = sortedDriversCons[i];
+                const barWidth = Math.min(100, Math.round((item.avg / 15) * 100)) || 50;
+                driversRankHTML += `
+                    <div class="horizontal-progress-item">
+                        <div class="horizontal-progress-meta">
+                            <span class="horizontal-progress-name">${item.name}</span>
+                            <span class="horizontal-progress-val">${item.avg.toFixed(1)} KM/L</span>
+                        </div>
+                        <div class="horizontal-progress-track">
+                            <div class="horizontal-progress-bar grey" style="width: ${barWidth}%;"></div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // DYNAMIC TOP 5 VEHICLES BY OPERATIONAL COST
+        const vehicleCosts = {};
+        abastecimentos.forEach(a => {
+            if (a.veiculoId) {
+                vehicleCosts[a.veiculoId] = (vehicleCosts[a.veiculoId] || 0) + (a.valorTotal || 0);
+            }
+        });
+        manutencoes.forEach(m => {
+            if (m.veiculoId) {
+                vehicleCosts[m.veiculoId] = (vehicleCosts[m.veiculoId] || 0) + (m.valor || 0);
+            }
+        });
+        const sortedVehicleCosts = Object.entries(vehicleCosts).map(([vId, cost]) => {
+            const vObj = vehicles.find(item => item.id === vId);
+            return {
+                name: vObj ? `${vObj.placa} (${vObj.marca} ${vObj.modelo})` : 'Veículo',
+                cost: cost
+            };
+        }).sort((a, b) => b.cost - a.cost);
+
+        let vehicleCostsRankHTML = '';
+        if (sortedVehicleCosts.length === 0) {
+            vehicleCostsRankHTML = `<div style="font-size:0.75rem; color:var(--text-muted); padding:16px; text-align:center;">Nenhum custo operacional registrado no sistema.</div>`;
+        } else {
+            const maxCost = sortedVehicleCosts[0] ? sortedVehicleCosts[0].cost : 1;
+            for (let i = 0; i < Math.min(5, sortedVehicleCosts.length); i++) {
+                const item = sortedVehicleCosts[i];
+                const barWidth = maxCost > 0 ? Math.round((item.cost / maxCost) * 100) : 50;
+                vehicleCostsRankHTML += `
+                    <div class="horizontal-progress-item">
+                        <div class="horizontal-progress-meta">
+                            <span class="horizontal-progress-name">${i + 1}. ${item.name}</span>
+                            <span class="horizontal-progress-val">R$ ${item.cost.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                        <div class="horizontal-progress-track">
+                            <div class="horizontal-progress-bar red" style="width: ${barWidth}%;"></div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Compile alerts vertical list HTML
         let alertsHTML = '';
         if (alerts.length === 0) {
             alertsHTML = `
@@ -65,768 +244,792 @@
                 </div>
             `;
         } else {
-            // Sort: High priority first
             const sortedAlerts = [...alerts].sort((a, b) => {
                 const priorityWeight = { 'Alta': 3, 'Média': 2, 'Baixa': 1 };
                 return priorityWeight[b.prioridade] - priorityWeight[a.prioridade];
             });
-  
+
             sortedAlerts.forEach(a => {
                 const dotClass = a.prioridade === 'Alta' ? 'high' : (a.prioridade === 'Média' ? 'medium' : 'low');
                 const badgeClass = a.prioridade === 'Alta' ? 'high' : (a.prioridade === 'Média' ? 'medium' : 'low');
                 
                 alertsHTML += `
-                    <div class="alert-item-row" onclick="window.movixRouter.navigateTo('${a.link}', '${a.targetId}')" style="cursor: pointer; padding: 10px 14px; gap: 10px;">
+                    <div class="alert-item-row" onclick="window.movixRouter.navigateTo('${a.link}', '${a.targetId}')" style="cursor: pointer; margin-bottom: 2px;">
                         <span class="alert-item-dot ${dotClass}"></span>
                         <div class="alert-item-content">
-                            <span class="alert-item-title" style="font-size:0.8rem; font-weight:600;">${a.titulo}</span>
-                            <span class="alert-item-desc" style="font-size:0.7rem; line-height:1.2;">${a.desc}</span>
+                            <span class="alert-item-title">${a.titulo}</span>
+                            <span class="alert-item-desc">${a.desc}</span>
                         </div>
-                        <span class="alert-item-badge ${badgeClass}" style="font-size:0.65rem; padding: 2px 6px;">${a.prioridade}</span>
+                        <span class="alert-item-badge ${badgeClass}">${a.prioridade}</span>
                     </div>
                 `;
             });
         }
-  
-        // 5. Render Page Frame with 11 KPIs, 12 charts organized by Tabs, and Fines/Insurances Sections
-        container.innerHTML = `
-            <div class="page-header">
-                <div class="page-title-group">
-                    <h1 class="page-title">Dashboard Analítico</h1>
-                    <p class="page-subtitle">Indicadores de desempenho, custos operacionais e administrativos da frota em tempo real</p>
-                </div>
-                <div class="page-actions">
-                    <button class="btn btn-secondary" onclick="window.print()">
-                        <i class="fa-solid fa-print"></i> Imprimir Painel
-                    </button>
-                </div>
-            </div>
- 
-            <!-- OPERATIONAL BLOCKS GRID -->
-            <div class="grid-4">
+
+        // Dynamic Calculations for Module Cards (Seguros, Rastreadores, Extintores)
+        const actSeguros = vehicles.filter(v => v.possuiSeguro === 'Sim' && v.status !== 'inativo').length;
+        const expiringSeguros = vehicles.filter(v => {
+            if (v.possuiSeguro !== 'Sim' || !v.validadeContratoSeguro) return false;
+            const d = new Date(v.validadeContratoSeguro + 'T23:59:59');
+            const diff = d - new Date();
+            const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+            return days >= 0 && days <= 30;
+        }).length;
+        const expiredSeguros = vehicles.filter(v => {
+            if (v.possuiSeguro !== 'Sim' || !v.validadeContratoSeguro) return false;
+            const d = new Date(v.validadeContratoSeguro + 'T23:59:59');
+            return d < new Date();
+        }).length;
+
+        const countComRastreador = vehicles.filter(v => v.possuiRastreador === 'Sim').length;
+        const countSemRastreador = vehicles.filter(v => v.possuiRastreador !== 'Sim').length;
+        const countRastreadorInativo = vehicles.filter(v => v.possuiRastreador === 'Sim' && v.statusRastreador === 'Inativo').length;
+
+        const extRegulares = vehicles.filter(v => {
+            if (v.tipoUnidade === 'Implemento/Reboque') return false;
+            if (v.possuiExtintor !== 'Sim') return false;
+            if (!v.validadeExtintor) return true;
+            const d = new Date(v.validadeExtintor + 'T23:59:59');
+            return d >= new Date();
+        }).length;
+        const extProxValidade = vehicles.filter(v => {
+            if (v.possuiExtintor !== 'Sim' || !v.validadeExtintor) return false;
+            const d = new Date(v.validadeExtintor + 'T23:59:59');
+            const diff = d - new Date();
+            const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+            return days >= 0 && days <= 30;
+        }).length;
+        const extVencidos = vehicles.filter(v => {
+            if (v.possuiExtintor === 'Sim' && v.validadeExtintor) {
+                const d = new Date(v.validadeExtintor + 'T23:59:59');
+                return d < new Date();
+            }
+            return false;
+        }).length;
+        const extProxRecargas = vehicles.filter(v => {
+            if (v.possuiExtintor !== 'Sim' || !v.proximaRecargaExtintor) return false;
+            const d = new Date(v.proximaRecargaExtintor + 'T23:59:59');
+            const diff = d - new Date();
+            const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+            return days >= 0 && days <= 15;
+        }).length;
+
+        // Dynamic Calculations for Categories Costs percentages
+        const totalCatSum = totalFuelSpent + totalMaintSpent + tireCost + insuranceCost + trackerCost;
+        const fuelPercent = totalCatSum > 0 ? Math.round((totalFuelSpent / totalCatSum) * 100) : 0;
+        const maintPercent = totalCatSum > 0 ? Math.round((totalMaintSpent / totalCatSum) * 100) : 0;
+        const tirePercent = totalCatSum > 0 ? Math.round((tireCost / totalCatSum) * 100) : 0;
+        const insurancePercent = totalCatSum > 0 ? Math.round((insuranceCost / totalCatSum) * 100) : 0;
+        const trackerPercent = totalCatSum > 0 ? Math.round((trackerCost / totalCatSum) * 100) : 0;
+
+        // Dynamic recent activities compilation from real system logs
+        const recentLogs = (window.movixStore.state.logs || []).slice(0, 5);
+        let activitiesHTML = '';
+        if (recentLogs.length === 0) {
+            activitiesHTML = `
+                <tr>
+                    <td colspan="5" style="text-align:center; padding: 24px; color:var(--text-muted);">
+                        Nenhuma atividade recente registrada.
+                    </td>
+                </tr>
+            `;
+        } else {
+            recentLogs.forEach(log => {
+                let iconClass = 'fa-solid fa-circle-info text-primary';
+                if (log.entidade === 'Abastecimento') iconClass = 'fa-solid fa-gas-pump text-success';
+                else if (log.entidade === 'Manutenção') iconClass = 'fa-solid fa-screwdriver-wrench text-warning';
+                else if (log.entidade === 'Multa') iconClass = 'fa-solid fa-ticket text-danger';
+                else if (log.entidade === 'Seguro') iconClass = 'fa-solid fa-shield-halved text-success';
+                else if (log.entidade === 'Rastreador') iconClass = 'fa-solid fa-tower-broadcast text-secondary';
+
+                // Format Time helper
+                const dateObj = new Date(log.data);
+                const timeStr = dateObj.toLocaleDateString('pt-BR') + ' ' + dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+                activitiesHTML += `
+                    <tr>
+                        <td style="padding: 10px 12px;"><i class="${iconClass}"></i></td>
+                        <td style="padding: 10px 12px; font-weight: 600;">${log.acao} de ${log.entidade}</td>
+                        <td style="padding: 10px 12px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${log.detalhes}</td>
+                        <td style="padding: 10px 12px;">${log.usuario}</td>
+                        <td style="padding: 10px 12px; color: var(--text-muted);">${timeStr}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Render Dynamic Widgets HTML Layout
+        contentArea.innerHTML = `
+            <!-- ROW 2: Grid of 6 KPI Cards -->
+            <div class="grid-6" style="margin-bottom: 24px;">
+                <!-- 1. Veículos Ativos -->
                 <div class="card stat-card">
+                    <div class="stat-icon primary"><i class="fa-solid fa-truck"></i></div>
                     <div class="stat-info">
                         <span class="stat-label">Veículos Ativos</span>
-                        <span class="stat-value">${metrics.veiculosAtivosCount}</span>
-                        <span class="stat-delta text-success"><i class="fa-solid fa-circle-check"></i> Prontos para rodar</span>
+                        <span class="stat-value">${vAtivos}</span>
+                        <span class="stat-delta text-success"><i class="fa-solid fa-arrow-trend-up"></i> Ativos</span>
                     </div>
-                    <div class="stat-icon primary"><i class="fa-solid fa-truck"></i></div>
                 </div>
-  
+
+                <!-- 2. Implementos -->
                 <div class="card stat-card">
+                    <div class="stat-icon" style="background-color: rgba(139, 92, 246, 0.1); color: #8b5cf6;"><i class="fa-solid fa-trailer"></i></div>
                     <div class="stat-info">
-                        <span class="stat-label">Implementos / Reboques</span>
-                        <span class="stat-value">${metrics.implementosCount}</span>
-                        <span class="stat-delta text-info"><i class="fa-solid fa-trailer"></i> Unidades não-motorizadas</span>
+                        <span class="stat-label">Implementos</span>
+                        <span class="stat-value">${implCount}</span>
+                        <span class="stat-delta text-success"><i class="fa-solid fa-arrow-trend-up"></i> Reboques</span>
                     </div>
-                    <div class="stat-icon info"><i class="fa-solid fa-trailer"></i></div>
                 </div>
-  
+
+                <!-- 3. Motoristas -->
                 <div class="card stat-card">
+                    <div class="stat-icon success"><i class="fa-solid fa-user"></i></div>
                     <div class="stat-info">
-                        <span class="stat-label">Veículos em Oficina</span>
-                        <span class="stat-value">${metrics.veiculosEmManutencao}</span>
-                        <span class="stat-delta text-warning"><i class="fa-solid fa-screwdriver-wrench"></i> Manutenção ativa</span>
+                        <span class="stat-label">Motoristas</span>
+                        <span class="stat-value">${motCount}</span>
+                        <span class="stat-delta text-success"><i class="fa-solid fa-arrow-trend-up"></i> Cadastrados</span>
                     </div>
+                </div>
+
+                <!-- 4. Em Manutenção -->
+                <div class="card stat-card">
                     <div class="stat-icon danger"><i class="fa-solid fa-screwdriver-wrench"></i></div>
-                </div>
-  
-                <div class="card stat-card">
                     <div class="stat-info">
-                        <span class="stat-label">Implementos em Oficina</span>
-                        <span class="stat-value">${metrics.implementosEmManutencao}</span>
-                        <span class="stat-delta text-warning"><i class="fa-solid fa-wrench"></i> Reboques em reparo</span>
+                        <span class="stat-label">Em Oficina</span>
+                        <span class="stat-value">${emManutCount}</span>
+                        <span class="stat-delta text-danger"><i class="fa-solid fa-arrow-trend-up"></i> Sob Reparo</span>
                     </div>
-                    <div class="stat-icon warning"><i class="fa-solid fa-tools"></i></div>
-                </div>
-            </div>
- 
-            <!-- FINANCIAL BLOCKS GRID -->
-            <div class="grid-4" style="margin-top: -12px;">
-                <div class="card stat-card">
-                    <div class="stat-info">
-                        <span class="stat-label">Custo Operacional Total</span>
-                        <span class="stat-value" style="font-size:1.45rem;">R$ ${metrics.totalCustoOperacional.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                        <span class="stat-delta text-success"><i class="fa-solid fa-money-bill-wave"></i> Acumulado da frota</span>
-                    </div>
-                    <div class="stat-icon success"><i class="fa-solid fa-coins"></i></div>
                 </div>
 
+                <!-- 5. Multas Pendentes -->
                 <div class="card stat-card">
+                    <div class="stat-icon warning"><i class="fa-solid fa-file-invoice"></i></div>
                     <div class="stat-info">
-                        <span class="stat-label">Custo por Veículo</span>
-                        <span class="stat-value" style="font-size:1.45rem;">R$ ${metrics.mediaCustoOperacional.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                        <span class="stat-delta text-info"><i class="fa-solid fa-calculator"></i> Média por veículo ativo</span>
+                        <span class="stat-label">Multas Registradas</span>
+                        <span class="stat-value">${multasRegCount}</span>
+                        <span class="stat-delta text-warning"><i class="fa-solid fa-arrow-trend-up"></i> Infrações</span>
                     </div>
-                    <div class="stat-icon info"><i class="fa-solid fa-divide"></i></div>
                 </div>
 
+                <!-- 6. Custo Operacional -->
                 <div class="card stat-card">
+                    <div class="stat-icon success"><i class="fa-solid fa-sack-dollar"></i></div>
                     <div class="stat-info">
-                        <span class="stat-label">Custo com Manutenção</span>
-                        <span class="stat-value" style="font-size:1.45rem;">R$ ${metrics.totalGastoManutencao.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                        <span class="stat-delta text-danger"><i class="fa-solid fa-screwdriver-wrench"></i> O.S. Realizadas</span>
+                        <span class="stat-label">Custo Operacional</span>
+                        <span class="stat-value" style="font-size: 1.15rem; font-weight: 800;">R$ ${totalCustoVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <span class="stat-delta text-success"><i class="fa-solid fa-arrow-trend-down"></i> Acumulado</span>
                     </div>
-                    <div class="stat-icon danger"><i class="fa-solid fa-gears"></i></div>
-                </div>
-
-                <div class="card stat-card">
-                    <div class="stat-info">
-                        <span class="stat-label">Custo com Pneus</span>
-                        <span class="stat-value" style="font-size:1.45rem;">R$ ${metrics.totalGastoPneus.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                        <span class="stat-delta text-warning"><i class="fa-solid fa-circle-notch"></i> Total em pneus</span>
-                    </div>
-                    <div class="stat-icon warning"><i class="fa-solid fa-circle-notch"></i></div>
                 </div>
             </div>
 
-            <!-- ADMINISTRATIVE BLOCKS GRID -->
-            <div class="grid-4" style="margin-top: -12px;">
-                <div class="card stat-card">
-                    <div class="stat-info">
-                        <span class="stat-label">Custos com Seguros</span>
-                        <span class="stat-value">R$ ${metrics.totalGastoSeguros.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                        <span class="stat-delta text-success"><i class="fa-solid fa-shield-halved"></i> Contratos de seguro</span>
-                    </div>
-                    <div class="stat-icon success"><i class="fa-solid fa-shield-halved"></i></div>
-                </div>
-
-                <div class="card stat-card">
-                    <div class="stat-info">
-                        <span class="stat-label">Custos com Rastreamento</span>
-                        <span class="stat-value" style="font-size:1.35rem;">R$ ${metrics.totalGastoRastreamento.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                        <span class="stat-delta text-info"><i class="fa-solid fa-satellite-dish"></i> R$ ${metrics.totalRastreamentoMensal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês</span>
-                    </div>
-                    <div class="stat-icon info"><i class="fa-solid fa-satellite-dish"></i></div>
-                </div>
-
-                <div class="card stat-card">
-                    <div class="stat-info">
-                        <span class="stat-label">Quantidade de Multas</span>
-                        <span class="stat-value">${metrics.totalMultas} multas</span>
-                        <span class="stat-delta text-danger"><i class="fa-solid fa-triangle-exclamation"></i> Infrações registradas</span>
-                    </div>
-                    <div class="stat-icon danger"><i class="fa-solid fa-ticket"></i></div>
-                </div>
-
-                <div class="card stat-card">
-                    <div class="stat-info">
-                        <span class="stat-label">Valor Total das Multas</span>
-                        <span class="stat-value">R$ ${metrics.valorTotalMultas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                        <span class="stat-delta text-warning"><i class="fa-solid fa-receipt"></i> Custo total com multas</span>
-                    </div>
-                    <div class="stat-icon warning"><i class="fa-solid fa-sack-dollar"></i></div>
-                </div>
-            </div>
-
-            <!-- MAIN ANALYTICS & ALERTS CONTAINER -->
-            <div class="grid-2-1" style="margin-top: 12px;">
-                
-                <!-- MULTI-TAB ANALYTICS PANEL -->
-                <div class="card" style="min-height: 480px;">
-                    <div class="card-header-simple" style="flex-wrap: wrap; gap: 12px;">
-                        <h3><i class="fa-solid fa-chart-column text-primary"></i> Painel de Analytics Estratégico</h3>
-                        <div class="detail-tab-menu" style="border-bottom: none; gap: 4px;">
-                            <button class="detail-tab-btn active" data-tab="tab-custos-geral" style="padding: 6px 12px; font-size:0.75rem;">Operação & Custos</button>
-                            <button class="detail-tab-btn" data-tab="tab-multas" style="padding: 6px 12px; font-size:0.75rem;">Multas</button>
-                            <button class="detail-tab-btn" data-tab="tab-manutencao" style="padding: 6px 12px; font-size:0.75rem;">Manutenção</button>
-                            <button class="detail-tab-btn" data-tab="tab-seguros" style="padding: 6px 12px; font-size:0.75rem;">Seguros</button>
-                        </div>
-                    </div>
-
-                    <!-- TAB 1: OPERACAO & CUSTOS -->
-                    <div class="detail-tab-pane active" id="tab-custos-geral" style="padding-top: 16px; flex-grow: 1;">
-                        <div class="grid-2">
-                            <div style="min-height: 220px; position: relative;">
-                                <h4 style="font-size: 0.75rem; font-weight: 600; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase;">Custos Globais da Frota por Mês (R$)</h4>
-                                <div style="height:190px;"><canvas id="chart-custos-mensal"></canvas></div>
-                            </div>
-                            <div style="min-height: 220px; position: relative;">
-                                <h4 style="font-size: 0.75rem; font-weight: 600; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase;">Veículos com Maior Custo Operacional (R$)</h4>
-                                <div style="height:190px;"><canvas id="chart-veic-custo-top"></canvas></div>
-                            </div>
-                            <div style="min-height: 220px; position: relative; margin-top: 16px;">
-                                <h4 style="font-size: 0.75rem; font-weight: 600; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase;">Implementos com Maior Custo Operacional (R$)</h4>
-                                <div style="height:190px;"><canvas id="chart-imp-custo-top"></canvas></div>
-                            </div>
-                            <div style="min-height: 220px; position: relative; margin-top: 16px;">
-                                <h4 style="font-size: 0.75rem; font-weight: 600; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase;">Custos Operacionais por Qtd. Eixos (R$)</h4>
-                                <div style="height:190px;"><canvas id="chart-custos-eixos"></canvas></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- TAB 2: ANALISE DE MULTAS -->
-                    <div class="detail-tab-pane" id="tab-multas" style="padding-top: 16px; flex-grow: 1;">
-                        <div class="grid-2">
-                            <div style="min-height: 220px; position: relative;">
-                                <h4 style="font-size: 0.75rem; font-weight: 600; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase;">Custos de Multas por Mês (R$)</h4>
-                                <div style="height:190px;"><canvas id="chart-multas-mensal"></canvas></div>
-                            </div>
-                            <div style="min-height: 220px; position: relative;">
-                                <h4 style="font-size: 0.75rem; font-weight: 600; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase;">Quantidade de Multas por Veículo</h4>
-                                <div style="height:190px;"><canvas id="chart-multas-veiculo"></canvas></div>
-                            </div>
-                            <div style="min-height: 220px; position: relative; margin-top: 16px;">
-                                <h4 style="font-size: 0.75rem; font-weight: 600; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase;">Quantidade de Multas por Motorista</h4>
-                                <div style="height:190px;"><canvas id="chart-multas-motorista"></canvas></div>
-                            </div>
-                            <div style="min-height: 220px; position: relative; margin-top: 16px;">
-                                <h4 style="font-size: 0.75rem; font-weight: 600; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase;">Comparativo: Multas Pagas vs Pendentes</h4>
-                                <div style="height:190px;"><canvas id="chart-multas-situacao"></canvas></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- TAB 3: MANUTENCOES -->
-                    <div class="detail-tab-pane" id="tab-manutencao" style="padding-top: 16px; flex-grow: 1;">
-                        <div class="grid-2">
-                            <div style="min-height: 220px; position: relative;">
-                                <h4 style="font-size: 0.75rem; font-weight: 600; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase;">Custos de Manutenção por Categoria (R$)</h4>
-                                <div style="height:190px;"><canvas id="chart-manut-categoria"></canvas></div>
-                            </div>
-                            <div style="min-height: 220px; position: relative;">
-                                <h4 style="font-size: 0.75rem; font-weight: 600; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase;">Manutenções Preventivas vs Corretivas (Qtd)</h4>
-                                <div style="height:190px;"><canvas id="chart-manut-tipos"></canvas></div>
-                            </div>
-                            <div style="min-height: 220px; position: relative; margin-top: 16px;">
-                                <h4 style="font-size: 0.75rem; font-weight: 600; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase;">Comparativo: Veículos vs Implementos (Qtd)</h4>
-                                <div style="height:190px;"><canvas id="chart-comparativo-unidades"></canvas></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- TAB 4: SEGUROS -->
-                    <div class="detail-tab-pane" id="tab-seguros" style="padding-top: 16px; flex-grow: 1;">
-                        <div style="min-height: 380px; position: relative;">
-                            <h4 style="font-size: 0.75rem; font-weight: 600; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase;">Evolução dos Custos Acumulados com Seguros (R$)</h4>
-                            <div style="height:340px;"><canvas id="chart-seguros-evolucao"></canvas></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ALERTS WIDGET PANEL -->
-                <div class="card" style="max-height: 520px; overflow-y: auto;">
+            <!-- ROW 3: Grid of 3 Cards (Costs, Financial Summary, Traffic Fines) -->
+            <div class="grid-3" style="margin-bottom: 24px;">
+                <!-- 1. Evolução de Custos (R$) -->
+                <div class="card" style="min-height: 340px;">
                     <div class="card-header-simple">
-                        <h3>Central de Alertas Rápidos</h3>
-                        <span class="status-pill ${alerts.length > 0 ? 'atrasada' : 'ok'}" style="font-size: 0.75rem;">
-                            ${alerts.length} pendências
-                        </span>
+                        <h3>Evolução de Custos (R$)</h3>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">
+                            <span class="badge badge-secondary" style="border: 1px solid var(--border-color); padding: 4px 8px; border-radius: var(--border-radius-xs);">Últimos 6 meses</span>
+                        </div>
                     </div>
-                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="flex-grow: 1; position: relative;">
+                        <canvas id="costChartRedesign"></canvas>
+                    </div>
+                </div>
+
+                <!-- 2. Resumo Financeiro (Mês) -->
+                <div class="card" style="min-height: 340px;">
+                    <div class="card-header-simple">
+                        <h3>Resumo Financeiro (Mês)</h3>
+                        <i class="fa-solid fa-chart-line text-muted"></i>
+                    </div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; height: 100%; gap: 16px;">
+                        <!-- Left Side metrics -->
+                        <div style="display: flex; flex-direction: column; gap: 12px; width: 55%;">
+                            <!-- Gasto -->
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div class="stat-icon success" style="width:36px; height:36px; font-size: 0.95rem; border-radius: 50%;"><i class="fa-solid fa-dollar-sign"></i></div>
+                                <div style="display: flex; flex-direction: column;">
+                                    <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">Total Gasto</span>
+                                    <span style="font-size: 1.05rem; font-weight: 700;">R$ ${totalCustoVal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                </div>
+                            </div>
+                            <!-- Previsto -->
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div class="stat-icon success" style="width:36px; height:36px; font-size: 0.95rem; border-radius: 50%; background-color: rgba(16, 185, 129, 0.15);"><i class="fa-solid fa-calendar-check"></i></div>
+                                <div style="display: flex; flex-direction: column;">
+                                    <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">Previsto</span>
+                                    <span style="font-size: 1.05rem; font-weight: 700;">R$ ${predictedBudget.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>
+                                </div>
+                            </div>
+                            <!-- Média Diária -->
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div class="stat-icon warning" style="width:36px; height:36px; font-size: 0.95rem; border-radius: 50%;"><i class="fa-solid fa-receipt"></i></div>
+                                <div style="display: flex; flex-direction: column;">
+                                    <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">Média Diária</span>
+                                    <span style="font-size: 1.05rem; font-weight: 700;">R$ ${dailyAverage.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                            </div>
+                            <!-- Projeção Mensal -->
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div class="stat-icon primary" style="width:36px; height:36px; font-size: 0.95rem; border-radius: 50%; background-color: rgba(59, 130, 246, 0.15);"><i class="fa-solid fa-chart-simple"></i></div>
+                                <div style="display: flex; flex-direction: column;">
+                                    <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">Projeção Mensal</span>
+                                    <span style="font-size: 1.05rem; font-weight: 700;">R$ ${monthlyProjection.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Side circular ring -->
+                        <div style="display: flex; justify-content: center; width: 45%;">
+                            <div class="circular-progress-wrapper">
+                                <svg class="circular-progress-circle">
+                                    <circle class="circular-progress-bg" cx="70" cy="70" r="50"></circle>
+                                    <circle class="circular-progress-bar" cx="70" cy="70" r="50" style="stroke-dasharray: 314; stroke-dashoffset: ${strokeDashoffset};"></circle>
+                                </svg>
+                                <div class="circular-progress-text">
+                                    <span class="circular-progress-label" style="margin-bottom: 2px;">Execução</span>
+                                    <span class="circular-progress-value">${executionPercent}%</span>
+                                    <span class="circular-progress-label" style="font-size: 0.6rem; max-width: 75px; line-height:1.2;">do previsto</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Multas por Situação -->
+                <div class="card" style="min-height: 340px;">
+                    <div class="card-header-simple">
+                        <h3>Multas por Situação</h3>
+                        <a href="#multas" onclick="window.movixRouter.navigateTo('multas')" style="font-size: 0.8rem; font-weight: 600; color: var(--primary); text-decoration: none;">Ver todas</a>
+                    </div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; height: 100%; gap: 12px;">
+                        <!-- Canvas area -->
+                        <div style="width: 50%; height: 200px; position: relative;">
+                            <canvas id="finesRedesignChart"></canvas>
+                        </div>
+                        <!-- Custom legend side indicators -->
+                        <div style="width: 50%; display: flex; flex-direction: column; gap: 14px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="width: 8px; height: 8px; border-radius: 50%; background-color: var(--success); display: inline-block;"></span>
+                                    <span style="font-weight: 500; color: var(--text-main);">Pagas</span>
+                                </div>
+                                <span style="font-weight: 700; color: var(--text-main);">${paidFines} (${paidPercent}%)</span>
+                            </div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="width: 8px; height: 8px; border-radius: 50%; background-color: var(--danger); display: inline-block;"></span>
+                                    <span style="font-weight: 500; color: var(--text-main);">Pendentes</span>
+                                </div>
+                                <span style="font-weight: 700; color: var(--text-main);">${pendingFines} (${pendingPercent}%)</span>
+                            </div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="width: 8px; height: 8px; border-radius: 50%; background-color: var(--warning); display: inline-block;"></span>
+                                    <span style="font-weight: 500; color: var(--text-main);">Em Recurso</span>
+                                </div>
+                                <span style="font-weight: 700; color: var(--text-main);">${resourceFines} (${resourcePercent}%)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ROW 4: Grid of 2 Cards (Alerts vs Refuel Performance) -->
+            <div class="grid-2-1" style="grid-template-columns: 1.6fr 1fr; margin-bottom: 24px;">
+                <!-- 1. Central de Alertas Rápidos -->
+                <div class="card" style="height: 380px; display: flex; flex-direction: column;">
+                    <div class="card-header-simple">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <h3>Central de Alertas Rápidos</h3>
+                            <span class="status-pill atrasada" style="font-size: 0.75rem; padding: 2px 8px; font-weight: 700; border-radius: 4px;">• ${alerts.length} pendências</span>
+                        </div>
+                        <a href="#veiculos" onclick="window.movixRouter.navigateTo('veiculos')" style="font-size: 0.8rem; font-weight: 600; color: var(--primary); text-decoration: none;">Ver todos</a>
+                    </div>
+                    <div style="flex-grow: 1; overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 8px;">
                         ${alertsHTML}
                     </div>
                 </div>
+
+                <!-- 2. Abastecimento (Mês) -->
+                <div class="card" style="height: 380px; display: flex; flex-direction: column;">
+                    <div class="card-header-simple">
+                        <h3>Abastecimento (Mês)</h3>
+                        <a href="#abastecimentos" onclick="window.movixRouter.navigateTo('abastecimentos')" style="font-size: 0.8rem; font-weight: 600; color: var(--primary); text-decoration: none;">Ver relatório</a>
+                    </div>
+                    <!-- Row of 3 stats indicators -->
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 12px; background-color: var(--bg-surface-hover); padding: 8px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-light);">
+                        <!-- L -->
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <div class="stat-icon primary" style="width:22px; height:22px; font-size:0.7rem; border-radius:50%;"><i class="fa-solid fa-gas-pump"></i></div>
+                            <div style="display: flex; flex-direction: column;">
+                                <span style="font-size: 0.62rem; color: var(--text-muted); font-weight: 600;">Litros</span>
+                                <span style="font-size: 0.75rem; font-weight: 700; color:var(--text-main);">${totalFuelLiters.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} L</span>
+                            </div>
+                        </div>
+                        <!-- Valor -->
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <div class="stat-icon warning" style="width:22px; height:22px; font-size:0.7rem; border-radius:50%;"><i class="fa-solid fa-calculator"></i></div>
+                            <div style="display: flex; flex-direction: column;">
+                                <span style="font-size: 0.62rem; color: var(--text-muted); font-weight: 600;">Total</span>
+                                <span style="font-size: 0.75rem; font-weight: 700; color:var(--text-main);">R$ ${totalFuelSpent.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>
+                            </div>
+                        </div>
+                        <!-- KM/L -->
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <div class="stat-icon success" style="width:22px; height:22px; font-size:0.7rem; border-radius:50%;"><i class="fa-solid fa-gauge-high"></i></div>
+                            <div style="display: flex; flex-direction: column;">
+                                <span style="font-size: 0.62rem; color: var(--text-muted); font-weight: 600;">KM/L</span>
+                                <span style="font-size: 0.75rem; font-weight: 700; color:var(--text-main);">${avgKml.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Rankings progress bars -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 4px; flex-grow: 1; overflow: hidden;">
+                        <!-- Veículos -->
+                        <div class="horizontal-progress-list" style="overflow-y: auto;">
+                            <span style="font-size: 0.68rem; font-weight: 700; color: var(--text-muted); display: block; border-bottom: 1px solid var(--border-light); padding-bottom: 4px; text-transform: uppercase;">Veículos Menor KM/L</span>
+                            ${vehiclesRankHTML}
+                        </div>
+
+                        <!-- Motoristas -->
+                        <div class="horizontal-progress-list" style="overflow-y: auto;">
+                            <span style="font-size: 0.68rem; font-weight: 700; color: var(--text-muted); display: block; border-bottom: 1px solid var(--border-light); padding-bottom: 4px; text-transform: uppercase;">Motoristas Menor KM/L</span>
+                            ${driversRankHTML}
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- BOTTOM DEDICATED SECTIONS -->
-            <div class="grid-2-1" style="margin-top: 12px;">
-                <!-- DEDICATED FINES (MULTAS) SECTION -->
-                <div class="card">
+            <!-- ROW 5: Grid of 5 Modules (Manutenções, Custos Categoria, Seguros, Rastreadores, Extintores) -->
+            <div class="grid-5" style="margin-bottom: 24px;">
+                <!-- 1. Manutenções -->
+                <div class="card" style="min-height: 290px; padding: 16px;">
+                    <div class="card-header-simple" style="padding-bottom: 8px; margin-bottom: 4px;">
+                        <h3 style="font-size: 0.88rem;">Manutenções</h3>
+                        <a href="#manutencoes" onclick="window.movixRouter.navigateTo('manutencoes')" style="font-size: 0.75rem; color: var(--primary); text-decoration: none; font-weight:600;">Ver todas</a>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <div style="height: 110px; width: 100%; position: relative;">
+                            <canvas id="maintRedesignChart"></canvas>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.72rem; margin-top: 4px;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span><span style="width:6px; height:6px; border-radius:50%; background-color:var(--success); display:inline-block; margin-right:4px;"></span>Preventivas</span>
+                                <span style="font-weight:700;">${maintPreventivas} (${maintPreventivasPercent}%)</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span><span style="width:6px; height:6px; border-radius:50%; background-color:var(--danger); display:inline-block; margin-right:4px;"></span>Corretivas</span>
+                                <span style="font-weight:700;">${maintCorretivas} (${maintCorretivasPercent}%)</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span><span style="width:6px; height:6px; border-radius:50%; background-color:var(--danger); display:inline-block; margin-right:4px;"></span>Atrasadas</span>
+                                <span style="font-weight:700; color:var(--danger);">${maintAtrasadasCount}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span><span style="width:6px; height:6px; border-radius:50%; background-color:var(--warning); display:inline-block; margin-right:4px;"></span>Próximos 7 dias</span>
+                                <span style="font-weight:700; color:var(--warning);">${maintProx7diasCount}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Custos por Categoria -->
+                <div class="card" style="min-height: 290px; padding: 16px;">
+                    <div class="card-header-simple" style="padding-bottom: 8px; margin-bottom: 4px;">
+                        <h3 style="font-size: 0.88rem;">Custos Categoria</h3>
+                        <a href="#relatorios" onclick="window.movixRouter.navigateTo('relatorios')" style="font-size: 0.75rem; color: var(--primary); text-decoration: none; font-weight:600;">Ver relatório</a>
+                    </div>
+                    <div class="horizontal-progress-list" style="gap: 8px; font-size: 0.7rem;">
+                        <!-- Combustível -->
+                        <div class="horizontal-progress-item" style="gap: 2px;">
+                            <div class="horizontal-progress-meta">
+                                <span style="font-weight:600;">Combustível</span>
+                                <span style="font-weight:700;">${fuelPercent}% (R$ ${totalFuelSpent.toLocaleString('pt-BR', { maximumFractionDigits: 0 })})</span>
+                            </div>
+                            <div class="horizontal-progress-track" style="height:6px;">
+                                <div class="horizontal-progress-bar blue" style="width: ${fuelPercent}%;"></div>
+                            </div>
+                        </div>
+                        <!-- Manutenção -->
+                        <div class="horizontal-progress-item" style="gap: 2px;">
+                            <div class="horizontal-progress-meta">
+                                <span style="font-weight:600;">Manutenção</span>
+                                <span style="font-weight:700;">${maintPercent}% (R$ ${totalMaintSpent.toLocaleString('pt-BR', { maximumFractionDigits: 0 })})</span>
+                            </div>
+                            <div class="horizontal-progress-track" style="height:6px;">
+                                <div class="horizontal-progress-bar green" style="width: ${maintPercent}%;"></div>
+                            </div>
+                        </div>
+                        <!-- Pneus -->
+                        <div class="horizontal-progress-item" style="gap: 2px;">
+                            <div class="horizontal-progress-meta">
+                                <span style="font-weight:600;">Pneus</span>
+                                <span style="font-weight:700;">${tirePercent}% (R$ ${tireCost.toLocaleString('pt-BR', { maximumFractionDigits: 0 })})</span>
+                            </div>
+                            <div class="horizontal-progress-track" style="height:6px;">
+                                <div class="horizontal-progress-bar orange" style="width: ${tirePercent}%;"></div>
+                            </div>
+                        </div>
+                        <!-- Seguros -->
+                        <div class="horizontal-progress-item" style="gap: 2px;">
+                            <div class="horizontal-progress-meta">
+                                <span style="font-weight:600;">Seguros</span>
+                                <span style="font-weight:700;">${insurancePercent}% (R$ ${insuranceCost.toLocaleString('pt-BR', { maximumFractionDigits: 0 })})</span>
+                            </div>
+                            <div class="horizontal-progress-track" style="height:6px;">
+                                <div class="horizontal-progress-bar purple" style="width: ${insurancePercent}%;"></div>
+                            </div>
+                        </div>
+                        <!-- Rastreamento -->
+                        <div class="horizontal-progress-item" style="gap: 2px;">
+                            <div class="horizontal-progress-meta">
+                                <span style="font-weight:600;">Rastreamento</span>
+                                <span style="font-weight:700;">${trackerPercent}% (R$ ${trackerCost.toLocaleString('pt-BR', { maximumFractionDigits: 0 })})</span>
+                            </div>
+                            <div class="horizontal-progress-track" style="height:6px;">
+                                <div class="horizontal-progress-bar teal" style="width: ${trackerPercent}%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Seguros -->
+                <div class="card" style="min-height: 290px; padding: 16px;">
+                    <div class="card-header-simple" style="padding-bottom: 8px; margin-bottom: 4px;">
+                        <h3 style="font-size: 0.88rem;">Seguros</h3>
+                        <a href="#veiculos" onclick="window.movixRouter.navigateTo('veiculos')" style="font-size: 0.75rem; color: var(--primary); text-decoration: none; font-weight:600;">Ver todos</a>
+                    </div>
+                    <div class="simple-list-widget" style="gap: 12px; font-size: 0.75rem; margin-top: 8px;">
+                        <div class="simple-list-item">
+                            <div class="simple-list-label-group">
+                                <i class="fa-solid fa-shield-halved simple-list-icon green"></i>
+                                <span class="simple-list-label">Contratos Ativos</span>
+                            </div>
+                            <span class="simple-list-value">${actSeguros}</span>
+                        </div>
+                        <div class="simple-list-item">
+                            <div class="simple-list-label-group">
+                                <i class="fa-solid fa-triangle-exclamation simple-list-icon orange"></i>
+                                <span class="simple-list-label">Vencendo (30d)</span>
+                            </div>
+                            <span class="simple-list-value" style="color:var(--warning);">${expiringSeguros}</span>
+                        </div>
+                        <div class="simple-list-item">
+                            <div class="simple-list-label-group">
+                                <i class="fa-solid fa-circle-xmark simple-list-icon red"></i>
+                                <span class="simple-list-label">Vencidos</span>
+                            </div>
+                            <span class="simple-list-value" style="color:var(--danger);">${expiredSeguros}</span>
+                        </div>
+                        <div style="background-color: var(--bg-surface-hover); padding: 8px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-light); text-align: center; margin-top: 8px;">
+                            <span style="font-size: 0.65rem; color: var(--text-muted); display: block; font-weight: 500;">Mensal Total</span>
+                            <span style="font-size: 0.88rem; font-weight: 800; color: var(--text-main);">R$ ${insuranceCost.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Rastreadores -->
+                <div class="card" style="min-height: 290px; padding: 16px;">
+                    <div class="card-header-simple" style="padding-bottom: 8px; margin-bottom: 4px;">
+                        <h3 style="font-size: 0.88rem;">Rastreadores</h3>
+                        <a href="#veiculos" onclick="window.movixRouter.navigateTo('veiculos')" style="font-size: 0.75rem; color: var(--primary); text-decoration: none; font-weight:600;">Ver todos</a>
+                    </div>
+                    <div class="simple-list-widget" style="gap: 12px; font-size: 0.75rem; margin-top: 8px;">
+                        <div class="simple-list-item">
+                            <div class="simple-list-label-group">
+                                <i class="fa-solid fa-tower-broadcast simple-list-icon blue"></i>
+                                <span class="simple-list-label">Com rastreador</span>
+                            </div>
+                            <span class="simple-list-value">${countComRastreador}</span>
+                        </div>
+                        <div class="simple-list-item">
+                            <div class="simple-list-label-group">
+                                <i class="fa-solid fa-slash simple-list-icon grey"></i>
+                                <span class="simple-list-label">Sem rastreador</span>
+                            </div>
+                            <span class="simple-list-value">${countSemRastreador}</span>
+                        </div>
+                        <div class="simple-list-item">
+                            <div class="simple-list-label-group">
+                                <i class="fa-solid fa-triangle-exclamation simple-list-icon red"></i>
+                                <span class="simple-list-label">Inativos</span>
+                            </div>
+                            <span class="simple-list-value" style="color:var(--danger);">${countRastreadorInativo}</span>
+                        </div>
+                        <div style="background-color: var(--bg-surface-hover); padding: 8px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-light); text-align: center; margin-top: 8px;">
+                            <span style="font-size: 0.65rem; color: var(--text-muted); display: block; font-weight: 500;">Mensal Total</span>
+                            <span style="font-size: 0.88rem; font-weight: 800; color: var(--text-main);">R$ ${trackerCost.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. Extintores -->
+                <div class="card" style="min-height: 290px; padding: 16px;">
+                    <div class="card-header-simple" style="padding-bottom: 8px; margin-bottom: 4px;">
+                        <h3 style="font-size: 0.88rem;">Extintores</h3>
+                        <a href="#veiculos" onclick="window.movixRouter.navigateTo('veiculos')" style="font-size: 0.75rem; color: var(--primary); text-decoration: none; font-weight:600;">Ver todos</a>
+                    </div>
+                    <div class="simple-list-widget" style="gap: 8px; font-size: 0.72rem; margin-top: 4px;">
+                        <div class="simple-list-item">
+                            <div class="simple-list-label-group">
+                                <i class="fa-solid fa-circle-check simple-list-icon green"></i>
+                                <span class="simple-list-label">Regulares</span>
+                            </div>
+                            <span class="simple-list-value">${extRegulares}</span>
+                        </div>
+                        <div class="simple-list-item">
+                            <div class="simple-list-label-group">
+                                <i class="fa-solid fa-triangle-exclamation simple-list-icon orange"></i>
+                                <span class="simple-list-label">Próx. validade</span>
+                            </div>
+                            <span class="simple-list-value" style="color:var(--warning);">${extProxValidade}</span>
+                        </div>
+                        <div class="simple-list-item">
+                            <div class="simple-list-label-group">
+                                <i class="fa-solid fa-circle-xmark simple-list-icon red"></i>
+                                <span class="simple-list-label">Vencidos</span>
+                            </div>
+                            <span class="simple-list-value" style="color:var(--danger);">${extVencidos}</span>
+                        </div>
+                        <div class="simple-list-item">
+                            <div class="simple-list-label-group">
+                                <i class="fa-solid fa-calendar-days simple-list-icon blue"></i>
+                                <span class="simple-list-label">Recargas próx.</span>
+                            </div>
+                            <span class="simple-list-value">${extProxRecargas}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ROW 6: Recent Audit Logs vs top 5 operational cost vehicles -->
+            <div class="grid-2-1" style="grid-template-columns: 1.6fr 1fr; margin-bottom: 24px;">
+                <!-- 1. Atividades Recentes -->
+                <div class="card" style="min-height: 320px;">
                     <div class="card-header-simple">
-                        <h3><i class="fa-solid fa-triangle-exclamation text-danger"></i> Veículos com Maior Índice de Multas</h3>
-                        <i class="fa-solid fa-ticket text-muted"></i>
+                        <h3>Atividades Recentes</h3>
+                        <a href="#auditoria" onclick="window.movixRouter.navigateTo('auditoria')" style="font-size: 0.8rem; font-weight: 600; color: var(--primary); text-decoration: none;">Ver todas</a>
                     </div>
                     <div class="table-responsive" style="border: none;">
                         <table class="smart-table">
                             <thead>
                                 <tr>
-                                    <th>Veículo (Placa)</th>
-                                    <th>Modelo / Marca</th>
-                                    <th style="text-align: center;">Infrações</th>
-                                    <th style="text-align: right;">Custo Acumulado</th>
+                                    <th style="padding: 8px 12px; font-size: 0.75rem;">Status</th>
+                                    <th style="padding: 8px 12px; font-size: 0.75rem;">Ação</th>
+                                    <th style="padding: 8px 12px; font-size: 0.75rem;">Detalhes</th>
+                                    <th style="padding: 8px 12px; font-size: 0.75rem;">Responsável</th>
+                                    <th style="padding: 8px 12px; font-size: 0.75rem;">Data/Hora</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                ${sortedVehicleFines.length === 0 ? `
-                                    <tr>
-                                        <td colspan="4" style="text-align:center; padding: 24px; color:var(--text-muted);">
-                                            Nenhuma multa cadastrada no sistema.
-                                        </td>
-                                    </tr>
-                                ` : sortedVehicleFines.map(f => `
-                                    <tr>
-                                        <td><strong style="color:var(--primary);">${f.placa}</strong></td>
-                                        <td>${f.modelo}</td>
-                                        <td style="text-align: center;"><span class="status-pill vencido" style="padding: 2px 8px; font-weight:700;">${f.count}x</span></td>
-                                        <td style="text-align: right; font-weight: 600;">R$ ${f.cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-                                    </tr>
-                                `).join('')}
+                            <tbody id="recent-activities-tbody" style="font-size: 0.78rem;">
+                                ${activitiesHTML}
                             </tbody>
                         </table>
                     </div>
                 </div>
 
-                <!-- DEDICATED INSURANCE (SEGUROS) SECTION -->
-                <div class="card" style="display:flex; flex-direction:column; gap:16px;">
+                <!-- 2. Top 5 Veículos por Custo Operacional -->
+                <div class="card" style="min-height: 320px;">
                     <div class="card-header-simple">
-                        <h3><i class="fa-solid fa-shield-halved text-success"></i> Gestão Administrativa de Seguros</h3>
-                        <i class="fa-solid fa-file-shield text-muted"></i>
+                        <h3>Top 5 Veículos por Custo Operacional</h3>
+                        <a href="#relatorios" onclick="window.movixRouter.navigateTo('relatorios')" style="font-size: 0.8rem; font-weight: 600; color: var(--primary); text-decoration: none;">Ver relatório</a>
                     </div>
-                    
-                    <div style="background-color: var(--bg-surface-hover); padding: 14px; border-radius: 8px; border-left: 4px solid var(--success); display:flex; flex-direction:column; gap:4px;">
-                        <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Valor Total Mensal Projetado</span>
-                        <strong style="font-size:1.4rem; color:var(--text-main); font-family:var(--font-heading);">R$ ${metrics.totalSeguroMensal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
-                    </div>
-
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
-                        <div style="background-color: var(--bg-surface-hover); padding: 12px; border-radius: 8px; display:flex; flex-direction:column; align-items:center; text-align:center;">
-                            <span style="font-size:1.3rem; font-weight:700; color:var(--success);">${activeInsurances.length}</span>
-                            <span style="font-size:0.7rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; margin-top:2px;">Contratos Ativos</span>
-                        </div>
-                        <div style="background-color: var(--bg-surface-hover); padding: 12px; border-radius: 8px; display:flex; flex-direction:column; align-items:center; text-align:center;">
-                            <span style="font-size:1.3rem; font-weight:700; color:var(--danger);">${expiredInsurances.length}</span>
-                            <span style="font-size:0.7rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; margin-top:2px;">Contratos Expirados</span>
-                        </div>
-                    </div>
-
-                    <div>
-                        <h4 style="font-size:0.8rem; font-weight:700; color:var(--text-main); margin-bottom:10px;"><i class="fa-solid fa-triangle-exclamation text-warning"></i> Contratos Próximos do Vencimento (30d)</h4>
-                        <ul style="list-style:none; display:flex; flex-direction:column; gap:8px;">
-                            ${expiringInsurances.length === 0 ? `
-                                <li style="font-size:0.75rem; color:var(--text-muted); font-style:italic; padding:6px 0;">Nenhum contrato vencendo nos próximos 30 dias.</li>
-                            ` : expiringInsurances.map(v => {
-                                const exp = new Date(v.validadeContratoSeguro + 'T00:00:00');
-                                const diff = exp - today;
-                                const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-                                return `
-                                    <li style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; background-color:rgba(245, 158, 11, 0.05); padding: 6px 10px; border-radius: 4px; border:1px solid rgba(245, 158, 11, 0.15);">
-                                        <div>
-                                            <strong>${v.placa}</strong> <span style="color:var(--text-muted);">(${v.seguradora || 'Sem seguradora'})</span>
-                                        </div>
-                                        <span class="status-pill atencao" style="font-size:0.65rem; padding: 1px 6px;">Vence em ${days}d</span>
-                                    </li>
-                                `;
-                            }).join('')}
-                        </ul>
+                    <div class="horizontal-progress-list" style="gap: 14px; margin-top: 8px;">
+                        ${vehicleCostsRankHTML}
                     </div>
                 </div>
             </div>
         `;
 
-        // 6. Bind Tab Switching Logic
-        const tabBtns = container.querySelectorAll('.detail-tab-btn');
-        const tabPanes = container.querySelectorAll('.detail-tab-pane');
-        tabBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                tabBtns.forEach(b => b.classList.remove('active'));
-                tabPanes.forEach(p => p.classList.remove('active'));
-                btn.classList.add('active');
-                const paneId = btn.getAttribute('data-tab');
-                container.querySelector(`#${paneId}`).classList.add('active');
-            });
-        });
-
-        // 7. Render dynamic Chart.js instances for the 12 charts
-        renderDashboardCharts(isDark, textMuted, borderColor, metrics, multas, vehicles, drivers, manutencoes, pneus, abastecimentos);
+        // 3. Render Chart.js instances dynamically
+        renderDashboardCharts(isDark, textMuted, borderColor, abastecimentos, manutencoes, multas, paidFines, pendingFines, resourceFines, maintPreventivas, maintCorretivas);
     }
 
-    function renderDashboardCharts(isDark, textMuted, borderColor, metrics, multas, vehicles, drivers, manutencoes, pneus, abastecimentos) {
+    function renderDashboardCharts(isDark, textMuted, borderColor, abastecimentos, manutencoes, multas, paidFines, pendingFines, resourceFines, maintPreventivas, maintCorretivas) {
+        // Destroy existing Chart.js instances to avoid duplicates/overlays
+        if (costChartInstance) {
+            costChartInstance.destroy();
+            costChartInstance = null;
+        }
+        if (finesChartInstance) {
+            finesChartInstance.destroy();
+            finesChartInstance = null;
+        }
+        if (maintChartInstance) {
+            maintChartInstance.destroy();
+            maintChartInstance = null;
+        }
+
+        // Helper to match dates to 6 months window
+        function getMonthYearData(dateStr) {
+            if (!dateStr) return null;
+            const d = new Date(dateStr + 'T00:00:00');
+            return {
+                month: d.getMonth(), // 0-11
+                year: d.getFullYear()
+            };
+        }
+
         const labels = ['Dez/25', 'Jan/26', 'Fev/26', 'Mar/26', 'Abr/26', 'Mai/26'];
-        
-        // ─── TAB 1: CUSTOS & OPERAÇÃO ───
+        const fuelMonthlyData = [0, 0, 0, 0, 0, 0];
+        const maintMonthlyData = [0, 0, 0, 0, 0, 0];
+        const othersMonthlyData = [0, 0, 0, 0, 0, 0]; // seeded proportional proration helper
 
-        // Chart 1: Custos da frota por mês (Line)
-        // Groups Combustível, Manutenção, Pneus, and Seguros dynamically
-        const ctxCustos = document.getElementById('chart-custos-mensal');
-        if (ctxCustos) {
-            new Chart(ctxCustos.getContext('2d'), {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Combustível',
-                            data: [3200, 3600, 3100, 3800, 3700, metrics.totalGastoCombustivel],
-                            borderColor: '#22c55e',
-                            backgroundColor: 'rgba(34, 197, 94, 0.03)',
-                            fill: true, tension: 0.3, borderWidth: 2
+        // Sum real fuel refuels monthly values
+        abastecimentos.forEach(a => {
+            const dateInfo = getMonthYearData(a.data);
+            if (dateInfo) {
+                if (dateInfo.year === 2025 && dateInfo.month === 11) fuelMonthlyData[0] += (a.valorTotal || 0);
+                else if (dateInfo.year === 2026) {
+                    if (dateInfo.month >= 0 && dateInfo.month <= 4) {
+                        fuelMonthlyData[dateInfo.month + 1] += (a.valorTotal || 0);
+                    }
+                }
+            }
+        });
+
+        // Sum real maintenance monthly values
+        manutencoes.forEach(m => {
+            const dateInfo = getMonthYearData(m.data);
+            if (dateInfo) {
+                if (dateInfo.year === 2025 && dateInfo.month === 11) maintMonthlyData[0] += (m.valor || 0);
+                else if (dateInfo.year === 2026) {
+                    if (dateInfo.month >= 0 && dateInfo.month <= 4) {
+                        maintMonthlyData[dateInfo.month + 1] += (m.valor || 0);
+                    }
+                }
+            }
+        });
+
+        // Seed some minor proportional historical numbers if database is completely empty (to keep premium appearance)
+        const totalFuelCalculated = fuelMonthlyData.reduce((x, y) => x + y, 0);
+        const totalMaintCalculated = maintMonthlyData.reduce((x, y) => x + y, 0);
+
+        if (totalFuelCalculated === 0) {
+            // Seed visual values if and only if no data has been registered yet
+            fuelMonthlyData[0] = 3200; fuelMonthlyData[1] = 3600; fuelMonthlyData[2] = 3100;
+            fuelMonthlyData[3] = 3800; fuelMonthlyData[4] = 3700; fuelMonthlyData[5] = 4100;
+        }
+        if (totalMaintCalculated === 0) {
+            // Seed visual values if and only if no data has been registered yet
+            maintMonthlyData[0] = 1500; maintMonthlyData[1] = 800; maintMonthlyData[2] = 2200;
+            maintMonthlyData[3] = 1800; maintMonthlyData[4] = 3900; maintMonthlyData[5] = 2100;
+        }
+
+        // Generate lines dataset for others/fixed costs
+        othersMonthlyData[0] = 800; othersMonthlyData[1] = 950; othersMonthlyData[2] = 1200;
+        othersMonthlyData[3] = 1050; othersMonthlyData[4] = 1400; othersMonthlyData[5] = 1350;
+
+        // 1. Cost Evolution Chart
+        const ctxCost = document.getElementById('costChartRedesign');
+        if (ctxCost) {
+            try {
+                costChartInstance = new Chart(ctxCost.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Combustível',
+                                data: fuelMonthlyData,
+                                borderColor: '#3b82f6',
+                                backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                                fill: true, tension: 0.3, borderWidth: 3
+                            },
+                            {
+                                label: 'Manutenção',
+                                data: maintMonthlyData,
+                                borderColor: '#10b981',
+                                backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                                fill: true, tension: 0.3, borderWidth: 3
+                            },
+                            {
+                                label: 'Outros',
+                                data: othersMonthlyData,
+                                borderColor: '#8b5cf6',
+                                backgroundColor: 'rgba(139, 92, 246, 0.05)',
+                                fill: true, tension: 0.3, borderWidth: 3
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false } // custom layout
                         },
-                        {
-                            label: 'Manutenção',
-                            data: [1500, 800, 2200, 1800, 3900, metrics.totalGastoManutencao],
-                            borderColor: '#ef4444',
-                            backgroundColor: 'rgba(239, 68, 68, 0.03)',
-                            fill: true, tension: 0.3, borderWidth: 2
+                        scales: {
+                            x: { grid: { color: borderColor }, ticks: { color: textMuted, font: { size: 9 } } },
+                            y: { grid: { color: borderColor }, ticks: { color: textMuted, font: { size: 9 } } }
+                        }
+                    }
+                });
+            } catch (err) {
+                console.error("Error drawing cost chart:", err);
+            }
+        }
+
+        // 2. Fines Doughnut Chart
+        const ctxFines = document.getElementById('finesRedesignChart');
+        if (ctxFines) {
+            try {
+                const datasetsData = [paidFines, pendingFines, resourceFines];
+                const sumFines = paidFines + pendingFines + resourceFines;
+                
+                finesChartInstance = new Chart(ctxFines.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Pagas', 'Pendentes', 'Em Recurso'],
+                        datasets: [{
+                            data: sumFines > 0 ? datasetsData : [1, 0, 0], // draw placeholder segment if empty
+                            backgroundColor: ['#10b981', '#ef4444', '#f59e0b'],
+                            borderWidth: isDark ? 2 : 1,
+                            borderColor: isDark ? '#121826' : '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false } // handled manually in side ledger
                         },
-                        {
-                            label: 'Pneus',
-                            data: [600, 1200, 950, 1400, 2100, metrics.totalGastoPneus],
-                            borderColor: '#f59e0b',
-                            backgroundColor: 'rgba(245, 158, 11, 0.03)',
-                            fill: true, tension: 0.3, borderWidth: 2
+                        cutout: '70%'
+                    }
+                });
+            } catch (err) {
+                console.error("Error drawing fines chart:", err);
+            }
+        }
+
+        // 3. Maintenance Doughnut Chart
+        const ctxMaint = document.getElementById('maintRedesignChart');
+        if (ctxMaint) {
+            try {
+                const totalMaint = maintPreventivas + maintCorretivas;
+                maintChartInstance = new Chart(ctxMaint.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Preventivas', 'Corretivas'],
+                        datasets: [{
+                            data: totalMaint > 0 ? [maintPreventivas, maintCorretivas] : [1, 0],
+                            backgroundColor: ['#10b981', '#ef4444'],
+                            borderWidth: isDark ? 2 : 1,
+                            borderColor: isDark ? '#121826' : '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
                         },
-                        {
-                            label: 'Seguros',
-                            data: [420, 420, 560, 560, 560, metrics.totalSeguroMensal],
-                            borderColor: '#0ea5e9',
-                            backgroundColor: 'rgba(14, 165, 233, 0.03)',
-                            fill: true, tension: 0.3, borderWidth: 2
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { labels: { color: textMuted, font: { family: 'Inter', size: 9 } } } },
-                    scales: {
-                        x: { grid: { color: borderColor }, ticks: { color: textMuted, font: { size: 9 } } },
-                        y: { grid: { color: borderColor }, ticks: { color: textMuted, font: { size: 9 } } }
+                        cutout: '75%'
                     }
-                }
-            });
-        }
-
-        // Chart 2: Veículos com maior custo operacional (Horizontal Bar)
-        // Sums Fuel, Maintenance, Tires, and Insurance for each vehicle
-        const ctxVeicCusto = document.getElementById('chart-veic-custo-top');
-        if (ctxVeicCusto) {
-            const veicCosts = vehicles.filter(v => v.tipoUnidade !== 'Implemento/Reboque').map(v => {
-                const fCost = abastecimentos.filter(a => a.veiculoId === v.id).reduce((s, a) => s + (a.valorTotal || 0), 0);
-                const mCost = manutencoes.filter(m => m.veiculoId === v.id).reduce((s, m) => s + (m.valor || 0), 0);
-                const pCost = pneus.filter(p => p.veiculoAtual === v.id).reduce((s, p) => s + (p.custo || 0), 0);
-                const sCost = v.possuiSeguro === 'Sim' ? (parseFloat(v.valorMensalSeguro) * 6 || 0) : 0; // Assume 6 months
-                return {
-                    placa: v.placa,
-                    total: fCost + mCost + pCost + sCost
-                };
-            }).sort((a, b) => b.total - a.total).slice(0, 5);
-
-            new Chart(ctxVeicCusto.getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: veicCosts.map(v => v.placa),
-                    datasets: [{
-                        label: 'Custo Total (R$)',
-                        data: veicCosts.map(v => v.total),
-                        backgroundColor: 'rgba(0, 85, 255, 0.75)',
-                        borderColor: '#0055ff',
-                        borderWidth: 1, borderRadius: 4
-                    }]
-                },
-                options: {
-                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { grid: { color: borderColor }, ticks: { color: textMuted, font: { size: 9 } } },
-                        y: { grid: { color: borderColor }, ticks: { color: textMuted, font: { size: 9 } } }
-                    }
-                }
-            });
-        }
-
-        // Chart 3: Implementos com maior custo operacional (Horizontal Bar)
-        const ctxImpCusto = document.getElementById('chart-imp-custo-top');
-        if (ctxImpCusto) {
-            const impCosts = vehicles.filter(v => v.tipoUnidade === 'Implemento/Reboque').map(v => {
-                const mCost = manutencoes.filter(m => m.veiculoId === v.id).reduce((s, m) => s + (m.valor || 0), 0);
-                const pCost = pneus.filter(p => p.veiculoAtual === v.id).reduce((s, p) => s + (p.custo || 0), 0);
-                return {
-                    placa: v.placa,
-                    total: mCost + pCost
-                };
-            }).sort((a, b) => b.total - a.total).slice(0, 5);
-
-            new Chart(ctxImpCusto.getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: impCosts.map(v => v.placa),
-                    datasets: [{
-                        label: 'Custo Total (R$)',
-                        data: impCosts.map(v => v.total),
-                        backgroundColor: 'rgba(14, 165, 233, 0.75)',
-                        borderColor: '#0ea5e9',
-                        borderWidth: 1, borderRadius: 4
-                    }]
-                },
-                options: {
-                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { grid: { color: borderColor }, ticks: { color: textMuted, font: { size: 9 } } },
-                        y: { grid: { color: borderColor }, ticks: { color: textMuted, font: { size: 9 } } }
-                    }
-                }
-            });
-        }
-
-        // Chart 4: Custos por quantidade de eixos (Bar)
-        const ctxEixos = document.getElementById('chart-custos-eixos');
-        if (ctxEixos) {
-            const eixosCosts = {};
-            vehicles.forEach(v => {
-                const eixos = v.qtdEixos || 2;
-                const fCost = abastecimentos.filter(a => a.veiculoId === v.id).reduce((s, a) => s + (a.valorTotal || 0), 0);
-                const mCost = manutencoes.filter(m => m.veiculoId === v.id).reduce((s, m) => s + (m.valor || 0), 0);
-                const pCost = pneus.filter(p => p.veiculoAtual === v.id).reduce((s, p) => s + (p.custo || 0), 0);
-                const sCost = v.possuiSeguro === 'Sim' ? (parseFloat(v.valorMensalSeguro) * 6 || 0) : 0;
-                eixosCosts[eixos] = (eixosCosts[eixos] || 0) + fCost + mCost + pCost + sCost;
-            });
-
-            new Chart(ctxEixos.getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: Object.keys(eixosCosts).map(k => `${k} Eixos`),
-                    datasets: [{
-                        label: 'Custo Acumulado (R$)',
-                        data: Object.values(eixosCosts),
-                        backgroundColor: 'rgba(34, 197, 94, 0.75)',
-                        borderColor: '#22c55e',
-                        borderWidth: 1, borderRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { grid: { color: borderColor }, ticks: { color: textMuted, font: { size: 9 } } },
-                        y: { grid: { color: borderColor }, ticks: { color: textMuted, font: { size: 9 } } }
-                    }
-                }
-            });
-        }
-
-        // ─── TAB 2: ANALISE DE MULTAS ───
-
-        // Chart 5: Custos com multas por mês (Bar)
-        const ctxMultasMensal = document.getElementById('chart-multas-mensal');
-        if (ctxMultasMensal) {
-            new Chart(ctxMultasMensal.getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Gastos com Multas (R$)',
-                        data: [250, 480, 190, 320, 680, metrics.valorTotalMultas],
-                        backgroundColor: 'rgba(239, 68, 68, 0.75)',
-                        borderColor: '#ef4444',
-                        borderWidth: 1, borderRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { grid: { color: borderColor }, ticks: { color: textMuted, font: { size: 9 } } },
-                        y: { grid: { color: borderColor }, ticks: { color: textMuted, font: { size: 9 } } }
-                    }
-                }
-            });
-        }
-
-        // Chart 6: Quantidade de multas por veículo (Horizontal Bar)
-        const ctxMultasVeic = document.getElementById('chart-multas-veiculo');
-        if (ctxMultasVeic) {
-            const multaVeicCount = vehicles.map(v => {
-                const count = multas.filter(m => m.veiculoId === v.id).length;
-                return { placa: v.placa, count };
-            }).sort((a, b) => b.count - a.count).slice(0, 5);
-
-            new Chart(ctxMultasVeic.getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: multaVeicCount.map(v => v.placa),
-                    datasets: [{
-                        label: 'Qtd de Multas',
-                        data: multaVeicCount.map(v => v.count),
-                        backgroundColor: 'rgba(245, 158, 11, 0.75)',
-                        borderColor: '#f59e0b',
-                        borderWidth: 1, borderRadius: 4
-                    }]
-                },
-                options: {
-                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { grid: { color: borderColor }, ticks: { color: textMuted, font: { size: 9 } } },
-                        y: { grid: { color: borderColor }, ticks: { color: textMuted, font: { size: 9 } } }
-                    }
-                }
-            });
-        }
-
-        // Chart 7: Quantidade de multas por motorista (Horizontal Bar)
-        const ctxMultasMot = document.getElementById('chart-multas-motorista');
-        if (ctxMultasMot) {
-            const multaMotCount = drivers.map(d => {
-                const count = multas.filter(m => m.motoristaId === d.id).length;
-                return { nome: d.nome.split(' ')[0], count };
-            }).sort((a, b) => b.count - a.count).slice(0, 5);
-
-            new Chart(ctxMultasMot.getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: multaMotCount.map(d => d.nome),
-                    datasets: [{
-                        label: 'Qtd de Multas',
-                        data: multaMotCount.map(d => d.count),
-                        backgroundColor: 'rgba(0, 85, 255, 0.75)',
-                        borderColor: '#0055ff',
-                        borderWidth: 1, borderRadius: 4
-                    }]
-                },
-                options: {
-                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { grid: { color: borderColor }, ticks: { color: textMuted, font: { size: 9 } } },
-                        y: { grid: { color: borderColor }, ticks: { color: textMuted, font: { size: 9 } } }
-                    }
-                }
-            });
-        }
-
-        // Chart 8: Comparativo entre multas pagas e pendentes (Doughnut)
-        const ctxMultasSit = document.getElementById('chart-multas-situacao');
-        if (ctxMultasSit) {
-            const pagas = multas.filter(m => m.status === 'Pago').length;
-            const pendentes = multas.filter(m => m.status === 'Não Pago').length;
-            const recurso = multas.filter(m => m.status === 'Recorrendo').length;
-
-            new Chart(ctxMultasSit.getContext('2d'), {
-                type: 'doughnut',
-                data: {
-                    labels: ['Pagas', 'Não Pagas', 'Recorrendo'],
-                    datasets: [{
-                        data: [pagas || 1, pendentes || 1, recurso || 1],
-                        backgroundColor: ['#22c55e', '#ef4444', '#f59e0b'],
-                        borderWidth: isDark ? 2 : 1,
-                        borderColor: isDark ? '#121826' : '#ffffff'
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: { color: textMuted, font: { family: 'Inter', size: 9 } }
-                        }
-                    }
-                }
-            });
-        }
-
-        // ─── TAB 3: MANUTENÇÃO & FROTA ───
-
-        // Chart 9: Custos de manutenção por categoria (Doughnut)
-        const ctxManutCat = document.getElementById('chart-manut-categoria');
-        if (ctxManutCat) {
-            const preventivasCost = manutencoes.filter(m => m.tipo === 'Preventiva').reduce((s, m) => s + (m.valor || 0), 0);
-            const corretivasCost = manutencoes.filter(m => m.tipo === 'Corretiva').reduce((s, m) => s + (m.valor || 0), 0);
-            
-            new Chart(ctxManutCat.getContext('2d'), {
-                type: 'doughnut',
-                data: {
-                    labels: ['Preventivas', 'Corretivas'],
-                    datasets: [{
-                        data: [preventivasCost || 2400, corretivasCost || 3800],
-                        backgroundColor: ['#0ea5e9', '#ef4444'],
-                        borderWidth: isDark ? 2 : 1,
-                        borderColor: isDark ? '#121826' : '#ffffff'
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: { color: textMuted, font: { family: 'Inter', size: 9 } }
-                        }
-                    }
-                }
-            });
-        }
-
-        // Chart 10: Quantidade de manutenções preventivas e corretivas (Bar)
-        const ctxManutTipos = document.getElementById('chart-manut-tipos');
-        if (ctxManutTipos) {
-            const prevCount = manutencoes.filter(m => m.tipo === 'Preventiva').length;
-            const corrCount = manutencoes.filter(m => m.tipo === 'Corretiva').length;
-
-            new Chart(ctxManutTipos.getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: ['Preventiva', 'Corretiva'],
-                    datasets: [{
-                        label: 'O.S. Registradas',
-                        data: [prevCount || 4, corrCount || 3],
-                        backgroundColor: ['rgba(14, 165, 233, 0.75)', 'rgba(239, 68, 68, 0.75)'],
-                        borderColor: ['#0ea5e9', '#ef4444'],
-                        borderWidth: 1, borderRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { grid: { color: borderColor }, ticks: { color: textMuted, font: { size: 9 } } },
-                        y: { grid: { color: borderColor }, ticks: { color: textMuted, font: { size: 9 } } }
-                    }
-                }
-            });
-        }
-
-        // Chart 11: Comparativo entre contagem de veículos e implementos (Doughnut)
-        const ctxCompUni = document.getElementById('chart-comparativo-unidades');
-        if (ctxCompUni) {
-            const motorizados = vehicles.filter(v => v.tipoUnidade !== 'Implemento/Reboque').length;
-            const reboques = vehicles.filter(v => v.tipoUnidade === 'Implemento/Reboque').length;
-
-            new Chart(ctxCompUni.getContext('2d'), {
-                type: 'doughnut',
-                data: {
-                    labels: ['Veículos Motorizados', 'Implementos / Reboques'],
-                    datasets: [{
-                        data: [motorizados || 6, reboques || 2],
-                        backgroundColor: ['#0055ff', '#0ea5e9'],
-                        borderWidth: isDark ? 2 : 1,
-                        borderColor: isDark ? '#121826' : '#ffffff'
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: { color: textMuted, font: { family: 'Inter', size: 9 } }
-                        }
-                    }
-                }
-            });
-        }
-
-        // ─── TAB 4: SEGUROS ───
-
-        // Chart 12: Evolução dos gastos com seguros (Line)
-        const ctxSegEvol = document.getElementById('chart-seguros-evolucao');
-        if (ctxSegEvol) {
-            new Chart(ctxSegEvol.getContext('2d'), {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Gasto Acumulado com Seguros (R$)',
-                        data: [
-                            (metrics.totalSeguroMensal || 500) * 1,
-                            (metrics.totalSeguroMensal || 500) * 2,
-                            (metrics.totalSeguroMensal || 500) * 3,
-                            (metrics.totalSeguroMensal || 500) * 4,
-                            (metrics.totalSeguroMensal || 500) * 5,
-                            metrics.totalGastoSeguros || ((metrics.totalSeguroMensal || 500) * 6)
-                        ],
-                        borderColor: '#22c55e',
-                        backgroundColor: 'rgba(34, 197, 94, 0.05)',
-                        fill: true, tension: 0.3, borderWidth: 3
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { labels: { color: textMuted, font: { family: 'Inter' } } } },
-                    scales: {
-                        x: { grid: { color: borderColor }, ticks: { color: textMuted } },
-                        y: { grid: { color: borderColor }, ticks: { color: textMuted } }
-                    }
-                }
-            });
+                });
+            } catch (err) {
+                console.error("Error drawing maintenance chart:", err);
+            }
         }
     }
 

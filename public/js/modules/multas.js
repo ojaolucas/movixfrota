@@ -373,6 +373,11 @@
                         </select>
                     </div>
 
+                    <div class="form-group">
+                        <label>Data de Vencimento do Boleto</label>
+                        <input type="date" class="form-control" name="dataVencimentoBoleto" value="${isEdit && multa.dataVencimentoBoleto ? multa.dataVencimentoBoleto : ''}">
+                    </div>
+
                     <div class="form-group full-width">
                         <label>Anexar Comprovante / Guia de Multa (PDF, JPG, PNG)</label>
                         <div class="file-upload-area" id="multa-upload-trigger" style="margin-top: 4px; cursor: pointer; padding: 16px;">
@@ -556,6 +561,7 @@
                             <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Situação Atual</span>
                                 ${m.status === 'Pago' ? '<span class="status-pill ok">Pago</span>' : (m.status === 'Não Pago' ? '<span class="status-pill vencido">Não Pago</span>' : '<span class="status-pill atencao">Recorrendo</span>')}
                             </li>
+                            <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Vencimento do Boleto</span><strong>${m.dataVencimentoBoleto ? m.dataVencimentoBoleto.split('-').reverse().join('/') : '<span style="color:var(--text-muted); font-style:italic;">Não informado</span>'}</strong></li>
                         </ul>
 
                         <div style="margin-top:20px;">

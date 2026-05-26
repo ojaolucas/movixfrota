@@ -876,6 +876,22 @@ class MovixStore {
             }
         });
 
+        // 9. Implemento sem documentação CRLV Alerts
+        this.state.veiculos.forEach(v => {
+            if (v.tipoUnidade === 'Implemento/Reboque' && !v.docVeiculoAnexo) {
+                alerts.push({
+                    id: `ALT-IMP-DOC-${v.id}`,
+                    tipo: 'Implemento sem CRLV',
+                    prioridade: 'Baixa',
+                    status: 'Atenção',
+                    titulo: `Reboque sem CRLV: ${v.placa}`,
+                    desc: `Implemento não possui cópia digital do CRLV anexada ao sistema.`,
+                    link: 'veiculos',
+                    targetId: v.id
+                });
+            }
+        });
+
         return alerts;
     }
 

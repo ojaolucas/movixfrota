@@ -803,6 +803,42 @@
   ],
   "logs": [
     {
+      "id": "LOG-63ZQ1YRY8",
+      "data": "2026-05-26T01:45:05.829Z",
+      "usuario": "Carlos Silveira",
+      "perfil": "Administrador",
+      "acao": "Login",
+      "entidade": "Sessão",
+      "detalhes": "Login realizado com sucesso (123.456.789-00)"
+    },
+    {
+      "id": "LOG-LA45FM3ZJ",
+      "data": "2026-05-26T01:38:37.214Z",
+      "usuario": "Carlos Silveira",
+      "perfil": "Administrador",
+      "acao": "Login",
+      "entidade": "Sessão",
+      "detalhes": "Login realizado com sucesso (123.456.789-00)"
+    },
+    {
+      "id": "LOG-THG15OSWL",
+      "data": "2026-05-26T01:38:12.973Z",
+      "usuario": "Carlos Silveira",
+      "perfil": "Administrador",
+      "acao": "Login",
+      "entidade": "Sessão",
+      "detalhes": "Login realizado com sucesso (123.456.789-00)"
+    },
+    {
+      "id": "LOG-MN5ZITSOZ",
+      "data": "2026-05-26T00:12:37.014Z",
+      "usuario": "Carlos Silveira",
+      "perfil": "Administrador",
+      "acao": "Login",
+      "entidade": "Sessão",
+      "detalhes": "Login realizado com sucesso (123.456.789-00)"
+    },
+    {
       "id": "LOG-HLQ5LS0PN",
       "data": "2026-05-25T23:45:25.251Z",
       "usuario": "Carlos Silveira",
