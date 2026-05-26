@@ -181,7 +181,10 @@ class MovixApp {
         if (roleBadge) roleBadge.className = `role-badge ${user.perfil.toLowerCase()}`;
         if (userName) userName.innerText = user.nome;
         if (userRole) userRole.innerText = user.cargo;
-        if (avatarImg) avatarImg.src = user.foto;
+        if (avatarImg) {
+            avatarImg.src = user.foto || '/img/avatar-default.png';
+            avatarImg.onerror = function() { this.src = '/img/avatar-default.png'; };
+        }
         
         // Make header avatar clickable for profile update
         const avatarContainer = document.querySelector('.user-avatar-container');
@@ -204,7 +207,7 @@ class MovixApp {
         if (userFooter) {
             userFooter.innerHTML = `
                 <div class="sidebar-user-footer-card">
-                    <img src="${user.foto}" class="sidebar-user-avatar" alt="Avatar">
+                    <img src="${user.foto || '/img/avatar-default.png'}" onerror="this.src='/img/avatar-default.png'" class="sidebar-user-avatar" alt="Avatar">
                     <div class="sidebar-user-info">
                         <span class="sidebar-user-name">${user.nome}</span>
                         <span class="sidebar-user-role">${user.cargo}</span>

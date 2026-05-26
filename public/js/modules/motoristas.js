@@ -164,7 +164,7 @@
                 tbody.innerHTML += `
                     <tr>
                         <td>
-                            <img src="${m.foto}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:1px solid var(--border-color);">
+                            <img src="${m.foto || '/img/avatar-default.png'}" onerror="this.src='/img/avatar-default.png'" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:1px solid var(--border-color);">
                         </td>
                         <td>
                             <div style="display:flex; flex-direction:column;">

@@ -156,7 +156,7 @@
                 container.innerHTML += `
                     <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-radius:8px; border:1px solid ${isSelected ? 'var(--primary)' : 'var(--border-color)'}; background-color:${isSelected ? 'var(--primary-light)' : 'var(--bg-surface-hover)'}; transition:all var(--transition-fast);">
                         <div style="display:flex; align-items:center; gap:10px;">
-                            <img src="${u.foto}" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:1px solid var(--border-color);">
+                            <img src="${u.foto || '/img/avatar-default.png'}" onerror="this.src='/img/avatar-default.png'" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:1px solid var(--border-color);">
                             <div style="display:flex; flex-direction:column;">
                                 <strong style="font-size:0.85rem; color:var(--text-main);">${u.nome}</strong>
                                 <span style="font-size:0.75rem; color:var(--text-muted);">${u.cargo}</span>
