@@ -450,6 +450,14 @@ class MovixStore {
         return true;
     }
 
+    async deleteViagem(id) {
+        const res = await fetch(`/api/viagens/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Erro ao excluir viagem.');
+        this.state.viagens = this.state.viagens.filter(v => v.id !== id);
+        await this.loadData();
+        return true;
+    }
+
     // Multas
     getMultas() { return this.state.multas || []; }
     getMulta(id) { return (this.state.multas || []).find(m => m.id === id); }

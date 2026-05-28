@@ -34,9 +34,9 @@
                             <th>Rota / Trajeto</th>
                             <th>Saída / Retorno</th>
                             <th>KM Inicial / Final</th>
-                            <th>Custo Operacional</th>
                             <th>Situação</th>
                             <th style="width: 80px; text-align: center;">Retorno</th>
+                            ${!isVisualizador ? '<th style="width: 120px; text-align: center;">Ações</th>' : ''}
                         </tr>
                     </thead>
                     <tbody id="tbody-viagens">
@@ -64,7 +64,7 @@
 
             tbody.innerHTML = '';
             if (paginatedItems.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="search-no-results" style="text-align: center;">Nenhuma viagem registrada no momento.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="${isVisualizador ? 7 : 8}" class="search-no-results" style="text-align: center;">Nenhuma viagem registrada no momento.</td></tr>`;
                 document.getElementById('pagination-viagens').innerHTML = '';
                 return;
             }
@@ -74,6 +74,24 @@
                 const m = drivers.find(item => item.id === t.motoristaId);
                 
                 const statusClass = t.status === 'Realizada' ? 'realizada' : 'em_andamento';
+
+                let actionsHTML = '';
+                if (!isVisualizador) {
+                    actionsHTML = `
+                        <td style="text-align: center;">
+                            <div style="display:flex; gap:6px; justify-content:center; align-items:center;">
+                                <button class="btn-icon-only btn-edit-viagem" data-id="${t.id}" title="Editar Viagem">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                ${activeUser.perfil === 'Administrador' ? `
+                                    <button class="btn-icon-only danger btn-delete-viagem" data-id="${t.id}" title="Excluir Viagem" style="background-color: var(--danger-light); color: var(--danger);">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </td>
+                    `;
+                }
 
                 tbody.innerHTML += `
                     <tr>
@@ -99,7 +117,6 @@
                                 <span>Retorno: ${t.kmFinal > 0 ? `${parseFloat(t.kmFinal).toLocaleString('pt-BR')} km` : '-'}</span>
                             </div>
                         </td>
-                        <td style="font-weight:700;">R$ ${parseFloat(t.custos || 0).toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
                         <td><span class="status-pill ${statusClass}">${t.status}</span></td>
                         <td style="text-align: center;">
                             ${t.status === 'Em andamento' && !isVisualizador ? `
@@ -108,6 +125,7 @@
                                 </button>
                             ` : '<span style="color:var(--text-muted); font-size:0.8rem;">-</span>'}
                         </td>
+                        ${actionsHTML}
                     </tr>
                 `;
             });
@@ -139,74 +157,105 @@
             document.getElementById('btn-nova-viagem').addEventListener('click', () => openViagemModal());
         }
 
-        // Conclude Trip Trigger
+        // Table actions triggers
         document.querySelector('.table-responsive').addEventListener('click', (e) => {
             const conclBtn = e.target.closest('.btn-conclude');
+            const editBtn = e.target.closest('.btn-edit-viagem');
+            const deleteBtn = e.target.closest('.btn-delete-viagem');
+            
             if (conclBtn) {
                 openConcluirModal(conclBtn.getAttribute('data-id'));
+            } else if (editBtn) {
+                openViagemModal(editBtn.getAttribute('data-id'));
+            } else if (deleteBtn) {
+                confirmDeleteViagem(deleteBtn.getAttribute('data-id'));
             }
         });
 
         // CRUD Modal Dialog
-        function openViagemModal() {
+        function openViagemModal(tripId = null) {
+            const isEdit = tripId !== null;
+            const t = isEdit ? window.movixStore.getViagens().find(item => item.id === tripId) : null;
+
             const modal = document.getElementById('global-modal');
             const modalTitle = document.getElementById('modal-title');
             const modalBody = document.getElementById('modal-body-content');
             const modalFooter = document.getElementById('modal-footer-actions');
 
-            modalTitle.innerText = 'Agendar Partida de Viagem';
+            modalTitle.innerText = isEdit ? 'Editar Detalhes de Viagem' : 'Agendar Partida de Viagem';
 
             modalBody.innerHTML = `
                 <form id="form-viagem" class="form-grid">
                     <div class="form-group">
                         <label>Data de Saída <span class="required">*</span></label>
-                        <input type="date" class="form-control" name="dataSaida" required value="${new Date().toISOString().split('T')[0]}">
+                        <input type="date" class="form-control" name="dataSaida" required value="${isEdit ? t.dataSaida : new Date().toISOString().split('T')[0]}">
                     </div>
 
                     <div class="form-group">
                         <label>Hora de Partida <span class="text-muted">(Opcional)</span></label>
-                        <input type="time" class="form-control" name="horaPartida">
+                        <input type="time" class="form-control" name="horaPartida" value="${isEdit && t.horaPartida ? t.horaPartida : ''}">
                     </div>
 
                     <div class="form-group">
                         <label>Selecione o Veículo <span class="required">*</span></label>
                         <select class="form-control" name="veiculoId" id="via-veic-sel" required>
-                            ${vehicles.filter(v => v.status === 'disponivel').map(v => `<option value="${v.id}" data-km="${v.kmAtual}">${v.placa} - ${v.marca} ${v.modelo} (KM: ${v.kmAtual})</option>`).join('')}
+                            ${isEdit 
+                                ? vehicles.map(v => `<option value="${v.id}" data-km="${v.kmAtual}" ${t.veiculoId === v.id ? 'selected' : ''}>${v.placa} - ${v.marca} ${v.modelo} (KM: ${v.kmAtual})</option>`).join('')
+                                : vehicles.filter(v => v.status === 'disponivel').map(v => `<option value="${v.id}" data-km="${v.kmAtual}">${v.placa} - ${v.marca} ${v.modelo} (KM: ${v.kmAtual})</option>`).join('')}
                         </select>
                     </div>
 
                     <div class="form-group">
                         <label>Selecione o Motorista Escalo <span class="required">*</span></label>
                         <select class="form-control" name="motoristaId" required>
-                            ${drivers.filter(m => m.status === 'ativo').map(m => `<option value="${m.id}">${m.nome}</option>`).join('')}
+                            ${isEdit
+                                ? drivers.map(m => `<option value="${m.id}" ${t.motoristaId === m.id ? 'selected' : ''}>${m.nome}</option>`).join('')
+                                : drivers.filter(m => m.status === 'ativo').map(m => `<option value="${m.id}">${m.nome}</option>`).join('')}
                         </select>
                     </div>
 
                     <div class="form-group">
                         <label>KM de Saída (Odômetro) <span class="required">*</span></label>
-                        <input type="number" class="form-control" name="kmInicial" id="via-km-input" required placeholder="Ex: 145000" min="0">
+                        <input type="number" class="form-control" name="kmInicial" id="via-km-input" required placeholder="Ex: 145000" min="0" value="${isEdit ? t.kmInicial : ''}">
                     </div>
 
                     <div class="form-group">
                         <label>Local de Origem <span class="required">*</span></label>
-                        <input type="text" class="form-control" name="origem" required placeholder="Ex: Empresa, Galpão, Cliente, Cidade/UF">
+                        <input type="text" class="form-control" name="origem" required placeholder="Ex: Empresa, Galpão, Cliente, Cidade/UF" value="${isEdit ? t.origem : ''}">
                     </div>
 
                     <div class="form-group">
                         <label>Local de Destino <span class="required">*</span></label>
-                        <input type="text" class="form-control" name="destino" required placeholder="Ex: Galpão B, Cliente X, Evento Y, Cidade/UF">
+                        <input type="text" class="form-control" name="destino" required placeholder="Ex: Galpão B, Cliente X, Evento Y, Cidade/UF" value="${isEdit ? t.destino : ''}">
                     </div>
+
+                    ${isEdit && t.status === 'Realizada' ? `
+                        <div class="form-group">
+                            <label>Data de Retorno <span class="required">*</span></label>
+                            <input type="date" class="form-control" name="dataRetorno" required value="${t.dataRetorno || ''}">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Hora de Chegada <span class="text-muted">(Opcional)</span></label>
+                            <input type="time" class="form-control" name="horaChegada" value="${t.horaChegada || ''}">
+                        </div>
+
+                        <div class="form-group">
+                            <label>KM de Retorno (Odômetro Final) <span class="required">*</span></label>
+                            <input type="number" class="form-control" name="kmFinal" required placeholder="Odômetro de chegada" min="${t.kmInicial}" value="${t.kmFinal || ''}">
+                        </div>
+                    ` : ''}
 
                     <div class="form-group full-width">
                         <label>Instruções / Detalhes de Viagem</label>
-                        <textarea class="form-control" name="observacoes" placeholder="Ex: Rota via Fernão Dias. Carga de eletrônicos..."></textarea>
+                        <textarea class="form-control" name="observacoes" placeholder="Ex: Rota via Fernão Dias. Carga de eletrônicos...">${isEdit ? t.observacoes || '' : ''}</textarea>
                     </div>
                 </form>
             `;
 
             modalFooter.innerHTML = `
                 <button class="btn btn-secondary" id="btn-cancelar-modal">Cancelar</button>
-                <button class="btn btn-primary" id="btn-salvar-modal">Registrar Saída</button>
+                <button class="btn btn-primary" id="btn-salvar-modal">${isEdit ? 'Salvar Alterações' : 'Registrar Saída'}</button>
             `;
 
             modal.classList.add('active');
@@ -215,7 +264,7 @@
             const kmInput = document.getElementById('via-km-input');
 
             function syncKM() {
-                if (veicSel.options.length > 0) {
+                if (veicSel.options.length > 0 && !isEdit) {
                     const opt = veicSel.options[veicSel.selectedIndex];
                     kmInput.value = opt.getAttribute('data-km');
                     kmInput.setAttribute('min', opt.getAttribute('data-km'));
@@ -223,7 +272,7 @@
             }
 
             veicSel.addEventListener('change', syncKM);
-            syncKM();
+            if (!isEdit) syncKM();
 
             document.getElementById('btn-cancelar-modal').addEventListener('click', () => modal.classList.remove('active'));
 
@@ -235,22 +284,26 @@
                 }
 
                 const formData = new FormData(form);
-                const data = {
-                    status: 'Em andamento',
-                    custos: 0 // Departure costs are initialized to 0 since adiantamento is removed
-                };
+                const data = {};
                 formData.forEach((value, key) => data[key] = value);
 
                 try {
-                    await window.movixStore.addViagem(data);
-                    window.movixApp.showToast('Escala de viagem registrada!', 'success');
+                    if (isEdit) {
+                        await window.movixStore.updateViagem(tripId, data);
+                        window.movixApp.showToast('Viagem atualizada com sucesso!', 'success');
+                    } else {
+                        data.status = 'Em andamento';
+                        data.custos = 0;
+                        await window.movixStore.addViagem(data);
+                        window.movixApp.showToast('Escala de viagem registrada!', 'success');
+                    }
                     modal.classList.remove('active');
                     renderViagens(container);
                     window.movixApp.refreshAlertsCount();
                     window.movixApp.refreshNotificationsPanel();
                 } catch (e) {
                     console.error(e);
-                    window.movixApp.showToast(e.message || 'Erro ao agendar viagem.', 'danger');
+                    window.movixApp.showToast(e.message || 'Erro ao salvar viagem.', 'danger');
                 }
             });
         }
@@ -288,11 +341,6 @@
                     <div class="form-group">
                         <label>KM de Retorno (Odômetro Final) <span class="required">*</span></label>
                         <input type="number" class="form-control" name="kmFinal" required placeholder="Odômetro de chegada" min="${t.kmInicial}">
-                    </div>
-
-                    <div class="form-group full-width">
-                        <label>Custos Operacionais Finais Acumulados (R$)</label>
-                        <input type="number" class="form-control" name="custos" required placeholder="Pedágio, refeições, despesas extras..." value="${t.custos || 0}" step="0.01" min="0">
                     </div>
 
                     <div class="form-group full-width">
@@ -335,6 +383,47 @@
                 } catch (e) {
                     console.error(e);
                     window.movixApp.showToast(e.message || 'Erro ao concluir viagem.', 'danger');
+                }
+            });
+        }
+
+        function confirmDeleteViagem(tripId) {
+            const currentTrips = window.movixStore.getViagens();
+            const t = currentTrips.find(item => item.id === tripId);
+            if (!t) return;
+
+            const modal = document.getElementById('global-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body-content');
+            const modalFooter = document.getElementById('modal-footer-actions');
+
+            modalTitle.innerText = 'Excluir Viagem';
+            modalBody.innerHTML = `
+                <div style="text-align: center; padding: 16px;">
+                    <i class="fa-solid fa-triangle-exclamation text-danger" style="font-size: 3rem; margin-bottom: 16px;"></i>
+                    <p style="font-size: 1.05rem; font-weight: 600;">Deseja realmente excluir a viagem de <strong>${t.origem} → ${t.destino}</strong>?</p>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 8px;">Esta ação removerá permanentemente o registro de escala e o histórico da frota.</p>
+                </div>
+            `;
+
+            modalFooter.innerHTML = `
+                <button class="btn btn-secondary" id="btn-cancelar-del">Cancelar</button>
+                <button class="btn btn-danger" id="btn-confirmar-del">Confirmar Exclusão</button>
+            `;
+
+            modal.classList.add('active');
+
+            document.getElementById('btn-cancelar-del').addEventListener('click', () => modal.classList.remove('active'));
+            document.getElementById('btn-confirmar-del').addEventListener('click', async () => {
+                try {
+                    await window.movixStore.deleteViagem(tripId);
+                    window.movixApp.showToast('Viagem excluída com sucesso.', 'danger');
+                    modal.classList.remove('active');
+                    renderViagens(container);
+                    window.movixApp.refreshAlertsCount();
+                    window.movixApp.refreshNotificationsPanel();
+                } catch (err) {
+                    window.movixApp.showToast(err.message || 'Erro ao excluir viagem.', 'danger');
                 }
             });
         }

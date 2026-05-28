@@ -699,23 +699,48 @@ app.put('/api/viagens/:id', requireAuth, (req, res) => {
     const db = readDB();
     const idx = db.viagens.findIndex(v => v.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: 'Viagem não encontrada.' });
+    
     const updates = { ...req.body };
-    updates.kmFinal = parseFloat(updates.kmFinal) || 0;
-    updates.custos = parseFloat(updates.custos) || 0;
-    if (updates.kmFinal > db.viagens[idx].kmInicial) {
-        updates.kmRodado = updates.kmFinal - db.viagens[idx].kmInicial;
-        // Atualizar KM do veículo
-        const vidx = db.veiculos.findIndex(v => v.id === db.viagens[idx].veiculoId);
-        if (vidx !== -1 && updates.kmFinal > parseFloat(db.veiculos[vidx].kmAtual)) {
-            db.veiculos[vidx].kmAtual = updates.kmFinal;
-            if (!db.veiculos[vidx].historicoKM) db.veiculos[vidx].historicoKM = [];
-            db.veiculos[vidx].historicoKM.push({ data: new Date().toISOString().split('T')[0], km: updates.kmFinal });
-        }
+    if (updates.kmInicial !== undefined) {
+        updates.kmInicial = parseFloat(updates.kmInicial) || 0;
     }
+    if (updates.kmFinal !== undefined) {
+        updates.kmFinal = parseFloat(updates.kmFinal) || 0;
+    }
+    updates.custos = parseFloat(updates.custos) || 0;
+
+    const kmInicial = updates.kmInicial !== undefined ? updates.kmInicial : db.viagens[idx].kmInicial;
+    const kmFinal = updates.kmFinal !== undefined ? updates.kmFinal : db.viagens[idx].kmFinal;
+
+    if (kmFinal > kmInicial) {
+        updates.kmRodado = kmFinal - kmInicial;
+        // Atualizar KM do veículo
+        const veiculoId = updates.veiculoId || db.viagens[idx].veiculoId;
+        const vidx = db.veiculos.findIndex(v => v.id === veiculoId);
+        if (vidx !== -1 && kmFinal > parseFloat(db.veiculos[vidx].kmAtual)) {
+            db.veiculos[vidx].kmAtual = kmFinal;
+            if (!db.veiculos[vidx].historicoKM) db.veiculos[vidx].historicoKM = [];
+            db.veiculos[vidx].historicoKM.push({ data: new Date().toISOString().split('T')[0], km: kmFinal });
+        }
+    } else {
+        updates.kmRodado = 0;
+    }
+
     db.viagens[idx] = { ...db.viagens[idx], ...updates };
-    addLog(db, req.session.nome, req.session.perfil, 'Edição', 'Viagem', `Finalizou viagem ${req.params.id}`);
+    addLog(db, req.session.nome, req.session.perfil, 'Edição', 'Viagem', `Editou/Atualizou viagem ${req.params.id}`);
     writeDB(db);
     res.json(db.viagens[idx]);
+});
+
+app.delete('/api/viagens/:id', requireAuth, requireAdmin, (req, res) => {
+    const db = readDB();
+    const idx = db.viagens.findIndex(v => v.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Viagem não encontrada.' });
+    const v = db.viagens[idx];
+    db.viagens.splice(idx, 1);
+    addLog(db, req.session.nome, req.session.perfil, 'Exclusão', 'Viagem', `Excluiu viagem ${v.origem} → ${v.destino}`);
+    writeDB(db);
+    res.json({ success: true });
 });
 
 // ─── MULTAS ───────────────────────────────────────────────
