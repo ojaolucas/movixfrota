@@ -733,8 +733,10 @@ app.put('/api/viagens/:id', requireAuth, (req, res) => {
 });
 
 app.delete('/api/viagens/:id', requireAuth, requireAdmin, (req, res) => {
+    console.log("DELETE TRIP REQUEST - ID:", req.params.id, "Session:", req.session);
     const db = readDB();
     const idx = db.viagens.findIndex(v => v.id === req.params.id);
+    console.log("DELETE TRIP MATCHING - Index:", idx);
     if (idx === -1) return res.status(404).json({ error: 'Viagem não encontrada.' });
     const v = db.viagens[idx];
     db.viagens.splice(idx, 1);

@@ -555,6 +555,23 @@ class MovixStore {
         return Math.max(0, p.vidaEstimada - distanceTraveled);
     }
 
+    getTacografoStatus(v) {
+        if (!v || v.possuiTacografo !== 'Sim') return '-';
+        if (v.statusTacografo === 'Em manutenção') return 'Em manutenção';
+        if (!v.validadeAfericaoTacografo) return 'Regular';
+
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const valDate = new Date(v.validadeAfericaoTacografo + 'T23:59:59');
+        valDate.setHours(0,0,0,0);
+        const diffTime = valDate - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays < 0) return 'Vencido';
+        if (diffDays <= 30) return 'Próximo do vencimento';
+        return 'Regular';
+    }
+
     getAlerts() {
         const alerts = [];
         const today = new Date();
@@ -930,6 +947,60 @@ class MovixStore {
                     link: 'veiculos',
                     targetId: v.id
                 });
+            }
+        });
+
+        // 10. Tacógrafo Alerts (Tacógrafos)
+        this.state.veiculos.forEach(v => {
+            if (v.possuiTacografo === 'Sim') {
+                if (v.validadeAfericaoTacografo) {
+                    const valDate = new Date(v.validadeAfericaoTacografo + 'T23:59:59');
+                    const diffTime = valDate - today;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                    if (diffDays < 0) {
+                        alerts.push({
+                            id: `ALT-TAC-EXP-${v.id}`,
+                            tipo: 'Tacógrafo vencido',
+                            prioridade: 'Alta',
+                            status: 'Atrasado',
+                            titulo: `Tacógrafo Vencido: ${v.placa}`,
+                            desc: `A validade da aferição do tacógrafo expirou em ${v.validadeAfericaoTacografo.split('-').reverse().join('/')}`,
+                            link: 'veiculos',
+                            targetId: v.id
+                        });
+                    } else if (diffDays <= 30) {
+                        alerts.push({
+                            id: `ALT-TAC-PROX-${v.id}`,
+                            tipo: 'Tacógrafo próximo do vencimento',
+                            prioridade: 'Média',
+                            status: 'Atenção',
+                            titulo: `Tacógrafo a vencer: ${v.placa}`,
+                            desc: `A aferição vencerá em ${diffDays} dias (${v.validadeAfericaoTacografo.split('-').reverse().join('/')})`,
+                            link: 'veiculos',
+                            targetId: v.id
+                        });
+                    }
+                }
+
+                if (v.proximaTrocaAfericaoTacografo) {
+                    const nextDate = new Date(v.proximaTrocaAfericaoTacografo + 'T23:59:59');
+                    const diffTime = nextDate - today;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                    if (diffDays >= 0 && diffDays <= 15) {
+                        alerts.push({
+                            id: `ALT-TAC-NEXT-${v.id}`,
+                            tipo: 'Próxima aferição/troca',
+                            prioridade: 'Média',
+                            status: 'Atenção',
+                            titulo: `Próxima aferição/troca: ${v.placa}`,
+                            desc: `A próxima troca ou aferição do tacógrafo está agendada para daqui a ${diffDays} dias (${v.proximaTrocaAfericaoTacografo.split('-').reverse().join('/')})`,
+                            link: 'veiculos',
+                            targetId: v.id
+                        });
+                    }
+                }
             }
         });
 

@@ -452,20 +452,6 @@
   ],
   "abastecimentos": [
     {
-      "id": "A-1",
-      "data": "2026-05-20",
-      "veiculoId": "V-1",
-      "motoristaId": "M-1",
-      "kmAtual": 145000,
-      "litros": 320,
-      "valorTotal": 1920,
-      "valorLitro": 6,
-      "posto": "Posto Ipiranga - Rod. Dutra KM 80",
-      "combustivel": "Diesel",
-      "kmL": 4.8,
-      "custoKM": 1.25
-    },
-    {
       "id": "A-2",
       "data": "2026-05-18",
       "veiculoId": "V-3",
@@ -594,20 +580,6 @@
   ],
   "manutencoes": [
     {
-      "id": "MAN-001",
-      "veiculoId": "V-1",
-      "tipo": "Preventiva",
-      "categoria": "Mecânica",
-      "data": "2026-05-10",
-      "km": 144200,
-      "oficina": "Mecânica Diesel Express",
-      "fornecedor": "Pecas Truck SA",
-      "descricao": "Revisão preventiva e lubrificação.",
-      "valor": 2450,
-      "status": "Realizada",
-      "anexo": ""
-    },
-    {
       "id": "MAN-002",
       "veiculoId": "V-2",
       "tipo": "Corretiva",
@@ -665,18 +637,6 @@
     }
   ],
   "pneus": [
-    {
-      "id": "P-1",
-      "codigo": "PN-88771",
-      "marca": "Michelin",
-      "modelo": "X Multi Z",
-      "dataInstalacao": "2024-05-10",
-      "kmInicial": 120000,
-      "vidaEstimada": 80000,
-      "custo": 2800,
-      "posicao": "Dianteiro Esquerdo",
-      "veiculoAtual": "V-1"
-    },
     {
       "id": "P-2",
       "codigo": "PN-88772",
@@ -760,21 +720,6 @@
   ],
   "viagens": [
     {
-      "id": "VI-1",
-      "veiculoId": "V-1",
-      "motoristaId": "M-1",
-      "origem": "São Paulo/SP",
-      "destino": "Belo Horizonte/MG",
-      "dataSaida": "2026-05-17",
-      "dataRetorno": "2026-05-20",
-      "kmInicial": 143800,
-      "kmFinal": 144980,
-      "kmRodado": 1180,
-      "custos": 450,
-      "observacoes": "Entrega no prazo.",
-      "status": "Realizada"
-    },
-    {
       "id": "VI-2",
       "veiculoId": "V-3",
       "motoristaId": "M-2",
@@ -808,193 +753,40 @@
   ],
   "logs": [
     {
-      "id": "LOG-KGPT9VL9V",
-      "data": "2026-05-28T18:35:42.311Z",
+      "id": "LOG-WBYMTP0LX",
+      "data": "2026-05-28T18:55:38.001Z",
       "usuario": "Carlos Silveira",
       "perfil": "Administrador",
-      "acao": "Edição",
-      "entidade": "Viagem",
-      "detalhes": "Finalizou viagem VI-3"
+      "acao": "Exclusão",
+      "entidade": "Pneu",
+      "detalhes": "Excluiu pneu PN-88771"
     },
     {
-      "id": "LOG-9MORWCFQW",
-      "data": "2026-05-28T17:51:57.269Z",
+      "id": "LOG-252QWK4QG",
+      "data": "2026-05-28T18:55:28.780Z",
       "usuario": "Carlos Silveira",
       "perfil": "Administrador",
-      "acao": "Login",
-      "entidade": "Sessão",
-      "detalhes": "Login realizado com sucesso (123.456.789-00)"
+      "acao": "Exclusão",
+      "entidade": "Manutenção",
+      "detalhes": "Removeu O.S. do veículo ID V-1"
     },
     {
-      "id": "LOG-6E4G5GIRK",
-      "data": "2026-05-28T17:51:40.825Z",
+      "id": "LOG-T2434Z62V",
+      "data": "2026-05-28T18:55:20.114Z",
       "usuario": "Carlos Silveira",
       "perfil": "Administrador",
-      "acao": "Logout",
-      "entidade": "Sessão",
-      "detalhes": "Usuário encerrou a sessão."
+      "acao": "Exclusão",
+      "entidade": "Abastecimento",
+      "detalhes": "Removeu abastecimento do dia 2026-05-20"
     },
     {
-      "id": "LOG-RQ0T3VJQQ",
-      "data": "2026-05-28T17:51:35.045Z",
+      "id": "LOG-RESET",
+      "data": "2026-05-28T18:55:03.682Z",
       "usuario": "Carlos Silveira",
       "perfil": "Administrador",
-      "acao": "Login",
-      "entidade": "Sessão",
-      "detalhes": "Login realizado com sucesso (123.456.789-00)"
-    },
-    {
-      "id": "LOG-63ZQ1YRY8",
-      "data": "2026-05-26T01:45:05.829Z",
-      "usuario": "Carlos Silveira",
-      "perfil": "Administrador",
-      "acao": "Login",
-      "entidade": "Sessão",
-      "detalhes": "Login realizado com sucesso (123.456.789-00)"
-    },
-    {
-      "id": "LOG-LA45FM3ZJ",
-      "data": "2026-05-26T01:38:37.214Z",
-      "usuario": "Carlos Silveira",
-      "perfil": "Administrador",
-      "acao": "Login",
-      "entidade": "Sessão",
-      "detalhes": "Login realizado com sucesso (123.456.789-00)"
-    },
-    {
-      "id": "LOG-THG15OSWL",
-      "data": "2026-05-26T01:38:12.973Z",
-      "usuario": "Carlos Silveira",
-      "perfil": "Administrador",
-      "acao": "Login",
-      "entidade": "Sessão",
-      "detalhes": "Login realizado com sucesso (123.456.789-00)"
-    },
-    {
-      "id": "LOG-MN5ZITSOZ",
-      "data": "2026-05-26T00:12:37.014Z",
-      "usuario": "Carlos Silveira",
-      "perfil": "Administrador",
-      "acao": "Login",
-      "entidade": "Sessão",
-      "detalhes": "Login realizado com sucesso (123.456.789-00)"
-    },
-    {
-      "id": "LOG-HLQ5LS0PN",
-      "data": "2026-05-25T23:45:25.251Z",
-      "usuario": "Carlos Silveira",
-      "perfil": "Administrador",
-      "acao": "Edição",
-      "entidade": "Veículo",
-      "detalhes": "Editou veículo HJG-4432"
-    },
-    {
-      "id": "LOG-530HJIIUZ",
-      "data": "2026-05-25T22:46:40.017Z",
-      "usuario": "Carlos Silveira",
-      "perfil": "Administrador",
-      "acao": "Edição",
-      "entidade": "Veículo",
-      "detalhes": "Editou veículo ABC-1234"
-    },
-    {
-      "id": "LOG-05YATXSIB",
-      "data": "2026-05-25T22:45:07.457Z",
-      "usuario": "Carlos Silveira",
-      "perfil": "Administrador",
-      "acao": "Edição",
-      "entidade": "Perfil",
-      "detalhes": "Usuário Carlos Silveira atualizou seu próprio perfil"
-    },
-    {
-      "id": "LOG-0LTQUZX52",
-      "data": "2026-05-25T22:41:04.439Z",
-      "usuario": "Carlos Silveira",
-      "perfil": "Administrador",
-      "acao": "Edição",
-      "entidade": "Veículo",
-      "detalhes": "Editou veículo ABC-1234"
-    },
-    {
-      "id": "LOG-N1IINL8R0",
-      "data": "2026-05-25T22:40:05.092Z",
-      "usuario": "Carlos Silveira",
-      "perfil": "Administrador",
-      "acao": "Edição",
-      "entidade": "Veículo",
-      "detalhes": "Editou veículo ABC-1234"
-    },
-    {
-      "id": "LOG-FO82UOF5K",
-      "data": "2026-05-25T22:38:11.924Z",
-      "usuario": "Carlos Silveira",
-      "perfil": "Administrador",
-      "acao": "Login",
-      "entidade": "Sessão",
-      "detalhes": "Login realizado com sucesso (123.456.789-00)"
-    },
-    {
-      "id": "LOG-IEPQQVAW5",
-      "data": "2026-05-25T03:39:32.989Z",
-      "usuario": "Carlos Silveira",
-      "perfil": "Administrador",
-      "acao": "Logout",
-      "entidade": "Sessão",
-      "detalhes": "Usuário encerrou a sessão."
-    },
-    {
-      "id": "LOG-2DZTE7RON",
-      "data": "2026-05-25T03:35:24.832Z",
-      "usuario": "Carlos Silveira",
-      "perfil": "Administrador",
-      "acao": "Login",
-      "entidade": "Sessão",
-      "detalhes": "Login realizado com sucesso (123.456.789-00)"
-    },
-    {
-      "id": "LOG-QMITGLBCR",
-      "data": "2026-05-25T03:31:54.842Z",
-      "usuario": "Carlos Silveira",
-      "perfil": "Administrador",
-      "acao": "Login",
-      "entidade": "Sessão",
-      "detalhes": "Login realizado com sucesso (123.456.789-00)"
-    },
-    {
-      "id": "LOG-UP0F32PRZ",
-      "data": "2026-05-25T03:31:22.689Z",
-      "usuario": "Carlos Silveira",
-      "perfil": "Administrador",
-      "acao": "Login",
-      "entidade": "Sessão",
-      "detalhes": "Login realizado com sucesso (123.456.789-00)"
-    },
-    {
-      "id": "LOG-NRMDZWCEB",
-      "data": "2026-05-25T02:51:28.283Z",
-      "usuario": "Carlos Silveira",
-      "perfil": "Administrador",
-      "acao": "Login",
-      "entidade": "Sessão",
-      "detalhes": "Login realizado com sucesso (123.456.789-00)"
-    },
-    {
-      "id": "LOG-PGLFWDWAT",
-      "data": "2026-05-25T02:40:10.188Z",
-      "usuario": "Carlos Silveira",
-      "perfil": "Administrador",
-      "acao": "Login",
-      "entidade": "Sessão",
-      "detalhes": "Login realizado com sucesso (12345678900)"
-    },
-    {
-      "id": "LOG-INIT",
-      "data": "2026-05-25T02:25:22.712Z",
-      "usuario": "Sistema",
-      "perfil": "Administrador",
-      "acao": "Inicialização",
+      "acao": "Limpeza de Logs",
       "entidade": "Banco de Dados",
-      "detalhes": "Base de dados inicializada com dados semente. Senha padrão: movix@2026"
+      "detalhes": "Auditoria resetada pelo administrador."
     }
   ]
 }
