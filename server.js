@@ -3,6 +3,7 @@
    Porta: 3000 | localhost:3000
    ===================================================== */
 
+require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const cors = require('cors');
@@ -11,9 +12,10 @@ const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
+const db = require('./db');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // ─── Paths ────────────────────────────────────────────────
 const DB_PATH = path.join(__dirname, 'data', 'db.json');
@@ -65,44 +67,16 @@ const upload = multer({
 });
 
 // ─── Funções de Banco de Dados (JSON File) ────────────────
-function readDB() {
+async function addLog(usuarioNome, usuarioPerfil, acao, entidade, detalhes) {
+    const id = 'LOG-' + Math.random().toString(36).substr(2, 9).toUpperCase();
     try {
-        if (!fs.existsSync(DB_PATH)) {
-            const seed = getSeedData();
-            fs.writeFileSync(DB_PATH, JSON.stringify(seed, null, 2));
-            return seed;
-        }
-        return JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
-    } catch (e) {
-        console.error('Erro ao ler DB:', e);
-        return getSeedData();
+        await db.query(`
+            INSERT INTO logs (id, data, usuario, perfil, acao, entidade, detalhes)
+            VALUES ($1, CURRENT_TIMESTAMP, $2, $3, $4, $5, $6)
+        `, [id, usuarioNome, usuarioPerfil, acao, entidade, detalhes]);
+    } catch (err) {
+        console.error("Erro ao gravar log no PostgreSQL:", err);
     }
-}
-
-function writeDB(data) {
-    try {
-        fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
-        return true;
-    } catch (e) {
-        console.error('Erro ao escrever DB:', e);
-        return false;
-    }
-}
-
-function addLog(db, usuarioNome, usuarioPerfil, acao, entidade, detalhes) {
-    const log = {
-        id: 'LOG-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
-        data: new Date().toISOString(),
-        usuario: usuarioNome,
-        perfil: usuarioPerfil,
-        acao,
-        entidade,
-        detalhes
-    };
-    if (!db.logs) db.logs = [];
-    db.logs.unshift(log);
-    if (db.logs.length > 300) db.logs.pop();
-    return log;
 }
 
 // ─── Middleware de Autenticação ───────────────────────────
@@ -117,76 +91,85 @@ function requireAdmin(req, res, next) {
 }
 
 // ─── ROTAS DE AUTENTICAÇÃO ────────────────────────────────
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
     const { identifier, senha, rememberMe } = req.body;
     if (!identifier || !senha) {
         return res.status(400).json({ error: 'Informe CPF/E-mail e senha.' });
     }
 
-    const db = readDB();
-    const cleanId = identifier.replace(/\D/g, ''); // Remove pontuação do CPF
+    try {
+        const cleanId = identifier.replace(/\D/g, ''); // Remove pontuação do CPF
+        // Buscar usuário por CPF (sem pontuação) ou e-mail
+        const result = await db.query(
+            `SELECT * FROM usuarios WHERE REPLACE(REPLACE(cpf, '.', ''), '-', '') = $1 OR LOWER(email) = LOWER($2)`,
+            [cleanId, identifier]
+        );
+        const user = result.rows[0];
 
-    // Buscar usuário por CPF (sem pontuação) ou e-mail
-    const user = db.usuarios.find(u => {
-        const userCpfClean = (u.cpf || '').replace(/\D/g, '');
-        const matchCPF = cleanId.length >= 11 && userCpfClean === cleanId;
-        const matchEmail = u.email && u.email.toLowerCase() === identifier.toLowerCase();
-        return matchCPF || matchEmail;
-    });
+        if (!user) {
+            return res.status(401).json({ error: 'CPF/E-mail não encontrado no sistema.' });
+        }
 
-    if (!user) {
-        return res.status(401).json({ error: 'CPF/E-mail não encontrado no sistema.' });
+        if (user.status === 'inativo') {
+            return res.status(401).json({ error: 'Usuário inativo. Contate o administrador.' });
+        }
+
+        // Verificar senha (bcrypt ou texto simples para usuários legados)
+        let senhaValida = false;
+        if (user.senhaHash) {
+            senhaValida = bcrypt.compareSync(senha, user.senhaHash);
+        } else if (user.senha) {
+            senhaValida = user.senha === senha;
+        }
+
+        if (!senhaValida) {
+            return res.status(401).json({ error: 'Senha incorreta.' });
+        }
+
+        // Criar sessão
+        req.session.userId = user.id;
+        req.session.perfil = user.perfil;
+        req.session.nome = user.nome;
+
+        if (rememberMe) {
+            req.session.cookie.maxAge = 7 * 24 * 60 * 60 * 1000; // 7 dias
+        } else {
+            req.session.cookie.maxAge = null; // Expira ao fechar o navegador
+        }
+
+        // Log de acesso
+        await addLog(user.nome, user.perfil, 'Login', 'Sessão', `Login realizado com sucesso (${identifier})`);
+
+        const { senhaHash, senha: _, ...userSafe } = user;
+        res.json({ success: true, user: userSafe });
+    } catch (err) {
+        console.error("Erro no login:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
     }
-
-    if (user.status === 'inativo') {
-        return res.status(401).json({ error: 'Usuário inativo. Contate o administrador.' });
-    }
-
-    // Verificar senha (bcrypt ou texto simples para usuários legados)
-    let senhaValida = false;
-    if (user.senhaHash) {
-        senhaValida = bcrypt.compareSync(senha, user.senhaHash);
-    } else if (user.senha) {
-        senhaValida = user.senha === senha;
-    }
-
-    if (!senhaValida) {
-        return res.status(401).json({ error: 'Senha incorreta.' });
-    }
-
-    // Criar sessão
-    req.session.userId = user.id;
-    req.session.perfil = user.perfil;
-    req.session.nome = user.nome;
-
-    if (rememberMe) {
-        req.session.cookie.maxAge = 7 * 24 * 60 * 60 * 1000; // 7 dias
-    } else {
-        req.session.cookie.maxAge = null; // Expira ao fechar o navegador
-    }
-
-    // Log de acesso
-    addLog(db, user.nome, user.perfil, 'Login', 'Sessão', `Login realizado com sucesso (${identifier})`);
-    writeDB(db);
-
-    const { senhaHash, senha: _, ...userSafe } = user;
-    res.json({ success: true, user: userSafe });
 });
 
-app.post('/api/auth/logout', requireAuth, (req, res) => {
-    const db = readDB();
-    addLog(db, req.session.nome, req.session.perfil, 'Logout', 'Sessão', 'Usuário encerrou a sessão.');
-    writeDB(db);
-    req.session.destroy();
-    res.json({ success: true });
+app.post('/api/auth/logout', requireAuth, async (req, res) => {
+    try {
+        await addLog(req.session.nome, req.session.perfil, 'Logout', 'Sessão', 'Usuário encerrou a sessão.');
+        req.session.destroy();
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Erro no logout:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
 });
 
-app.get('/api/auth/me', requireAuth, (req, res) => {
-    const db = readDB();
-    const user = db.usuarios.find(u => u.id === req.session.userId);
-    if (!user) return res.status(404).json({ error: 'Usuário não encontrado.' });
-    const { senhaHash, senha: _, ...userSafe } = user;
-    res.json(userSafe);
+app.get('/api/auth/me', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query('SELECT * FROM usuarios WHERE id = $1', [req.session.userId]);
+        const user = result.rows[0];
+        if (!user) return res.status(404).json({ error: 'Usuário não encontrado.' });
+        const { senhaHash, senha: _, ...userSafe } = user;
+        res.json(userSafe);
+    } catch (err) {
+        console.error("Erro ao obter dados do usuário:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
 });
 
 // ─── UPLOAD DE FOTO ───────────────────────────────────────
@@ -228,587 +211,1041 @@ app.post('/api/upload', requireAuth, uploadDoc.single('file'), (req, res) => {
 });
 
 // ─── VEÍCULOS ─────────────────────────────────────────────
-app.get('/api/veiculos', requireAuth, (req, res) => {
-    const db = readDB();
-    res.json(db.veiculos);
-});
-
-app.post('/api/veiculos', requireAuth, (req, res) => {
-    const db = readDB();
-    const v = { ...req.body };
-    v.id = 'VEI-' + uuidv4().substr(0, 8).toUpperCase();
-    v.kmAtual = parseFloat(v.kmAtual) || 0;
-    v.historicoKM = [{ data: new Date().toISOString().split('T')[0], km: v.kmAtual }];
-    db.veiculos.push(v);
-    addLog(db, req.session.nome, req.session.perfil, 'Cadastro', 'Veículo', `Cadastrou veículo ${v.marca} ${v.modelo} (${v.placa})`);
-    writeDB(db);
-    res.json(v);
-});
-
-app.put('/api/veiculos/:id', requireAuth, (req, res) => {
-    const db = readDB();
-    const idx = db.veiculos.findIndex(v => v.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: 'Veículo não encontrado.' });
-    const original = db.veiculos[idx];
-    const newKM = parseFloat(req.body.kmAtual) || 0;
-    db.veiculos[idx] = { ...original, ...req.body, kmAtual: newKM };
-    if (newKM > parseFloat(original.kmAtual)) {
-        if (!db.veiculos[idx].historicoKM) db.veiculos[idx].historicoKM = [];
-        db.veiculos[idx].historicoKM.push({ data: new Date().toISOString().split('T')[0], km: newKM });
+app.get('/api/veiculos', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query('SELECT * FROM veiculos ORDER BY placa ASC');
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Erro ao obter veículos:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
     }
-    addLog(db, req.session.nome, req.session.perfil, 'Edição', 'Veículo', `Editou veículo ${req.body.placa}`);
-    writeDB(db);
-    res.json(db.veiculos[idx]);
 });
 
-app.delete('/api/veiculos/:id', requireAuth, requireAdmin, (req, res) => {
-    const db = readDB();
-    const v = db.veiculos.find(v => v.id === req.params.id);
-    if (!v) return res.status(404).json({ error: 'Veículo não encontrado.' });
-    db.veiculos = db.veiculos.filter(v => v.id !== req.params.id);
-    addLog(db, req.session.nome, req.session.perfil, 'Exclusão', 'Veículo', `Removeu veículo ${v.placa}`);
-    writeDB(db);
-    res.json({ success: true });
+app.post('/api/veiculos', requireAuth, async (req, res) => {
+    try {
+        const v = req.body;
+        const id = 'VEI-' + uuidv4().substr(0, 8).toUpperCase();
+        const kmVal = parseFloat(v.kmAtual) || 0;
+        const historicoKM = [{ data: new Date().toISOString().split('T')[0], km: kmVal }];
+        
+        const result = await db.query(`
+            INSERT INTO veiculos (
+                id, marca, modelo, ano, cor, tipo, renavam, chassi, placa, combustivel, "kmAtual", "dataAquisicao", status, observacoes, "historicoKM", 
+                "tipoUnidade", "qtdEixos", "tipoImplemento", "qtdPneus", "capacidadeCarga", "possuiSeguro", "docVeiculoAnexo", seguradora, apolice, 
+                "valorMensalSeguro", "vencimentoBoletoSeguro", "inicioContratoSeguro", "validadeContratoSeguro", "contratoSeguroAnexo", "observacoesSeguro", 
+                "possuiRastreador", "empresaRastreador", "modeloRastreador", "idRastreador", "imeiRastreador", "dataInstalacaoRastreador", "statusRastreador", 
+                "valorMensalRastreador", "inicioContratoRastreador", "validadeContratoRastreador", "rastreadorContratoAnexo", "rastreadorNotaFiscalAnexo", 
+                "rastreadorOrdemServicoAnexo", "rastreadorComprovanteAnexo", "observacoesRastreador", "possuiExtintor", "tipoExtintor", "capacidadeExtintor", 
+                "seloExtintor", "dataFabricacaoExtintor", "dataRecargaExtintor", "validadeExtintor", "proximaRecargaExtintor", "statusExtintor", 
+                "extintorCertificadoAnexo", "extintorComprovanteAnexo", "extintorLaudoAnexo", "extintorNotaFiscalAnexo", "observacoesExtintor", 
+                "possuiTacografo", "marcaTacografo", "modeloTacografo", "numSerieTacografo", "dataInstalacaoTacografo", "dataUltimaAfericaoTacografo", 
+                "validadeAfericaoTacografo", "empresaAfericaoTacografo", "anexoComprovanteTacografo", "observacoesTacografo"
+            ) VALUES (
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 
+                $16, $17, $18, $19, $20, $21, $22, $23, $24, 
+                $25, $26, $27, $28, $29, $30, 
+                $31, $32, $33, $34, $35, $36, $37, 
+                $38, $39, $40, $41, $42, 
+                $43, $44, $45, $46, $47, $48, 
+                $49, $50, $51, $52, $53, $54, 
+                $55, $56, $57, $58, $59, 
+                $60, $61, $62, $63, $64, $65, 
+                $66, $67, $68, $69
+            ) RETURNING *
+        `, [
+            id, v.marca, v.modelo, v.ano, v.cor, v.tipo, v.renavam, v.chassi, v.placa, v.combustivel, kmVal, v.dataAquisicao, v.status || 'disponivel', v.observacoes, JSON.stringify(historicoKM),
+            v.tipoUnidade || 'Veículo Motorizado', v.qtdEixos, v.tipoImplemento, v.qtdPneus, v.capacidadeCarga, v.possuiSeguro || 'Não', v.docVeiculoAnexo, v.seguradora, v.apolice,
+            v.valorMensalSeguro, v.vencimentoBoletoSeguro, v.inicioContratoSeguro, v.validadeContratoSeguro, v.contratoSeguroAnexo, v.observacoesSeguro,
+            v.possuiRastreador || 'Não', v.empresaRastreador, v.modeloRastreador, v.idRastreador, v.imeiRastreador, v.dataInstalacaoRastreador, v.statusRastreador,
+            v.valorMensalRastreador, v.inicioContratoRastreador, v.validadeContratoRastreador, v.rastreadorContratoAnexo, v.rastreadorNotaFiscalAnexo,
+            v.rastreadorOrdemServicoAnexo, v.rastreadorComprovanteAnexo, v.observacoesRastreador, v.possuiExtintor || 'Não', v.tipoExtintor, v.capacidadeExtintor,
+            v.seloExtintor, v.dataFabricacaoExtintor, v.dataRecargaExtintor, v.validadeExtintor, v.proximaRecargaExtintor, v.statusExtintor,
+            v.extintorCertificadoAnexo, v.extintorComprovanteAnexo, v.extintorLaudoAnexo, v.extintorNotaFiscalAnexo, v.observacoesExtintor,
+            v.possuiTacografo || 'Não', v.marcaTacografo, v.modeloTacografo, v.numSerieTacografo, v.dataInstalacaoTacografo, v.dataUltimaAfericaoTacografo,
+            v.validadeAfericaoTacografo, v.empresaAfericaoTacografo, v.anexoComprovanteTacografo, v.observacoesTacografo
+        ]);
+
+        await addLog(req.session.nome, req.session.perfil, 'Cadastro', 'Veículo', `Cadastrou veículo ${v.marca} ${v.modelo} (${v.placa})`);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Erro ao cadastrar veículo:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
+});
+
+app.put('/api/veiculos/:id', requireAuth, async (req, res) => {
+    try {
+        const v = req.body;
+        const originalRes = await db.query('SELECT * FROM veiculos WHERE id = $1', [req.params.id]);
+        if (originalRes.rowCount === 0) {
+            return res.status(404).json({ error: 'Veículo não encontrado.' });
+        }
+        const original = originalRes.rows[0];
+        const newKM = parseFloat(v.kmAtual) || 0;
+        let historicoKM = original.historicoKM || [];
+        if (newKM > parseFloat(original.kmAtual)) {
+            historicoKM.push({ data: new Date().toISOString().split('T')[0], km: newKM });
+        }
+
+        const result = await db.query(`
+            UPDATE veiculos SET
+                marca = $1, modelo = $2, ano = $3, cor = $4, tipo = $5, renavam = $6, chassi = $7, placa = $8, combustivel = $9, "kmAtual" = $10, "dataAquisicao" = $11, status = $12, observacoes = $13, "historicoKM" = $14,
+                "tipoUnidade" = $15, "qtdEixos" = $16, "tipoImplemento" = $17, "qtdPneus" = $18, "capacidadeCarga" = $19, "possuiSeguro" = $20, "docVeiculoAnexo" = $21, seguradora = $22, apolice = $23,
+                "valorMensalSeguro" = $24, "vencimentoBoletoSeguro" = $25, "inicioContratoSeguro" = $26, "validadeContratoSeguro" = $27, "contratoSeguroAnexo" = $28, "observacoesSeguro" = $29,
+                "possuiRastreador" = $30, "empresaRastreador" = $31, "modeloRastreador" = $32, "idRastreador" = $33, "imeiRastreador" = $34, "dataInstalacaoRastreador" = $35, "statusRastreador" = $36,
+                "valorMensalRastreador" = $37, "inicioContratoRastreador" = $38, "validadeContratoRastreador" = $39, "rastreadorContratoAnexo" = $40, "rastreadorNotaFiscalAnexo" = $41,
+                "rastreadorOrdemServicoAnexo" = $42, "rastreadorComprovanteAnexo" = $43, "observacoesRastreador" = $44, "possuiExtintor" = $45, "tipoExtintor" = $46, "capacidadeExtintor" = $47,
+                "seloExtintor" = $48, "dataFabricacaoExtintor" = $49, "dataRecargaExtintor" = $50, "validadeExtintor" = $51, "proximaRecargaExtintor" = $52, "statusExtintor" = $53,
+                "extintorCertificadoAnexo" = $54, "extintorComprovanteAnexo" = $55, "extintorLaudoAnexo" = $56, "extintorNotaFiscalAnexo" = $57, "observacoesExtintor" = $58,
+                "possuiTacografo" = $59, "marcaTacografo" = $60, "modeloTacografo" = $61, "numSerieTacografo" = $62, "dataInstalacaoTacografo" = $63, "dataUltimaAfericaoTacografo" = $64,
+                "validadeAfericaoTacografo" = $65, "empresaAfericaoTacografo" = $66, "anexoComprovanteTacografo" = $67, "observacoesTacografo" = $68
+            WHERE id = $69
+            RETURNING *
+        `, [
+            v.marca, v.modelo, v.ano, v.cor, v.tipo, v.renavam, v.chassi, v.placa, v.combustivel, newKM, v.dataAquisicao, v.status || 'disponivel', v.observacoes, JSON.stringify(historicoKM),
+            v.tipoUnidade || 'Veículo Motorizado', v.qtdEixos, v.tipoImplemento, v.qtdPneus, v.capacidadeCarga, v.possuiSeguro || 'Não', v.docVeiculoAnexo, v.seguradora, v.apolice,
+            v.valorMensalSeguro, v.vencimentoBoletoSeguro, v.inicioContratoSeguro, v.validadeContratoSeguro, v.contratoSeguroAnexo, v.observacoesSeguro,
+            v.possuiRastreador || 'Não', v.empresaRastreador, v.modeloRastreador, v.idRastreador, v.imeiRastreador, v.dataInstalacaoRastreador, v.statusRastreador,
+            v.valorMensalRastreador, v.inicioContratoRastreador, v.validadeContratoRastreador, v.rastreadorContratoAnexo, v.rastreadorNotaFiscalAnexo,
+            v.rastreadorOrdemServicoAnexo, v.rastreadorComprovanteAnexo, v.observacoesRastreador, v.possuiExtintor || 'Não', v.tipoExtintor, v.capacidadeExtintor,
+            v.seloExtintor, v.dataFabricacaoExtintor, v.dataRecargaExtintor, v.validadeExtintor, v.proximaRecargaExtintor, v.statusExtintor,
+            v.extintorCertificadoAnexo, v.extintorComprovanteAnexo, v.extintorLaudoAnexo, v.extintorNotaFiscalAnexo, v.observacoesExtintor,
+            v.possuiTacografo || 'Não', v.marcaTacografo, v.modeloTacografo, v.numSerieTacografo, v.dataInstalacaoTacografo, v.dataUltimaAfericaoTacografo,
+            v.validadeAfericaoTacografo, v.empresaAfericaoTacografo, v.anexoComprovanteTacografo, v.observacoesTacografo,
+            req.params.id
+        ]);
+
+        await addLog(req.session.nome, req.session.perfil, 'Edição', 'Veículo', `Editou veículo ${v.placa}`);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Erro ao atualizar veículo:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
+});
+
+app.delete('/api/veiculos/:id', requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const result = await db.query('DELETE FROM veiculos WHERE id = $1 RETURNING placa', [req.params.id]);
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Veículo não encontrado.' });
+        }
+        await addLog(req.session.nome, req.session.perfil, 'Exclusão', 'Veículo', `Removeu veículo ${result.rows[0].placa}`);
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Erro ao remover veículo:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
 });
 
 // ─── MOTORISTAS ───────────────────────────────────────────
-app.get('/api/motoristas', requireAuth, (req, res) => {
-    const db = readDB();
-    res.json(db.motoristas);
+app.get('/api/motoristas', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query('SELECT * FROM motoristas ORDER BY nome ASC');
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Erro ao obter motoristas:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
 });
 
-app.post('/api/motoristas', requireAuth, (req, res) => {
-    const db = readDB();
-    const m = { ...req.body };
-    m.id = 'MOT-' + uuidv4().substr(0, 8).toUpperCase();
-    if (!m.foto) m.foto = '/img/avatar-default.png';
-    db.motoristas.push(m);
-    addLog(db, req.session.nome, req.session.perfil, 'Cadastro', 'Motorista', `Cadastrou motorista ${m.nome} (CNH: ${m.cnh})`);
-    writeDB(db);
-    res.json(m);
+app.post('/api/motoristas', requireAuth, async (req, res) => {
+    try {
+        const m = req.body;
+        const id = 'MOT-' + uuidv4().substr(0, 8).toUpperCase();
+        const foto = m.foto || '/img/avatar-default.png';
+        const historico = m.historico || [];
+
+        const result = await db.query(`
+            INSERT INTO motoristas (id, nome, cpf, rg, cnh, "categoriaCNH", "dataVencimentoCNH", status, foto, telefone, email, endereco, "cnhAnexo", "comprovanteResidenciaAnexo", observacoes, historico)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+            RETURNING *
+        `, [
+            id, m.nome, m.cpf, m.rg, m.cnh, m.categoriaCNH, m.dataVencimentoCNH, m.status || 'ativo', foto, m.telefone, m.email, m.endereco, m.cnhAnexo, m.comprovanteResidenciaAnexo, m.observacoes, JSON.stringify(historico)
+        ]);
+
+        await addLog(req.session.nome, req.session.perfil, 'Cadastro', 'Motorista', `Cadastrou motorista ${m.nome} (CNH: ${m.cnh})`);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Erro ao cadastrar motorista:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
 });
 
-app.put('/api/motoristas/:id', requireAuth, (req, res) => {
-    const db = readDB();
-    const idx = db.motoristas.findIndex(m => m.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: 'Motorista não encontrado.' });
-    db.motoristas[idx] = { ...db.motoristas[idx], ...req.body };
-    addLog(db, req.session.nome, req.session.perfil, 'Edição', 'Motorista', `Editou motorista ${req.body.nome}`);
-    writeDB(db);
-    res.json(db.motoristas[idx]);
+app.put('/api/motoristas/:id', requireAuth, async (req, res) => {
+    try {
+        const m = req.body;
+        const originalRes = await db.query('SELECT * FROM motoristas WHERE id = $1', [req.params.id]);
+        if (originalRes.rowCount === 0) {
+            return res.status(404).json({ error: 'Motorista não encontrado.' });
+        }
+        const original = originalRes.rows[0];
+        const foto = m.foto || original.foto;
+        const historico = m.historico || original.historico;
+
+        const result = await db.query(`
+            UPDATE motoristas SET
+                nome = $1, cpf = $2, rg = $3, cnh = $4, "categoriaCNH" = $5, "dataVencimentoCNH" = $6, status = $7, foto = $8, telefone = $9, email = $10, endereco = $11, "cnhAnexo" = $12, "comprovanteResidenciaAnexo" = $13, observacoes = $14, historico = $15
+            WHERE id = $16
+            RETURNING *
+        `, [
+            m.nome, m.cpf, m.rg, m.cnh, m.categoriaCNH, m.dataVencimentoCNH, m.status || 'ativo', foto, m.telefone, m.email, m.endereco, m.cnhAnexo, m.comprovanteResidenciaAnexo, m.observacoes, JSON.stringify(historico), req.params.id
+        ]);
+
+        await addLog(req.session.nome, req.session.perfil, 'Edição', 'Motorista', `Editou motorista ${m.nome}`);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Erro ao editar motorista:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
 });
 
-app.delete('/api/motoristas/:id', requireAuth, requireAdmin, (req, res) => {
-    const db = readDB();
-    const m = db.motoristas.find(m => m.id === req.params.id);
-    if (!m) return res.status(404).json({ error: 'Motorista não encontrado.' });
-    db.motoristas = db.motoristas.filter(m => m.id !== req.params.id);
-    addLog(db, req.session.nome, req.session.perfil, 'Exclusão', 'Motorista', `Removeu motorista ${m.nome}`);
-    writeDB(db);
-    res.json({ success: true });
+app.delete('/api/motoristas/:id', requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const result = await db.query('DELETE FROM motoristas WHERE id = $1 RETURNING nome', [req.params.id]);
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Motorista não encontrado.' });
+        }
+        await addLog(req.session.nome, req.session.perfil, 'Exclusão', 'Motorista', `Removeu motorista ${result.rows[0].nome}`);
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Erro ao excluir motorista:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
 });
 
 // ─── USUÁRIOS (Admin) ─────────────────────────────────────
-app.get('/api/usuarios', requireAuth, requireAdmin, (req, res) => {
-    const db = readDB();
-    const safe = db.usuarios.map(({ senhaHash, senha, ...u }) => u);
-    res.json(safe);
+app.get('/api/usuarios', requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const result = await db.query('SELECT id, nome, cpf, email, cargo, perfil, status, foto, "dataCadastro" FROM usuarios ORDER BY nome ASC');
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Erro ao obter usuários:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
 });
 
-app.post('/api/usuarios', requireAuth, requireAdmin, (req, res) => {
-    const db = readDB();
+app.post('/api/usuarios', requireAuth, requireAdmin, async (req, res) => {
     const { nome, cpf, email, cargo, perfil, senha, status, foto } = req.body;
 
     if (!nome || !cpf || !email || !senha) {
         return res.status(400).json({ error: 'Nome, CPF, E-mail e Senha são obrigatórios.' });
     }
 
-    // Verificar duplicidade de CPF e email
-    const cpfClean = cpf.replace(/\D/g, '');
-    const dupCPF = db.usuarios.find(u => u.cpf && u.cpf.replace(/\D/g, '') === cpfClean);
-    const dupEmail = db.usuarios.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
-    if (dupCPF) return res.status(400).json({ error: 'CPF já cadastrado.' });
-    if (dupEmail) return res.status(400).json({ error: 'E-mail já cadastrado.' });
+    try {
+        // Verificar duplicidade de CPF e email
+        const cpfClean = cpf.replace(/\D/g, '');
+        
+        const dupRes = await db.query(
+            `SELECT id FROM usuarios WHERE REPLACE(REPLACE(cpf, '.', ''), '-', '') = $1 OR LOWER(email) = LOWER($2)`,
+            [cpfClean, email]
+        );
+        if (dupRes.rowCount > 0) {
+            return res.status(400).json({ error: 'CPF ou E-mail já cadastrado.' });
+        }
 
-    const senhaHash = bcrypt.hashSync(senha, 10);
-    const newUser = {
-        id: 'USR-' + uuidv4().substr(0, 8).toUpperCase(),
-        nome, cpf, email, cargo,
-        perfil: perfil || 'Operacional',
-        status: status || 'ativo',
-        foto: foto || '/img/avatar-default.png',
-        senhaHash,
-        dataCadastro: new Date().toISOString().split('T')[0]
-    };
+        const senhaHash = bcrypt.hashSync(senha, 10);
+        const id = 'USR-' + uuidv4().substr(0, 8).toUpperCase();
+        const dateNow = new Date().toISOString().split('T')[0];
 
-    db.usuarios.push(newUser);
-    addLog(db, req.session.nome, req.session.perfil, 'Cadastro', 'Usuário', `Criou usuário ${nome} (${perfil})`);
-    writeDB(db);
+        const result = await db.query(`
+            INSERT INTO usuarios (id, nome, cpf, email, cargo, perfil, status, foto, "senhaHash", "dataCadastro")
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            RETURNING id, nome, cpf, email, cargo, perfil, status, foto, "dataCadastro"
+        `, [
+            id, nome, cpf, email, cargo, perfil || 'Operacional', status || 'ativo', foto || '/img/avatar-default.png', senhaHash, dateNow
+        ]);
 
-    const { senhaHash: _, ...safe } = newUser;
-    res.json(safe);
-});
-
-app.put('/api/usuarios/:id', requireAuth, requireAdmin, (req, res) => {
-    const db = readDB();
-    const idx = db.usuarios.findIndex(u => u.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: 'Usuário não encontrado.' });
-
-    const updates = { ...req.body };
-    // Se senha for enviada, gerar novo hash
-    if (updates.senha && updates.senha.length >= 4) {
-        updates.senhaHash = bcrypt.hashSync(updates.senha, 10);
+        await addLog(req.session.nome, req.session.perfil, 'Cadastro', 'Usuário', `Criou usuário ${nome} (${perfil})`);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Erro ao cadastrar usuário:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
     }
-    delete updates.senha;
-
-    db.usuarios[idx] = { ...db.usuarios[idx], ...updates };
-    addLog(db, req.session.nome, req.session.perfil, 'Edição', 'Usuário', `Editou usuário ${db.usuarios[idx].nome}`);
-    writeDB(db);
-
-    const { senhaHash, ...safe } = db.usuarios[idx];
-    res.json(safe);
 });
 
-app.delete('/api/usuarios/:id', requireAuth, requireAdmin, (req, res) => {
-    const db = readDB();
-    const u = db.usuarios.find(u => u.id === req.params.id);
-    if (!u) return res.status(404).json({ error: 'Usuário não encontrado.' });
-    if (u.id === req.session.userId) return res.status(400).json({ error: 'Você não pode excluir seu próprio usuário.' });
-    db.usuarios = db.usuarios.filter(u => u.id !== req.params.id);
-    addLog(db, req.session.nome, req.session.perfil, 'Exclusão', 'Usuário', `Removeu usuário ${u.nome}`);
-    writeDB(db);
-    res.json({ success: true });
+app.put('/api/usuarios/:id', requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const originalRes = await db.query('SELECT * FROM usuarios WHERE id = $1', [req.params.id]);
+        if (originalRes.rowCount === 0) {
+            return res.status(404).json({ error: 'Usuário não encontrado.' });
+        }
+        const original = originalRes.rows[0];
+
+        const updates = { ...req.body };
+        let senhaHash = original.senhaHash;
+        if (updates.senha && updates.senha.length >= 4) {
+            senhaHash = bcrypt.hashSync(updates.senha, 10);
+        }
+
+        const result = await db.query(`
+            UPDATE usuarios SET
+                nome = $1, cpf = $2, email = $3, cargo = $4, perfil = $5, status = $6, foto = $7, "senhaHash" = $8
+            WHERE id = $9
+            RETURNING id, nome, cpf, email, cargo, perfil, status, foto, "dataCadastro"
+        `, [
+            updates.nome || original.nome,
+            updates.cpf || original.cpf,
+            updates.email || original.email,
+            updates.cargo || original.cargo,
+            updates.perfil || original.perfil,
+            updates.status || original.status,
+            updates.foto || original.foto,
+            senhaHash,
+            req.params.id
+        ]);
+
+        await addLog(req.session.nome, req.session.perfil, 'Edição', 'Usuário', `Editou usuário ${result.rows[0].nome}`);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Erro ao editar usuário:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
+});
+
+app.delete('/api/usuarios/:id', requireAuth, requireAdmin, async (req, res) => {
+    try {
+        if (req.params.id === req.session.userId) {
+            return res.status(400).json({ error: 'Você não pode excluir seu próprio usuário.' });
+        }
+        const result = await db.query('DELETE FROM usuarios WHERE id = $1 RETURNING nome', [req.params.id]);
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Usuário não encontrado.' });
+        }
+        await addLog(req.session.nome, req.session.perfil, 'Exclusão', 'Usuário', `Removeu usuário ${result.rows[0].nome}`);
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Erro ao excluir usuário:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
 });
 
 // ─── EDITAR PERFIL DO USUÁRIO LOGADO ─────────────────────
-app.put('/api/perfil', requireAuth, (req, res) => {
-    const db = readDB();
-    const idx = db.usuarios.findIndex(u => u.id === req.session.userId);
-    if (idx === -1) return res.status(404).json({ error: 'Usuário não encontrado.' });
+app.put('/api/perfil', requireAuth, async (req, res) => {
+    try {
+        const originalRes = await db.query('SELECT * FROM usuarios WHERE id = $1', [req.session.userId]);
+        if (originalRes.rowCount === 0) {
+            return res.status(404).json({ error: 'Usuário não encontrado.' });
+        }
+        const original = originalRes.rows[0];
 
-    const { nome, email, cpf, cargo, senha, foto } = req.body;
+        const { nome, email, cpf, cargo, senha, foto } = req.body;
 
-    if (nome) db.usuarios[idx].nome = nome;
-    if (email) {
-        const dupEmail = db.usuarios.find(u => u.id !== req.session.userId && u.email && u.email.toLowerCase() === email.toLowerCase());
-        if (dupEmail) return res.status(400).json({ error: 'E-mail já cadastrado.' });
-        db.usuarios[idx].email = email;
+        if (email && email.toLowerCase() !== original.email.toLowerCase()) {
+            const dupRes = await db.query('SELECT id FROM usuarios WHERE LOWER(email) = LOWER($1) AND id <> $2', [email, req.session.userId]);
+            if (dupRes.rowCount > 0) return res.status(400).json({ error: 'E-mail já cadastrado.' });
+        }
+
+        if (cpf) {
+            const cpfClean = cpf.replace(/\D/g, '');
+            const dupRes = await db.query(
+                `SELECT id FROM usuarios WHERE REPLACE(REPLACE(cpf, '.', ''), '-', '') = $1 AND id <> $2`,
+                [cpfClean, req.session.userId]
+            );
+            if (dupRes.rowCount > 0) return res.status(400).json({ error: 'CPF já cadastrado.' });
+        }
+
+        let senhaHash = original.senhaHash;
+        if (senha && senha.length >= 4) {
+            senhaHash = bcrypt.hashSync(senha, 10);
+        }
+
+        const result = await db.query(`
+            UPDATE usuarios SET
+                nome = $1, email = $2, cpf = $3, cargo = $4, foto = $5, "senhaHash" = $6
+            WHERE id = $7
+            RETURNING id, nome, cpf, email, cargo, perfil, status, foto, "dataCadastro"
+        `, [
+            nome || original.nome,
+            email || original.email,
+            cpf || original.cpf,
+            cargo || original.cargo,
+            foto || original.foto,
+            senhaHash,
+            req.session.userId
+        ]);
+
+        await addLog(req.session.nome, req.session.perfil, 'Edição', 'Perfil', `Usuário ${result.rows[0].nome} atualizou seu próprio perfil`);
+
+        if (nome) req.session.nome = nome;
+
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Erro ao atualizar perfil:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
     }
-    if (cpf) {
-        const cpfClean = cpf.replace(/\D/g, '');
-        const dupCPF = db.usuarios.find(u => u.id !== req.session.userId && u.cpf && u.cpf.replace(/\D/g, '') === cpfClean);
-        if (dupCPF) return res.status(400).json({ error: 'CPF já cadastrado.' });
-        db.usuarios[idx].cpf = cpf;
-    }
-    if (cargo) db.usuarios[idx].cargo = cargo;
-    if (foto) db.usuarios[idx].foto = foto;
-
-    if (senha && senha.length >= 4) {
-        db.usuarios[idx].senhaHash = bcrypt.hashSync(senha, 10);
-        delete db.usuarios[idx].senha;
-    }
-
-    addLog(db, req.session.nome, req.session.perfil, 'Edição', 'Perfil', `Usuário ${db.usuarios[idx].nome} atualizou seu próprio perfil`);
-    writeDB(db);
-
-    if (nome) req.session.nome = nome;
-
-    const { senhaHash, senha: _, ...safe } = db.usuarios[idx];
-    res.json(safe);
 });
 
 
 // ─── ABASTECIMENTOS ───────────────────────────────────────
-app.get('/api/abastecimentos', requireAuth, (req, res) => {
-    const db = readDB();
-    res.json(db.abastecimentos);
-});
-
-app.post('/api/abastecimentos', requireAuth, (req, res) => {
-    const db = readDB();
-    const ab = { ...req.body };
-    ab.id = 'ABA-' + uuidv4().substr(0, 8).toUpperCase();
-    ab.litros = parseFloat(ab.litros) || 0;
-    ab.valorTotal = parseFloat(ab.valorTotal) || 0;
-    ab.kmAtual = parseFloat(ab.kmAtual) || 0;
-    ab.valorLitro = parseFloat(ab.valorLitro) || (ab.valorTotal / ab.litros);
-
-    // Calcular KM/L com base na KM atual do veículo
-    const veic = db.veiculos.find(v => v.id === ab.veiculoId);
-    if (veic) {
-        const kmAnterior = parseFloat(veic.kmAtual) || 0;
-        const kmRodado = ab.kmAtual - kmAnterior;
-        ab.kmL = (kmRodado > 0 && ab.litros > 0) ? parseFloat((kmRodado / ab.litros).toFixed(2)) : 0;
-        ab.custoKM = ab.kmL > 0 ? parseFloat((ab.valorLitro / ab.kmL).toFixed(2)) : 0;
-        // Atualizar odômetro do veículo
-        if (ab.kmAtual > kmAnterior) {
-            const vidx = db.veiculos.findIndex(v => v.id === ab.veiculoId);
-            if (!db.veiculos[vidx].historicoKM) db.veiculos[vidx].historicoKM = [];
-            db.veiculos[vidx].kmAtual = ab.kmAtual;
-            db.veiculos[vidx].historicoKM.push({ data: new Date().toISOString().split('T')[0], km: ab.kmAtual });
-        }
-    } else {
-        ab.kmL = 0; ab.custoKM = 0;
+app.get('/api/abastecimentos', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query('SELECT * FROM abastecimentos ORDER BY data DESC');
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Erro ao obter abastecimentos:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
     }
-
-    db.abastecimentos.unshift(ab);
-    addLog(db, req.session.nome, req.session.perfil, 'Cadastro', 'Abastecimento', `Registrou abastecimento R$ ${ab.valorTotal.toFixed(2)} - ${veic ? veic.placa : ''}`);
-    writeDB(db);
-    res.json(ab);
 });
 
-app.put('/api/abastecimentos/:id', requireAuth, (req, res) => {
-    const db = readDB();
-    const idx = db.abastecimentos.findIndex(a => a.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: 'Abastecimento não encontrado.' });
+app.post('/api/abastecimentos', requireAuth, async (req, res) => {
+    try {
+        const ab = req.body;
+        const id = 'ABA-' + uuidv4().substr(0, 8).toUpperCase();
+        const litros = parseFloat(ab.litros) || 0;
+        const valorTotal = parseFloat(ab.valorTotal) || 0;
+        const kmAtual = parseFloat(ab.kmAtual) || 0;
+        const valorLitro = parseFloat(ab.valorLitro) || (litros > 0 ? (valorTotal / litros) : 0);
 
-    const original = db.abastecimentos[idx];
-    const ab = { ...original, ...req.body };
-    
-    ab.litros = parseFloat(ab.litros) || 0;
-    ab.valorTotal = parseFloat(ab.valorTotal) || 0;
-    ab.kmAtual = parseFloat(ab.kmAtual) || 0;
-    ab.valorLitro = parseFloat(ab.valorLitro) || (ab.litros > 0 ? (ab.valorTotal / ab.litros) : 0);
+        let kmL = 0;
+        let custoKM = 0;
 
-    const veic = db.veiculos.find(v => v.id === ab.veiculoId);
-    if (veic) {
-        const veicAbs = db.abastecimentos
-            .filter(a => a.veiculoId === ab.veiculoId && a.id !== req.params.id)
-            .sort((a, b) => new Date(a.data) - new Date(b.data));
-            
-        let kmAnterior = 0;
-        for (let i = veicAbs.length - 1; i >= 0; i--) {
-            if (new Date(veicAbs[i].data) <= new Date(ab.data) && veicAbs[i].kmAtual < ab.kmAtual) {
-                kmAnterior = veicAbs[i].kmAtual;
-                break;
+        const veicRes = await db.query('SELECT "kmAtual", placa, "historicoKM" FROM veiculos WHERE id = $1', [ab.veiculoId]);
+        const veic = veicRes.rows[0];
+
+        if (veic) {
+            const kmAnterior = parseFloat(veic.kmAtual) || 0;
+            const kmRodado = kmAtual - kmAnterior;
+            kmL = (kmRodado > 0 && litros > 0) ? parseFloat((kmRodado / litros).toFixed(2)) : 0;
+            custoKM = kmL > 0 ? parseFloat((valorLitro / kmL).toFixed(2)) : 0;
+
+            if (kmAtual > kmAnterior) {
+                let historicoKM = veic.historicoKM || [];
+                historicoKM.push({ data: new Date().toISOString().split('T')[0], km: kmAtual });
+                await db.query('UPDATE veiculos SET "kmAtual" = $1, "historicoKM" = $2 WHERE id = $3', [kmAtual, JSON.stringify(historicoKM), ab.veiculoId]);
             }
         }
-        
-        const kmRodado = ab.kmAtual - kmAnterior;
-        ab.kmL = (kmRodado > 0 && ab.litros > 0) ? parseFloat((kmRodado / ab.litros).toFixed(2)) : 0;
-        ab.custoKM = ab.kmL > 0 ? parseFloat((ab.valorLitro / ab.kmL).toFixed(2)) : 0;
 
-        if (ab.kmAtual > veic.kmAtual) {
-            const vidx = db.veiculos.findIndex(v => v.id === ab.veiculoId);
-            db.veiculos[vidx].kmAtual = ab.kmAtual;
-            if (!db.veiculos[vidx].historicoKM) db.veiculos[vidx].historicoKM = [];
-            db.veiculos[vidx].historicoKM.push({ data: ab.data, km: ab.kmAtual });
-        }
-    } else {
-        ab.kmL = 0; ab.custoKM = 0;
+        const result = await db.query(`
+            INSERT INTO abastecimentos (id, "veiculoId", "motoristaId", data, combustivel, litros, "valorLitro", "valorTotal", "kmAtual", posto, comprovante, observacoes, "kmL", "custoKM")
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            RETURNING *
+        `, [
+            id, ab.veiculoId, ab.motoristaId, ab.data, ab.combustivel, litros, valorLitro, valorTotal, kmAtual, ab.posto, ab.comprovante, ab.observacoes, kmL, custoKM
+        ]);
+
+        await addLog(req.session.nome, req.session.perfil, 'Cadastro', 'Abastecimento', `Registrou abastecimento R$ ${valorTotal.toFixed(2)} - ${veic ? veic.placa : ''}`);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Erro ao cadastrar abastecimento:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
     }
-
-    db.abastecimentos[idx] = ab;
-    addLog(db, req.session.nome, req.session.perfil, 'Edição', 'Abastecimento', `Editou abastecimento R$ ${ab.valorTotal.toFixed(2)} - ${veic ? veic.placa : ''}`);
-    writeDB(db);
-    res.json(ab);
 });
 
-app.delete('/api/abastecimentos/:id', requireAuth, requireAdmin, (req, res) => {
-    const db = readDB();
-    const ab = db.abastecimentos.find(a => a.id === req.params.id);
-    if (!ab) return res.status(404).json({ error: 'Abastecimento não encontrado.' });
-    db.abastecimentos = db.abastecimentos.filter(a => a.id !== req.params.id);
-    addLog(db, req.session.nome, req.session.perfil, 'Exclusão', 'Abastecimento', `Removeu abastecimento do dia ${ab.data}`);
-    writeDB(db);
-    res.json({ success: true });
+app.put('/api/abastecimentos/:id', requireAuth, async (req, res) => {
+    try {
+        const ab = req.body;
+        const originalRes = await db.query('SELECT * FROM abastecimentos WHERE id = $1', [req.params.id]);
+        if (originalRes.rowCount === 0) {
+            return res.status(404).json({ error: 'Abastecimento não encontrado.' });
+        }
+        const original = originalRes.rows[0];
+
+        const litros = parseFloat(ab.litros) || 0;
+        const valorTotal = parseFloat(ab.valorTotal) || 0;
+        const kmAtual = parseFloat(ab.kmAtual) || 0;
+        const valorLitro = parseFloat(ab.valorLitro) || (litros > 0 ? (valorTotal / litros) : 0);
+
+        let kmL = 0;
+        let custoKM = 0;
+
+        const veicRes = await db.query('SELECT "kmAtual", placa, "historicoKM" FROM veiculos WHERE id = $1', [ab.veiculoId]);
+        const veic = veicRes.rows[0];
+
+        if (veic) {
+            // Obter todos os outros abastecimentos deste veículo para ordenar por data/KM e estimar o anterior
+            const veicAbsRes = await db.query('SELECT "kmAtual", data FROM abastecimentos WHERE "veiculoId" = $1 AND id <> $2 ORDER BY data ASC, "kmAtual" ASC', [ab.veiculoId, req.params.id]);
+            const veicAbs = veicAbsRes.rows;
+
+            let kmAnterior = 0;
+            const targetDate = new Date(ab.data);
+            for (let i = veicAbs.length - 1; i >= 0; i--) {
+                if (new Date(veicAbs[i].data) <= targetDate && parseFloat(veicAbs[i].kmAtual) < kmAtual) {
+                    kmAnterior = parseFloat(veicAbs[i].kmAtual);
+                    break;
+                }
+            }
+
+            const kmRodado = kmAtual - kmAnterior;
+            kmL = (kmRodado > 0 && litros > 0) ? parseFloat((kmRodado / litros).toFixed(2)) : 0;
+            custoKM = kmL > 0 ? parseFloat((valorLitro / kmL).toFixed(2)) : 0;
+
+            if (kmAtual > parseFloat(veic.kmAtual)) {
+                let historicoKM = veic.historicoKM || [];
+                historicoKM.push({ data: ab.data, km: kmAtual });
+                await db.query('UPDATE veiculos SET "kmAtual" = $1, "historicoKM" = $2 WHERE id = $3', [kmAtual, JSON.stringify(historicoKM), ab.veiculoId]);
+            }
+        }
+
+        const result = await db.query(`
+            UPDATE abastecimentos SET
+                "veiculoId" = $1, "motoristaId" = $2, data = $3, combustivel = $4, litros = $5, "valorLitro" = $6, "valorTotal" = $7, "kmAtual" = $8, posto = $9, comprovante = $10, observacoes = $11, "kmL" = $12, "custoKM" = $13
+            WHERE id = $14
+            RETURNING *
+        `, [
+            ab.veiculoId, ab.motoristaId, ab.data, ab.combustivel, litros, valorLitro, valorTotal, kmAtual, ab.posto, ab.comprovante, ab.observacoes, kmL, custoKM, req.params.id
+        ]);
+
+        await addLog(req.session.nome, req.session.perfil, 'Edição', 'Abastecimento', `Editou abastecimento R$ ${valorTotal.toFixed(2)} - ${veic ? veic.placa : ''}`);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Erro ao atualizar abastecimento:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
+});
+
+app.delete('/api/abastecimentos/:id', requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const result = await db.query('DELETE FROM abastecimentos WHERE id = $1 RETURNING data', [req.params.id]);
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Abastecimento não encontrado.' });
+        }
+        await addLog(req.session.nome, req.session.perfil, 'Exclusão', 'Abastecimento', `Removeu abastecimento do dia ${result.rows[0].data}`);
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Erro ao excluir abastecimento:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
 });
 
 // ─── MANUTENÇÕES ──────────────────────────────────────────
-app.get('/api/manutencoes', requireAuth, (req, res) => {
-    const db = readDB();
-    res.json(db.manutencoes);
-});
-
-app.post('/api/manutencoes', requireAuth, (req, res) => {
-    const db = readDB();
-    const m = { ...req.body };
-    m.id = 'MAN-' + uuidv4().substr(0, 8).toUpperCase();
-    m.valor = parseFloat(m.valor) || 0;
-    m.km = parseFloat(m.km) || 0;
-    // Atualizar KM do veículo se necessário
-    const vidx = db.veiculos.findIndex(v => v.id === m.veiculoId);
-    if (vidx !== -1 && m.km > parseFloat(db.veiculos[vidx].kmAtual)) {
-        db.veiculos[vidx].kmAtual = m.km;
-        if (!db.veiculos[vidx].historicoKM) db.veiculos[vidx].historicoKM = [];
-        db.veiculos[vidx].historicoKM.push({ data: new Date().toISOString().split('T')[0], km: m.km });
+app.get('/api/manutencoes', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query('SELECT * FROM manutencoes ORDER BY data DESC');
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Erro ao obter manutenções:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
     }
-    db.manutencoes.unshift(m);
-    addLog(db, req.session.nome, req.session.perfil, 'Cadastro', 'Manutenção', `Cadastrou O.S. ${m.tipo} (${m.categoria}) - R$ ${m.valor.toFixed(2)}`);
-    writeDB(db);
-    res.json(m);
 });
 
-app.put('/api/manutencoes/:id', requireAuth, (req, res) => {
-    const db = readDB();
-    const idx = db.manutencoes.findIndex(m => m.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: 'Manutenção não encontrada.' });
-    const updates = { ...req.body };
-    // CRÍTICO: garantir tipos numéricos na edição
-    updates.valor = parseFloat(updates.valor) || 0;
-    updates.km = parseFloat(updates.km) || 0;
-    db.manutencoes[idx] = { ...db.manutencoes[idx], ...updates };
-    addLog(db, req.session.nome, req.session.perfil, 'Edição', 'Manutenção', `Atualizou O.S. ${req.params.id} → Status: ${updates.status}`);
-    writeDB(db);
-    res.json(db.manutencoes[idx]);
+app.post('/api/manutencoes', requireAuth, async (req, res) => {
+    try {
+        const m = req.body;
+        const id = 'MAN-' + uuidv4().substr(0, 8).toUpperCase();
+        const valor = parseFloat(m.valor) || 0;
+        const km = parseFloat(m.km) || 0;
+
+        // Atualizar KM do veículo se necessário
+        const veicRes = await db.query('SELECT "kmAtual", "historicoKM" FROM veiculos WHERE id = $1', [m.veiculoId]);
+        const veic = veicRes.rows[0];
+        if (veic && km > parseFloat(veic.kmAtual)) {
+            let historicoKM = veic.historicoKM || [];
+            historicoKM.push({ data: new Date().toISOString().split('T')[0], km });
+            await db.query('UPDATE veiculos SET "kmAtual" = $1, "historicoKM" = $2 WHERE id = $3', [km, JSON.stringify(historicoKM), m.veiculoId]);
+        }
+
+        const result = await db.query(`
+            INSERT INTO manutencoes (id, "veiculoId", data, tipo, categoria, descricao, valor, km, oficina, fornecedor, status, comprovante, anexo)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+            RETURNING *
+        `, [
+            id, m.veiculoId, m.data, m.tipo, m.categoria, m.descricao, valor, km, m.oficina, m.fornecedor, m.status || 'Agendada', m.comprovante || m.anexo, m.anexo || m.comprovante
+        ]);
+
+        await addLog(req.session.nome, req.session.perfil, 'Cadastro', 'Manutenção', `Cadastrou O.S. ${m.tipo} (${m.categoria}) - R$ ${valor.toFixed(2)}`);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Erro ao cadastrar manutenção:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
 });
 
-app.delete('/api/manutencoes/:id', requireAuth, requireAdmin, (req, res) => {
-    const db = readDB();
-    const idx = db.manutencoes.findIndex(m => m.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: 'Manutenção não encontrada.' });
-    const m = db.manutencoes[idx];
-    db.manutencoes.splice(idx, 1);
-    addLog(db, req.session.nome, req.session.perfil, 'Exclusão', 'Manutenção', `Removeu O.S. do veículo ID ${m.veiculoId}`);
-    writeDB(db);
-    res.json({ success: true });
+app.put('/api/manutencoes/:id', requireAuth, async (req, res) => {
+    try {
+        const m = req.body;
+        const originalRes = await db.query('SELECT * FROM manutencoes WHERE id = $1', [req.params.id]);
+        if (originalRes.rowCount === 0) {
+            return res.status(404).json({ error: 'Manutenção não encontrada.' });
+        }
+        const original = originalRes.rows[0];
+
+        const valor = parseFloat(m.valor) || 0;
+        const km = parseFloat(m.km) || 0;
+
+        // Atualizar KM do veículo se necessário
+        const veicRes = await db.query('SELECT "kmAtual", "historicoKM" FROM veiculos WHERE id = $1', [m.veiculoId || original.veiculoId]);
+        const veic = veicRes.rows[0];
+        if (veic && km > parseFloat(veic.kmAtual)) {
+            let historicoKM = veic.historicoKM || [];
+            historicoKM.push({ data: new Date().toISOString().split('T')[0], km });
+            await db.query('UPDATE veiculos SET "kmAtual" = $1, "historicoKM" = $2 WHERE id = $3', [km, JSON.stringify(historicoKM), m.veiculoId || original.veiculoId]);
+        }
+
+        const result = await db.query(`
+            UPDATE manutencoes SET
+                "veiculoId" = $1, data = $2, tipo = $3, categoria = $4, descricao = $5, valor = $6, km = $7, oficina = $8, fornecedor = $9, status = $10, comprovante = $11, anexo = $12
+            WHERE id = $13
+            RETURNING *
+        `, [
+            m.veiculoId || original.veiculoId,
+            m.data || original.data,
+            m.tipo || original.tipo,
+            m.categoria || original.categoria,
+            m.descricao || original.descricao,
+            valor,
+            km,
+            m.oficina || original.oficina,
+            m.fornecedor || original.fornecedor,
+            m.status || original.status,
+            m.comprovante || m.anexo || original.comprovante,
+            m.anexo || m.comprovante || original.anexo,
+            req.params.id
+        ]);
+
+        await addLog(req.session.nome, req.session.perfil, 'Edição', 'Manutenção', `Atualizou O.S. ${req.params.id} → Status: ${m.status || original.status}`);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Erro ao atualizar manutenção:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
+});
+
+app.delete('/api/manutencoes/:id', requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const result = await db.query('DELETE FROM manutencoes WHERE id = $1 RETURNING "veiculoId"', [req.params.id]);
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Manutenção não encontrada.' });
+        }
+        await addLog(req.session.nome, req.session.perfil, 'Exclusão', 'Manutenção', `Removeu O.S. do veículo ID ${result.rows[0].veiculoId}`);
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Erro ao excluir manutenção:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
 });
 
 // ─── PNEUS ────────────────────────────────────────────────
-app.get('/api/pneus', requireAuth, (req, res) => {
-    const db = readDB();
-    res.json(db.pneus);
+app.get('/api/pneus', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query('SELECT * FROM pneus ORDER BY codigo ASC');
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Erro ao obter pneus:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
 });
 
-app.post('/api/pneus', requireAuth, (req, res) => {
-    const db = readDB();
-    const p = { ...req.body };
-    p.id = 'PNE-' + uuidv4().substr(0, 8).toUpperCase();
-    p.kmInicial = parseFloat(p.kmInicial) || 0;
-    p.vidaEstimada = parseFloat(p.vidaEstimada) || 70000;
-    p.custo = parseFloat(p.custo) || 0;
-    db.pneus.push(p);
-    addLog(db, req.session.nome, req.session.perfil, 'Cadastro', 'Pneu', `Cadastrou pneu ${p.marca} ${p.modelo} (${p.codigo})`);
-    writeDB(db);
-    res.json(p);
+app.post('/api/pneus', requireAuth, async (req, res) => {
+    try {
+        const p = req.body;
+        const id = 'PNE-' + uuidv4().substr(0, 8).toUpperCase();
+        const kmInicial = parseFloat(p.kmInicial) || 0;
+        const vidaEstimada = parseFloat(p.vidaEstimada) || 70000;
+        const custo = parseFloat(p.custo) || 0;
+        const anotacoes = p.anotacoes || [];
+        const historico = p.historico || [];
+
+        const result = await db.query(`
+            INSERT INTO pneus (id, codigo, marca, modelo, medida, custo, "vidaEstimada", "kmInicial", "veiculoAtual", posicao, status, "dataInstalacao", "comprovanteAnexo", anotacoes, historico)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+            RETURNING *
+        `, [
+            id, p.codigo, p.marca, p.modelo, p.medida, custo, vidaEstimada, kmInicial, p.veiculoAtual || null, p.posicao, p.status || 'Regular', p.dataInstalacao, p.comprovanteAnexo, JSON.stringify(anotacoes), JSON.stringify(historico)
+        ]);
+
+        await addLog(req.session.nome, req.session.perfil, 'Cadastro', 'Pneu', `Cadastrou pneu ${p.marca} ${p.modelo} (${p.codigo})`);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Erro ao cadastrar pneu:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
 });
 
-app.put('/api/pneus/:id', requireAuth, (req, res) => {
-    const db = readDB();
-    const idx = db.pneus.findIndex(p => p.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: 'Pneu não encontrado.' });
-    const p = { ...db.pneus[idx], ...req.body };
-    p.kmInicial = parseFloat(p.kmInicial) || 0;
-    p.vidaEstimada = parseFloat(p.vidaEstimada) || 70000;
-    p.custo = parseFloat(p.custo) || 0;
-    db.pneus[idx] = p;
-    addLog(db, req.session.nome, req.session.perfil, 'Edição', 'Pneu', `Atualizou posição/rodízio do pneu ${p.codigo}`);
-    writeDB(db);
-    res.json(p);
+app.put('/api/pneus/:id', requireAuth, async (req, res) => {
+    try {
+        const p = req.body;
+        const originalRes = await db.query('SELECT * FROM pneus WHERE id = $1', [req.params.id]);
+        if (originalRes.rowCount === 0) {
+            return res.status(404).json({ error: 'Pneu não encontrado.' });
+        }
+        const original = originalRes.rows[0];
+
+        const kmInicial = parseFloat(p.kmInicial) || 0;
+        const vidaEstimada = parseFloat(p.vidaEstimada) || 70000;
+        const custo = parseFloat(p.custo) || 0;
+        const anotacoes = p.anotacoes || original.anotacoes || [];
+        const historico = p.historico || original.historico || [];
+
+        const result = await db.query(`
+            UPDATE pneus SET
+                codigo = $1, marca = $2, modelo = $3, medida = $4, custo = $5, "vidaEstimada" = $6, "kmInicial" = $7, "veiculoAtual" = $8, posicao = $9, status = $10, "dataInstalacao" = $11, "comprovanteAnexo" = $12, anotacoes = $13, historico = $14
+            WHERE id = $15
+            RETURNING *
+        `, [
+            p.codigo || original.codigo,
+            p.marca || original.marca,
+            p.modelo || original.modelo,
+            p.medida || original.medida,
+            custo,
+            vidaEstimada,
+            kmInicial,
+            p.veiculoAtual || null,
+            p.posicao || original.posicao,
+            p.status || original.status || 'Regular',
+            p.dataInstalacao || original.dataInstalacao,
+            p.comprovanteAnexo || original.comprovanteAnexo,
+            JSON.stringify(anotacoes),
+            JSON.stringify(historico),
+            req.params.id
+        ]);
+
+        await addLog(req.session.nome, req.session.perfil, 'Edição', 'Pneu', `Atualizou posição/rodízio do pneu ${result.rows[0].codigo}`);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Erro ao atualizar pneu:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
 });
 
-app.delete('/api/pneus/:id', requireAuth, requireAdmin, (req, res) => {
-    const db = readDB();
-    const idx = db.pneus.findIndex(p => p.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: 'Pneu não encontrado.' });
-    const p = db.pneus[idx];
-    db.pneus.splice(idx, 1);
-    addLog(db, req.session.nome, req.session.perfil, 'Exclusão', 'Pneu', `Excluiu pneu ${p.codigo}`);
-    writeDB(db);
-    res.json({ success: true });
+app.delete('/api/pneus/:id', requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const result = await db.query('DELETE FROM pneus WHERE id = $1 RETURNING codigo', [req.params.id]);
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Pneu não encontrado.' });
+        }
+        await addLog(req.session.nome, req.session.perfil, 'Exclusão', 'Pneu', `Excluiu pneu ${result.rows[0].codigo}`);
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Erro ao excluir pneu:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
 });
 
 // ─── ÓLEO ─────────────────────────────────────────────────
-app.get('/api/oleos', requireAuth, (req, res) => {
-    const db = readDB();
-    res.json(db.oleos);
-});
-
-app.post('/api/oleos', requireAuth, (req, res) => {
-    const db = readDB();
-    const o = { ...req.body };
-    o.id = 'OLE-' + uuidv4().substr(0, 8).toUpperCase();
-    o.kmTroca = parseFloat(o.kmTroca) || 0;
-    o.proximaTrocaKM = parseFloat(o.proximaTrocaKM) || 0;
-    o.valor = parseFloat(o.valor) || 0;
-    o.filtroAr = o.filtroAr === 'true' || o.filtroAr === true;
-    o.filtroOleo = o.filtroOleo === 'true' || o.filtroOleo === true;
-    o.filtroCombustivel = o.filtroCombustivel === 'true' || o.filtroCombustivel === true;
-    // Atualizar KM do veículo
-    const vidx = db.veiculos.findIndex(v => v.id === o.veiculoId);
-    if (vidx !== -1 && o.kmTroca > parseFloat(db.veiculos[vidx].kmAtual)) {
-        db.veiculos[vidx].kmAtual = o.kmTroca;
-        if (!db.veiculos[vidx].historicoKM) db.veiculos[vidx].historicoKM = [];
-        db.veiculos[vidx].historicoKM.push({ data: new Date().toISOString().split('T')[0], km: o.kmTroca });
+app.get('/api/oleos', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query('SELECT * FROM oleos ORDER BY "dataTroca" DESC');
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Erro ao obter trocas de óleo:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
     }
-    db.oleos.unshift(o);
-    addLog(db, req.session.nome, req.session.perfil, 'Cadastro', 'Óleo', `Registrou troca de óleo ${db.veiculos[vidx]?.placa || ''}`);
-    writeDB(db);
-    res.json(o);
 });
 
-app.put('/api/oleos/:id', requireAuth, (req, res) => {
-    const db = readDB();
-    const idx = db.oleos.findIndex(o => o.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: 'Troca de óleo não encontrada.' });
-    
-    const o = { ...db.oleos[idx], ...req.body };
-    o.kmTroca = parseFloat(o.kmTroca) || 0;
-    o.proximaTrocaKM = parseFloat(o.proximaTrocaKM) || 0;
-    o.valor = parseFloat(o.valor) || 0;
-    o.filtroAr = o.filtroAr === 'true' || o.filtroAr === true;
-    o.filtroOleo = o.filtroOleo === 'true' || o.filtroOleo === true;
-    o.filtroCombustivel = o.filtroCombustivel === 'true' || o.filtroCombustivel === true;
+app.post('/api/oleos', requireAuth, async (req, res) => {
+    try {
+        const o = req.body;
+        const id = 'OLE-' + uuidv4().substr(0, 8).toUpperCase();
+        const kmTroca = parseFloat(o.kmTroca) || 0;
+        const proximaTrocaKM = parseFloat(o.proximaTrocaKM) || 0;
+        const valor = parseFloat(o.valor) || 0;
+        const filtroAr = o.filtroAr === 'true' || o.filtroAr === true;
+        const filtroOleo = o.filtroOleo === 'true' || o.filtroOleo === true;
+        const filtroCombustivel = o.filtroCombustivel === 'true' || o.filtroCombustivel === true;
 
-    // Atualizar KM do veículo se aplicável
-    const vidx = db.veiculos.findIndex(v => v.id === o.veiculoId);
-    if (vidx !== -1 && o.kmTroca > parseFloat(db.veiculos[vidx].kmAtual)) {
-        db.veiculos[vidx].kmAtual = o.kmTroca;
-        if (!db.veiculos[vidx].historicoKM) db.veiculos[vidx].historicoKM = [];
-        db.veiculos[vidx].historicoKM.push({ data: new Date().toISOString().split('T')[0], km: o.kmTroca });
+        // Atualizar KM do veículo
+        const veicRes = await db.query('SELECT "kmAtual", placa, "historicoKM" FROM veiculos WHERE id = $1', [o.veiculoId]);
+        const veic = veicRes.rows[0];
+        if (veic && kmTroca > parseFloat(veic.kmAtual)) {
+            let historicoKM = veic.historicoKM || [];
+            historicoKM.push({ data: new Date().toISOString().split('T')[0], km: kmTroca });
+            await db.query('UPDATE veiculos SET "kmAtual" = $1, "historicoKM" = $2 WHERE id = $3', [kmTroca, JSON.stringify(historicoKM), o.veiculoId]);
+        }
+
+        const result = await db.query(`
+            INSERT INTO oleos (id, "veiculoId", "dataTroca", "kmTroca", "proximaTrocaKM", "proximaTrocaDias", "tipoOleo", valor, estabelecimento, "filtroAr", "filtroOleo", "filtroCombustivel", observacoes)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+            RETURNING *
+        `, [
+            id, o.veiculoId, o.dataTroca, kmTroca, proximaTrocaKM, o.proximaTrocaDias, o.tipoOleo, valor, o.estabelecimento, filtroAr, filtroOleo, filtroCombustivel, o.observacoes
+        ]);
+
+        await addLog(req.session.nome, req.session.perfil, 'Cadastro', 'Óleo', `Registrou troca de óleo ${veic ? veic.placa : ''}`);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Erro ao cadastrar troca de óleo:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
     }
-    
-    db.oleos[idx] = o;
-    addLog(db, req.session.nome, req.session.perfil, 'Edição', 'Óleo', `Editou troca de óleo do veículo ${db.veiculos[vidx]?.placa || ''}`);
-    writeDB(db);
-    res.json(o);
 });
 
-app.delete('/api/oleos/:id', requireAuth, requireAdmin, (req, res) => {
-    const db = readDB();
-    const idx = db.oleos.findIndex(o => o.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: 'Troca de óleo não encontrada.' });
-    const o = db.oleos[idx];
-    db.oleos.splice(idx, 1);
-    addLog(db, req.session.nome, req.session.perfil, 'Exclusão', 'Óleo', `Excluiu troca de óleo ID ${req.params.id}`);
-    writeDB(db);
-    res.json({ success: true });
+app.put('/api/oleos/:id', requireAuth, async (req, res) => {
+    try {
+        const o = req.body;
+        const originalRes = await db.query('SELECT * FROM oleos WHERE id = $1', [req.params.id]);
+        if (originalRes.rowCount === 0) {
+            return res.status(404).json({ error: 'Troca de óleo não encontrada.' });
+        }
+        const original = originalRes.rows[0];
+
+        const kmTroca = parseFloat(o.kmTroca) || 0;
+        const proximaTrocaKM = parseFloat(o.proximaTrocaKM) || 0;
+        const valor = parseFloat(o.valor) || 0;
+        const filtroAr = o.filtroAr === 'true' || o.filtroAr === true;
+        const filtroOleo = o.filtroOleo === 'true' || o.filtroOleo === true;
+        const filtroCombustivel = o.filtroCombustivel === 'true' || o.filtroCombustivel === true;
+
+        // Atualizar KM do veículo
+        const veicRes = await db.query('SELECT "kmAtual", placa, "historicoKM" FROM veiculos WHERE id = $1', [o.veiculoId || original.veiculoId]);
+        const veic = veicRes.rows[0];
+        if (veic && kmTroca > parseFloat(veic.kmAtual)) {
+            let historicoKM = veic.historicoKM || [];
+            historicoKM.push({ data: new Date().toISOString().split('T')[0], km: kmTroca });
+            await db.query('UPDATE veiculos SET "kmAtual" = $1, "historicoKM" = $2 WHERE id = $3', [kmTroca, JSON.stringify(historicoKM), o.veiculoId || original.veiculoId]);
+        }
+
+        const result = await db.query(`
+            UPDATE oleos SET
+                "veiculoId" = $1, "dataTroca" = $2, "kmTroca" = $3, "proximaTrocaKM" = $4, "proximaTrocaDias" = $5, "tipoOleo" = $6, valor = $7, estabelecimento = $8, "filtroAr" = $9, "filtroOleo" = $10, "filtroCombustivel" = $11, observacoes = $12
+            WHERE id = $13
+            RETURNING *
+        `, [
+            o.veiculoId || original.veiculoId,
+            o.dataTroca || original.dataTroca,
+            kmTroca,
+            proximaTrocaKM,
+            o.proximaTrocaDias || original.proximaTrocaDias,
+            o.tipoOleo || original.tipoOleo,
+            valor,
+            o.estabelecimento || original.estabelecimento,
+            filtroAr,
+            filtroOleo,
+            filtroCombustivel,
+            o.observacoes || original.observacoes,
+            req.params.id
+        ]);
+
+        await addLog(req.session.nome, req.session.perfil, 'Edição', 'Óleo', `Editou troca de óleo do veículo ${veic ? veic.placa : ''}`);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Erro ao atualizar troca de óleo:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
+});
+
+app.delete('/api/oleos/:id', requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const result = await db.query('DELETE FROM oleos WHERE id = $1 RETURNING id', [req.params.id]);
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Troca de óleo não encontrada.' });
+        }
+        await addLog(req.session.nome, req.session.perfil, 'Exclusão', 'Óleo', `Excluiu troca de óleo ID ${req.params.id}`);
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Erro ao excluir troca de óleo:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
 });
 
 // ─── VIAGENS ──────────────────────────────────────────────
-app.get('/api/viagens', requireAuth, (req, res) => {
-    const db = readDB();
-    res.json(db.viagens);
+app.get('/api/viagens', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query('SELECT * FROM viagens ORDER BY "dataSaida" DESC, "horaSaida" DESC');
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Erro ao obter viagens:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
 });
 
-app.post('/api/viagens', requireAuth, (req, res) => {
-    const db = readDB();
-    const v = { ...req.body };
-    v.id = 'VIA-' + uuidv4().substr(0, 8).toUpperCase();
-    v.kmInicial = parseFloat(v.kmInicial) || 0;
-    v.kmFinal = parseFloat(v.kmFinal) || 0;
-    v.custos = parseFloat(v.custos) || 0;
-    v.kmRodado = v.kmFinal > v.kmInicial ? v.kmFinal - v.kmInicial : 0;
-    db.viagens.unshift(v);
-    addLog(db, req.session.nome, req.session.perfil, 'Cadastro', 'Viagem', `Registrou viagem ${v.origem} → ${v.destino}`);
-    writeDB(db);
-    res.json(v);
+app.post('/api/viagens', requireAuth, async (req, res) => {
+    try {
+        const v = req.body;
+        const id = 'VIA-' + uuidv4().substr(0, 8).toUpperCase();
+        const kmInicial = parseFloat(v.kmInicial) || 0;
+        const kmFinal = parseFloat(v.kmFinal) || 0;
+        const custos = parseFloat(v.custos) || 0;
+        const kmRodado = kmFinal > kmInicial ? kmFinal - kmInicial : 0;
+
+        const result = await db.query(`
+            INSERT INTO viagens (id, "veiculoId", "motoristaId", "dataSaida", "horaSaida", "dataRetorno", "horaRetorno", "kmInicial", "kmFinal", origem, destino, status, observacoes, "kmRodado", custos)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+            RETURNING *
+        `, [
+            id, v.veiculoId, v.motoristaId, v.dataSaida, v.horaSaida, v.dataRetorno, v.horaRetorno, kmInicial, kmFinal, v.origem, v.destino, v.status || 'Em Andamento', v.observacoes, kmRodado, custos
+        ]);
+
+        await addLog(req.session.nome, req.session.perfil, 'Cadastro', 'Viagem', `Registrou viagem ${v.origem} → ${v.destino}`);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Erro ao cadastrar viagem:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
 });
 
-app.put('/api/viagens/:id', requireAuth, (req, res) => {
-    const db = readDB();
-    const idx = db.viagens.findIndex(v => v.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: 'Viagem não encontrada.' });
-    
-    const updates = { ...req.body };
-    if (updates.kmInicial !== undefined) {
-        updates.kmInicial = parseFloat(updates.kmInicial) || 0;
-    }
-    if (updates.kmFinal !== undefined) {
-        updates.kmFinal = parseFloat(updates.kmFinal) || 0;
-    }
-    updates.custos = parseFloat(updates.custos) || 0;
-
-    const kmInicial = updates.kmInicial !== undefined ? updates.kmInicial : db.viagens[idx].kmInicial;
-    const kmFinal = updates.kmFinal !== undefined ? updates.kmFinal : db.viagens[idx].kmFinal;
-
-    if (kmFinal > kmInicial) {
-        updates.kmRodado = kmFinal - kmInicial;
-        // Atualizar KM do veículo
-        const veiculoId = updates.veiculoId || db.viagens[idx].veiculoId;
-        const vidx = db.veiculos.findIndex(v => v.id === veiculoId);
-        if (vidx !== -1 && kmFinal > parseFloat(db.veiculos[vidx].kmAtual)) {
-            db.veiculos[vidx].kmAtual = kmFinal;
-            if (!db.veiculos[vidx].historicoKM) db.veiculos[vidx].historicoKM = [];
-            db.veiculos[vidx].historicoKM.push({ data: new Date().toISOString().split('T')[0], km: kmFinal });
+app.put('/api/viagens/:id', requireAuth, async (req, res) => {
+    try {
+        const updates = req.body;
+        const originalRes = await db.query('SELECT * FROM viagens WHERE id = $1', [req.params.id]);
+        if (originalRes.rowCount === 0) {
+            return res.status(404).json({ error: 'Viagem não encontrada.' });
         }
-    } else {
-        updates.kmRodado = 0;
-    }
+        const original = originalRes.rows[0];
 
-    db.viagens[idx] = { ...db.viagens[idx], ...updates };
-    addLog(db, req.session.nome, req.session.perfil, 'Edição', 'Viagem', `Editou/Atualizou viagem ${req.params.id}`);
-    writeDB(db);
-    res.json(db.viagens[idx]);
+        const kmInicial = updates.kmInicial !== undefined ? parseFloat(updates.kmInicial) || 0 : parseFloat(original.kmInicial) || 0;
+        const kmFinal = updates.kmFinal !== undefined ? parseFloat(updates.kmFinal) || 0 : parseFloat(original.kmFinal) || 0;
+        const custos = updates.custos !== undefined ? parseFloat(updates.custos) || 0 : parseFloat(original.custos) || 0;
+
+        let kmRodado = 0;
+        if (kmFinal > kmInicial) {
+            kmRodado = kmFinal - kmInicial;
+            // Atualizar KM do veículo
+            const veiculoId = updates.veiculoId || original.veiculoId;
+            const veicRes = await db.query('SELECT "kmAtual", "historicoKM" FROM veiculos WHERE id = $1', [veiculoId]);
+            const veic = veicRes.rows[0];
+            if (veic && kmFinal > parseFloat(veic.kmAtual)) {
+                let historicoKM = veic.historicoKM || [];
+                historicoKM.push({ data: new Date().toISOString().split('T')[0], km: kmFinal });
+                await db.query('UPDATE veiculos SET "kmAtual" = $1, "historicoKM" = $2 WHERE id = $3', [kmFinal, JSON.stringify(historicoKM), veiculoId]);
+            }
+        }
+
+        const result = await db.query(`
+            UPDATE viagens SET
+                "veiculoId" = $1, "motoristaId" = $2, "dataSaida" = $3, "horaSaida" = $4, "dataRetorno" = $5, "horaRetorno" = $6, "kmInicial" = $7, "kmFinal" = $8, origem = $9, destino = $10, status = $11, observacoes = $12, "kmRodado" = $13, custos = $14
+            WHERE id = $15
+            RETURNING *
+        `, [
+            updates.veiculoId || original.veiculoId,
+            updates.motoristaId || original.motoristaId,
+            updates.dataSaida || original.dataSaida,
+            updates.horaSaida || original.horaSaida,
+            updates.dataRetorno || original.dataRetorno,
+            updates.horaRetorno || original.horaRetorno,
+            kmInicial,
+            kmFinal,
+            updates.origem || original.origem,
+            updates.destino || original.destino,
+            updates.status || original.status,
+            updates.observacoes || original.observacoes,
+            kmRodado,
+            custos,
+            req.params.id
+        ]);
+
+        await addLog(req.session.nome, req.session.perfil, 'Edição', 'Viagem', `Editou/Atualizou viagem ${req.params.id}`);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Erro ao atualizar viagem:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
 });
 
-app.delete('/api/viagens/:id', requireAuth, requireAdmin, (req, res) => {
-    console.log("DELETE TRIP REQUEST - ID:", req.params.id, "Session:", req.session);
-    const db = readDB();
-    const idx = db.viagens.findIndex(v => v.id === req.params.id);
-    console.log("DELETE TRIP MATCHING - Index:", idx);
-    if (idx === -1) return res.status(404).json({ error: 'Viagem não encontrada.' });
-    const v = db.viagens[idx];
-    db.viagens.splice(idx, 1);
-    addLog(db, req.session.nome, req.session.perfil, 'Exclusão', 'Viagem', `Excluiu viagem ${v.origem} → ${v.destino}`);
-    writeDB(db);
-    res.json({ success: true });
+app.delete('/api/viagens/:id', requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const result = await db.query('DELETE FROM viagens WHERE id = $1 RETURNING origem, destino', [req.params.id]);
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Viagem não encontrada.' });
+        }
+        const v = result.rows[0];
+        await addLog(req.session.nome, req.session.perfil, 'Exclusão', 'Viagem', `Excluiu viagem ${v.origem} → ${v.destino}`);
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Erro ao excluir viagem:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
 });
 
 // ─── MULTAS ───────────────────────────────────────────────
-app.get('/api/multas', requireAuth, (req, res) => {
-    const db = readDB();
-    res.json(db.multas || []);
+app.get('/api/multas', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query('SELECT * FROM multas ORDER BY data DESC');
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Erro ao obter multas:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
 });
 
-app.post('/api/multas', requireAuth, (req, res) => {
-    const db = readDB();
-    if (!db.multas) db.multas = [];
-    const m = { ...req.body };
-    m.id = 'MUL-' + uuidv4().substr(0, 8).toUpperCase();
-    m.valor = parseFloat(m.valor) || 0;
-    m.historico = [
-        {
+app.post('/api/multas', requireAuth, async (req, res) => {
+    try {
+        const m = req.body;
+        const id = 'MUL-' + uuidv4().substr(0, 8).toUpperCase();
+        const valor = parseFloat(m.valor) || 0;
+        const historico = [
+            {
+                data: new Date().toISOString(),
+                usuario: req.session.nome,
+                acao: 'Cadastro Inicial',
+                status: m.status || 'Não Pago'
+            }
+        ];
+
+        const result = await db.query(`
+            INSERT INTO multas (id, "veiculoId", "motoristaId", data, hora, horario, codigo, descricao, gravidade, pontos, valor, status, observacoes, anexo, "anexoBoleto", "anexoComprovante", historico)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+            RETURNING *
+        `, [
+            id, m.veiculoId, m.motoristaId, m.data, m.hora || m.horario, m.horario || m.hora, m.codigo, m.descricao, m.gravidade, parseInt(m.pontos) || 0, valor, m.status || 'Não Pago', m.observacoes, m.anexo, m.anexoBoleto, m.anexoComprovante, JSON.stringify(historico)
+        ]);
+
+        await addLog(req.session.nome, req.session.perfil, 'Cadastro', 'Multa', `Registrou multa no valor de R$ ${valor.toFixed(2)}`);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Erro ao cadastrar multa:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
+});
+
+app.put('/api/multas/:id', requireAuth, async (req, res) => {
+    try {
+        const m = req.body;
+        const originalRes = await db.query('SELECT * FROM multas WHERE id = $1', [req.params.id]);
+        if (originalRes.rowCount === 0) {
+            return res.status(404).json({ error: 'Multa não encontrada.' });
+        }
+        const original = originalRes.rows[0];
+        const valor = parseFloat(m.valor) || 0;
+
+        let historico = original.historico || [];
+        let actionDesc = 'Dados da multa editados';
+        if (original.status !== m.status) {
+            actionDesc = `Status alterado de "${original.status}" para "${m.status}"`;
+        }
+
+        historico.push({
             data: new Date().toISOString(),
             usuario: req.session.nome,
-            acao: 'Cadastro Inicial',
-            status: m.status || 'Não Pago'
-        }
-    ];
-    db.multas.push(m);
-    addLog(db, req.session.nome, req.session.perfil, 'Cadastro', 'Multa', `Registrou multa no valor de R$ ${m.valor.toFixed(2)}`);
-    writeDB(db);
-    res.json(m);
-});
+            acao: actionDesc,
+            status: m.status || original.status
+        });
 
-app.put('/api/multas/:id', requireAuth, (req, res) => {
-    const db = readDB();
-    const idx = db.multas.findIndex(m => m.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: 'Multa não encontrada.' });
-    const original = db.multas[idx];
-    const updated = { ...original, ...req.body };
-    updated.valor = parseFloat(updated.valor) || 0;
-    
-    if (!updated.historico) updated.historico = [];
-    
-    let actionDesc = 'Dados da multa editados';
-    if (original.status !== updated.status) {
-        actionDesc = `Status alterado de "${original.status}" para "${updated.status}"`;
+        const result = await db.query(`
+            UPDATE multas SET
+                "veiculoId" = $1, "motoristaId" = $2, data = $3, hora = $4, horario = $5, codigo = $6, descricao = $7, gravidade = $8, pontos = $9, valor = $10, status = $11, observacoes = $12, anexo = $13, "anexoBoleto" = $14, "anexoComprovante" = $15, historico = $16
+            WHERE id = $17
+            RETURNING *
+        `, [
+            m.veiculoId || original.veiculoId,
+            m.motoristaId || original.motoristaId,
+            m.data || original.data,
+            m.hora || m.horario || original.hora,
+            m.horario || m.hora || original.horario,
+            m.codigo || original.codigo,
+            m.descricao || original.descricao,
+            m.gravidade || original.gravidade,
+            parseInt(m.pontos) || 0,
+            valor,
+            m.status || original.status,
+            m.observacoes || original.observacoes,
+            m.anexo || original.anexo,
+            m.anexoBoleto || original.anexoBoleto,
+            m.anexoComprovante || original.anexoComprovante,
+            JSON.stringify(historico),
+            req.params.id
+        ]);
+
+        await addLog(req.session.nome, req.session.perfil, 'Edição', 'Multa', `Atualizou dados da multa ${req.params.id}`);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Erro ao atualizar multa:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
     }
-    
-    updated.historico.push({
-        data: new Date().toISOString(),
-        usuario: req.session.nome,
-        acao: actionDesc,
-        status: updated.status
-    });
-
-    db.multas[idx] = updated;
-    addLog(db, req.session.nome, req.session.perfil, 'Edição', 'Multa', `Atualizou dados da multa ${req.params.id}`);
-    writeDB(db);
-    res.json(updated);
 });
 
-app.delete('/api/multas/:id', requireAuth, requireAdmin, (req, res) => {
-    const db = readDB();
-    const idx = db.multas.findIndex(m => m.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: 'Multa não encontrada.' });
-    const original = db.multas[idx];
-    db.multas = db.multas.filter(m => m.id !== req.params.id);
-    addLog(db, req.session.nome, req.session.perfil, 'Exclusão', 'Multa', `Excluiu multa ${req.params.id}`);
-    writeDB(db);
-    res.json({ success: true });
+app.delete('/api/multas/:id', requireAuth, requireAdmin, async (req, res) => {
+    try {
+        const result = await db.query('DELETE FROM multas WHERE id = $1 RETURNING id', [req.params.id]);
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Multa não encontrada.' });
+        }
+        await addLog(req.session.nome, req.session.perfil, 'Exclusão', 'Multa', `Excluiu multa ${req.params.id}`);
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Erro ao excluir multa:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
 });
+
 
 // ─── LEGIACY DOCUMENTS FALLBACK (CACHE COMPATIBILITY) ─────
 app.get('/api/documentos', requireAuth, (req, res) => {
@@ -816,107 +1253,156 @@ app.get('/api/documentos', requireAuth, (req, res) => {
 });
 
 // ─── LOGS DE AUDITORIA ────────────────────────────────────
-app.get('/api/logs', requireAuth, (req, res) => {
-    const db = readDB();
-    res.json(db.logs);
+app.get('/api/logs', requireAuth, async (req, res) => {
+    try {
+        const result = await db.query('SELECT * FROM logs ORDER BY data DESC LIMIT 300');
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Erro ao obter logs:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
 });
 
-app.delete('/api/logs', requireAuth, requireAdmin, (req, res) => {
-    const db = readDB();
-    db.logs = [{
-        id: 'LOG-RESET',
-        data: new Date().toISOString(),
-        usuario: req.session.nome,
-        perfil: req.session.perfil,
-        acao: 'Limpeza de Logs',
-        entidade: 'Banco de Dados',
-        detalhes: 'Auditoria resetada pelo administrador.'
-    }];
-    writeDB(db);
-    res.json({ success: true });
+app.delete('/api/logs', requireAuth, requireAdmin, async (req, res) => {
+    try {
+        await db.query('DELETE FROM logs');
+        const id = 'LOG-RESET';
+        await db.query(`
+            INSERT INTO logs (id, data, usuario, perfil, acao, entidade, detalhes)
+            VALUES ($1, CURRENT_TIMESTAMP, $2, $3, 'Limpeza de Logs', 'Banco de Dados', 'Auditoria resetada pelo administrador.')
+        `, [id, req.session.nome, req.session.perfil]);
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Erro ao limpar logs:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
 });
 
 // ─── MÉTRICAS PARA DASHBOARD ──────────────────────────────
-app.get('/api/metricas', requireAuth, (req, res) => {
-    const db = readDB();
-    const today = new Date();
-    const tenDays = new Date(); tenDays.setDate(today.getDate() + 10);
+app.get('/api/metricas', requireAuth, async (req, res) => {
+    try {
+        const today = new Date();
+        const tenDays = new Date(); tenDays.setDate(today.getDate() + 10);
 
-    let kmTotal = 0;
-    db.veiculos.forEach(v => {
-        const first = v.historicoKM && v.historicoKM[0] ? v.historicoKM[0].km : parseFloat(v.kmAtual);
-        kmTotal += Math.max(0, parseFloat(v.kmAtual) - first);
-    });
+        const [
+            veiculosRes,
+            motoristasRes,
+            abastecimentosRes,
+            manutencoesRes,
+            oleosRes,
+            pneusRes,
+            multasRes
+        ] = await Promise.all([
+            db.query('SELECT "kmAtual", "historicoKM", status FROM veiculos'),
+            db.query('SELECT status, "dataVencimentoCNH" FROM motoristas'),
+            db.query('SELECT "valorTotal", "kmL" FROM abastecimentos'),
+            db.query('SELECT valor, status FROM manutencoes'),
+            db.query('SELECT valor FROM oleos'),
+            db.query('SELECT custo FROM pneus'),
+            db.query('SELECT valor FROM multas')
+        ]);
 
-    const totalCombustivel = db.abastecimentos.reduce((s, a) => s + (parseFloat(a.valorTotal) || 0), 0);
-    const totalManutencao = db.manutencoes.reduce((s, m) => s + (parseFloat(m.valor) || 0), 0);
-    const totalLubrificantes = db.oleos.reduce((s, o) => s + (parseFloat(o.valor) || 0), 0);
-    const totalPneus = db.pneus.reduce((s, p) => s + (parseFloat(p.custo) || 0), 0);
+        const veiculos = veiculosRes.rows;
+        const motoristas = motoristasRes.rows;
+        const abastecimentos = abastecimentosRes.rows;
+        const manutencoes = manutencoesRes.rows;
+        const oleos = oleosRes.rows;
+        const pneus = pneusRes.rows;
+        const multas = multasRes.rows;
 
-    const kmlValid = db.abastecimentos.filter(a => a.kmL > 0);
-    const mediaKML = kmlValid.length > 0 ? kmlValid.reduce((s, a) => s + a.kmL, 0) / kmlValid.length : 0;
+        let kmTotal = 0;
+        veiculos.forEach(v => {
+            const hist = Array.isArray(v.historicoKM) ? v.historicoKM : [];
+            const first = hist[0] ? parseFloat(hist[0].km) || parseFloat(v.kmAtual) || 0 : parseFloat(v.kmAtual) || 0;
+            kmTotal += Math.max(0, (parseFloat(v.kmAtual) || 0) - first);
+        });
 
-    // Alertas rápidos
-    const cnhVencidas = db.motoristas.filter(m => new Date(m.dataVencimentoCNH) < today).length;
-    const cnhAVencer = db.motoristas.filter(m => { const d = new Date(m.dataVencimentoCNH); return d >= today && d <= tenDays; }).length;
-    const manutAtrasadas = db.manutencoes.filter(m => m.status === 'Atrasada').length;
+        const totalCombustivel = abastecimentos.reduce((s, a) => s + (parseFloat(a.valorTotal) || 0), 0);
+        const totalManutencao = manutencoes.reduce((s, m) => s + (parseFloat(m.valor) || 0), 0);
+        const totalLubrificantes = oleos.reduce((s, o) => s + (parseFloat(o.valor) || 0), 0);
+        const totalPneus = pneus.reduce((s, p) => s + (parseFloat(p.custo) || 0), 0);
 
-    // Multas metrics
-    const totalMultasVal = (db.multas || []).reduce((acc, m) => acc + (parseFloat(m.valor) || 0), 0);
-    const totalMultasCount = (db.multas || []).length;
+        const kmlValid = abastecimentos.filter(a => parseFloat(a.kmL) > 0);
+        const mediaKML = kmlValid.length > 0 ? kmlValid.reduce((s, a) => s + parseFloat(a.kmL), 0) / kmlValid.length : 0;
 
-    res.json({
-        kmTotalFrota: kmTotal || 148200,
-        totalGastoCombustivel: totalCombustivel,
-        totalGastoManutencao: totalManutencao,
-        totalGastoLubrificantes: totalLubrificantes,
-        totalGastoPneus: totalPneus,
-        mediaKMLGeral: parseFloat(mediaKML.toFixed(2)) || 9.8,
-        veiculosEmManutencao: db.veiculos.filter(v => v.status === 'em_manutencao').length,
-        totalVeiculos: db.veiculos.length,
-        totalMotoristas: db.motoristas.filter(m => m.status === 'ativo').length,
-        cnhsVencidas: cnhVencidas,
-        cnhsAVencer: cnhAVencer,
-        manutencaoAtrasada: manutAtrasadas,
-        totalMultas: totalMultasCount,
-        valorTotalMultas: totalMultasVal
-    });
+        // Alertas rápidos
+        const cnhVencidas = motoristas.filter(m => new Date(m.dataVencimentoCNH) < today).length;
+        const cnhAVencer = motoristas.filter(m => { const d = new Date(m.dataVencimentoCNH); return d >= today && d <= tenDays; }).length;
+        const manutAtrasadas = manutencoes.filter(m => m.status === 'Atrasada').length;
+
+        // Multas metrics
+        const totalMultasVal = multas.reduce((acc, m) => acc + (parseFloat(m.valor) || 0), 0);
+        const totalMultasCount = multas.length;
+
+        res.json({
+            kmTotalFrota: kmTotal || 148200,
+            totalGastoCombustivel: totalCombustivel,
+            totalGastoManutencao: totalManutencao,
+            totalGastoLubrificantes: totalLubrificantes,
+            totalGastoPneus: totalPneus,
+            mediaKMLGeral: parseFloat(mediaKML.toFixed(2)) || 9.8,
+            veiculosEmManutencao: veiculos.filter(v => v.status === 'em_manutencao').length,
+            totalVeiculos: veiculos.length,
+            totalMotoristas: motoristas.filter(m => m.status === 'ativo').length,
+            cnhsVencidas: cnhVencidas,
+            cnhsAVencer: cnhAVencer,
+            manutencaoAtrasada: manutAtrasadas,
+            totalMultas: totalMultasCount,
+            valorTotalMultas: totalMultasVal
+        });
+    } catch (err) {
+        console.error("Erro ao obter métricas do dashboard:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
 });
 
 // ─── ALERTAS DINÂMICOS ────────────────────────────────────
-app.get('/api/alertas', requireAuth, (req, res) => {
-    const db = readDB();
-    const alerts = [];
-    const today = new Date();
-    const tenDays = new Date(); tenDays.setDate(today.getDate() + 10);
+app.get('/api/alertas', requireAuth, async (req, res) => {
+    try {
+        const alerts = [];
+        const today = new Date();
+        const tenDays = new Date(); tenDays.setDate(today.getDate() + 10);
 
-    db.motoristas.forEach(m => {
-        const exp = new Date(m.dataVencimentoCNH);
-        if (exp < today) alerts.push({ id: `ALT-CNH-EXP-${m.id}`, prioridade: 'Alta', titulo: `CNH Vencida: ${m.nome}`, desc: `Venceu em ${m.dataVencimentoCNH}`, link: 'motoristas', targetId: m.id });
-        else if (exp <= tenDays) alerts.push({ id: `ALT-CNH-PRX-${m.id}`, prioridade: 'Média', titulo: `CNH a Vencer: ${m.nome}`, desc: `Vence em ${m.dataVencimentoCNH}`, link: 'motoristas', targetId: m.id });
-    });
+        const [
+            motoristasRes,
+            manutencoesRes,
+            multasRes,
+            pneusRes
+        ] = await Promise.all([
+            db.query('SELECT id, nome, "dataVencimentoCNH" FROM motoristas'),
+            db.query('SELECT m.id, m.km, m.tipo, m.status, v.placa, m."veiculoId" FROM manutencoes m LEFT JOIN veiculos v ON m."veiculoId" = v.id WHERE m.status = \'Atrasada\''),
+            db.query('SELECT m.id, m.data, m.valor, m.status, v.placa, m."veiculoId" FROM multas m LEFT JOIN veiculos v ON m."veiculoId" = v.id WHERE m.status = \'Não Pago\''),
+            db.query('SELECT p.id, p.codigo, p."vidaEstimada", p."kmInicial", v.placa, v."kmAtual" FROM pneus p JOIN veiculos v ON p."veiculoAtual" = v.id WHERE p."veiculoAtual" IS NOT NULL')
+        ]);
 
-    db.manutencoes.filter(m => m.status === 'Atrasada').forEach(m => {
-        const v = db.veiculos.find(v => v.id === m.veiculoId);
-        alerts.push({ id: `ALT-MAN-${m.id}`, prioridade: 'Alta', titulo: `Manutenção Atrasada: ${v ? v.placa : ''}`, desc: `O.S. ${m.tipo} agendada para ${m.km} KM`, link: 'manutencoes', targetId: m.id });
-    });
+        const motoristas = motoristasRes.rows;
+        const manutencoes = manutencoesRes.rows;
+        const multas = multasRes.rows;
+        const pneus = pneusRes.rows;
 
-    // Multas alertas pendentes
-    (db.multas || []).forEach(m => {
-        if (m.status === 'Não Pago') {
-            const v = db.veiculos.find(veh => veh.id === m.veiculoId);
-            const label = v ? v.placa : 'Frota';
-            
+        motoristas.forEach(m => {
+            const exp = new Date(m.dataVencimentoCNH);
+            if (exp < today) alerts.push({ id: `ALT-CNH-EXP-${m.id}`, prioridade: 'Alta', titulo: `CNH Vencida: ${m.nome}`, desc: `Venceu em ${m.dataVencimentoCNH}`, link: 'motoristas', targetId: m.id });
+            else if (exp <= tenDays) alerts.push({ id: `ALT-CNH-PRX-${m.id}`, prioridade: 'Média', titulo: `CNH a Vencer: ${m.nome}`, desc: `Vence em ${m.dataVencimentoCNH}`, link: 'motoristas', targetId: m.id });
+        });
+
+        manutencoes.forEach(m => {
+            alerts.push({ id: `ALT-MAN-${m.id}`, prioridade: 'Alta', titulo: `Manutenção Atrasada: ${m.placa || ''}`, desc: `O.S. ${m.tipo} agendada para ${m.km} KM`, link: 'manutencoes', targetId: m.id });
+        });
+
+        multas.forEach(m => {
+            const label = m.placa || 'Frota';
             const infraDate = new Date(m.data);
             const limitDate = new Date();
             limitDate.setDate(limitDate.getDate() - 30);
+            const formattedVal = parseFloat(m.valor) || 0;
             
             if (infraDate < limitDate) {
                 alerts.push({
                     id: `ALT-MUL-EXP-${m.id}`,
                     prioridade: 'Alta',
                     titulo: `Multa Crítica pendente: ${label}`,
-                    desc: `Valor de R$ ${m.valor.toFixed(2)} registrado em ${m.data.split('-').reverse().join('/')}`,
+                    desc: `Valor de R$ ${formattedVal.toFixed(2)} registrado em ${m.data.split('-').reverse().join('/')}`,
                     link: 'multas',
                     targetId: m.id
                 });
@@ -925,25 +1411,26 @@ app.get('/api/alertas', requireAuth, (req, res) => {
                     id: `ALT-MUL-PRX-${m.id}`,
                     prioridade: 'Média',
                     titulo: `Multa pendente de pagamento: ${label}`,
-                    desc: `Valor de R$ ${m.valor.toFixed(2)} registrado em ${m.data.split('-').reverse().join('/')}`,
+                    desc: `Valor de R$ ${formattedVal.toFixed(2)} registrado em ${m.data.split('-').reverse().join('/')}`,
                     link: 'multas',
                     targetId: m.id
                 });
             }
-        }
-    });
+        });
 
-    db.pneus.filter(p => p.veiculoAtual).forEach(p => {
-        const v = db.veiculos.find(v => v.id === p.veiculoAtual);
-        if (!v) return;
-        const kmRodado = parseFloat(v.kmAtual) - parseFloat(p.kmInicial);
-        const kmLeft = Math.max(0, p.vidaEstimada - kmRodado);
-        const pct = (kmLeft / p.vidaEstimada) * 100;
-        if (pct < 10) alerts.push({ id: `ALT-PNE-${p.id}`, prioridade: 'Alta', titulo: `Trocar Pneu: ${v.placa}`, desc: `Pneu [${p.codigo}] com apenas ${Math.round(kmLeft)} KM restantes`, link: 'pneus', targetId: p.id });
-        else if (pct < 25) alerts.push({ id: `ALT-PNE-PRX-${p.id}`, prioridade: 'Média', titulo: `Desgaste Pneu: ${v.placa}`, desc: `Pneu [${p.codigo}] com ${Math.round(pct)}% de vida útil`, link: 'pneus', targetId: p.id });
-    });
+        pneus.forEach(p => {
+            const kmRodado = parseFloat(p.kmAtual) - parseFloat(p.kmInicial);
+            const kmLeft = Math.max(0, parseFloat(p.vidaEstimada) - kmRodado);
+            const pct = parseFloat(p.vidaEstimada) > 0 ? (kmLeft / parseFloat(p.vidaEstimada)) * 100 : 0;
+            if (pct < 10) alerts.push({ id: `ALT-PNE-${p.id}`, prioridade: 'Alta', titulo: `Trocar Pneu: ${p.placa}`, desc: `Pneu [${p.codigo}] com apenas ${Math.round(kmLeft)} KM restantes`, link: 'pneus', targetId: p.id });
+            else if (pct < 25) alerts.push({ id: `ALT-PNE-PRX-${p.id}`, prioridade: 'Média', titulo: `Desgaste Pneu: ${p.placa}`, desc: `Pneu [${p.codigo}] com ${Math.round(pct)}% de vida útil`, link: 'pneus', targetId: p.id });
+        });
 
-    res.json(alerts);
+        res.json(alerts);
+    } catch (err) {
+        console.error("Erro ao obter alertas dinâmicos:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
 });
 
 // ─── ROTA PRINCIPAL (SPA) ─────────────────────────────────
@@ -1094,22 +1581,27 @@ function getSeedData() {
     return { usuarios, veiculos, motoristas, multas, abastecimentos, manutencoes, pneus, oleos, viagens, logs };
 }
 
-// ─── Inicializar BD se não existir ───────────────────────
-if (!fs.existsSync(DB_PATH)) {
-    const seed = getSeedData();
-    fs.writeFileSync(DB_PATH, JSON.stringify(seed, null, 2));
-    console.log('✅ Banco de dados inicializado com dados semente.');
+// ─── Inicializar BD se não existir e migrar ───────────────
+async function boot() {
+    try {
+        await db.initDB();
+        const migrate = require('./migrate');
+        await migrate();
+    } catch (err) {
+        console.error("Falha crítica ao bootar banco de dados PostgreSQL:", err);
+    }
 }
 
 // ─── Start Server ─────────────────────────────────────────
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
+    await boot();
     console.log('');
     console.log('╔══════════════════════════════════════════════╗');
     console.log('║       MovixFrota ERP - Servidor Ativo        ║');
     console.log('╠══════════════════════════════════════════════╣');
     console.log(`║  🌐 URL:   http://localhost:${PORT}              ║`);
     console.log('║  📦 Modo:  Desenvolvimento (Node.js/Express) ║');
-    console.log('║  🗄️  DB:    data/db.json                      ║');
+    console.log('║  🗄️  DB:    PostgreSQL                        ║');
     console.log('╠══════════════════════════════════════════════╣');
     console.log('║  Credenciais Padrão:                         ║');
     console.log('║  CPF: 123.456.789-00  (Admin)                ║');
