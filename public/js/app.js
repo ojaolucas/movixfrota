@@ -116,6 +116,7 @@ class MovixApp {
             e.preventDefault();
             const identifier = document.getElementById('login-identifier').value.trim();
             const password = document.getElementById('login-password').value;
+            const rememberMe = document.getElementById('login-remember') ? document.getElementById('login-remember').checked : false;
             const submitBtn = document.getElementById('btn-login-submit');
             
             if (!identifier || !password) {
@@ -127,7 +128,7 @@ class MovixApp {
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Autenticando...';
                 
-                await window.movixStore.login(identifier, password);
+                await window.movixStore.login(identifier, password, rememberMe);
                 this.showToast('Autenticado com sucesso! Bem-vindo de volta.', 'success');
             } catch (err) {
                 this.showToast(err.message || 'CPF/E-mail ou senha inválidos.', 'danger');

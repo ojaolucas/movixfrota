@@ -55,6 +55,7 @@
                                     <th>Tipo Lubrificante</th>
                                     <th>Filtros Trocados</th>
                                     <th>Próxima Troca</th>
+                                    ${!isVisualizador ? '<th style="width: 100px; text-align: center;">Ações</th>' : ''}
                                 </tr>
                             </thead>
                             <tbody id="tbody-oleos">
@@ -125,11 +126,14 @@
 
             tbody.innerHTML = '';
             if (oleos.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Nenhum registro de troca encontrado.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="${isVisualizador ? 6 : 7}" style="text-align:center;">Nenhum registro de troca encontrado.</td></tr>`;
                 return;
             }
 
-            oleos.forEach(o => {
+            // Ordenar de forma robusta por data decrescente
+            const sortedOleos = [...oleos].sort((a, b) => new Date(b.dataTroca) - new Date(a.dataTroca));
+
+            sortedOleos.forEach(o => {
                 const v = vehicles.find(item => item.id === o.veiculoId);
                 const plaque = v ? v.placa : 'Deletado';
                 
@@ -139,6 +143,24 @@
                 if (o.filtroAr) filters.push('Ar');
                 if (o.filtroCombustivel) filters.push('Comb.');
                 const filtersLabel = filters.length > 0 ? filters.join(' + ') : 'Nenhum';
+
+                let actionsHTML = '';
+                if (!isVisualizador) {
+                    actionsHTML = `
+                        <td style="text-align: center;">
+                            <div style="display:flex; gap:6px; justify-content:center; align-items:center;">
+                                <button class="btn-icon-only btn-edit-oleo" data-id="${o.id}" title="Editar Troca de Óleo">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                ${activeUser.perfil === 'Administrador' ? `
+                                    <button class="btn-icon-only danger btn-delete-oleo" data-id="${o.id}" title="Excluir Troca de Óleo" style="background-color: var(--danger-light); color: var(--danger);">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </td>
+                    `;
+                }
 
                 tbody.innerHTML += `
                     <tr>
@@ -153,6 +175,7 @@
                                 <span style="font-size:0.7rem; color:var(--text-muted);">${o.proximaTrocaDias ? o.proximaTrocaDias.split('-').reverse().join('/') : ''}</span>
                             </div>
                         </td>
+                        ${actionsHTML}
                     </tr>
                 `;
             });
@@ -163,57 +186,77 @@
             document.getElementById('btn-nova-troca-oleo').addEventListener('click', () => openOleoModal());
         }
 
+        // Table actions triggers
+        const tbodyTable = document.getElementById('tbody-oleos');
+        if (tbodyTable) {
+            tbodyTable.addEventListener('click', (e) => {
+                const editBtn = e.target.closest('.btn-edit-oleo');
+                const deleteBtn = e.target.closest('.btn-delete-oleo');
+                if (editBtn) {
+                    const id = editBtn.getAttribute('data-id');
+                    openOleoModal(id);
+                } else if (deleteBtn) {
+                    const id = deleteBtn.getAttribute('data-id');
+                    confirmDeleteOleo(id);
+                }
+            });
+        }
+
         // Add Troca Modal Dialog
-        function openOleoModal() {
+        function openOleoModal(oleoId = null) {
+            const isEdit = oleoId !== null;
+            const o = isEdit ? oleos.find(item => item.id === oleoId) : null;
+
             const modal = document.getElementById('global-modal');
             const modalTitle = document.getElementById('modal-title');
             const modalBody = document.getElementById('modal-body-content');
             const modalFooter = document.getElementById('modal-footer-actions');
 
-            modalTitle.innerText = 'Registrar Troca de Óleo e Filtros';
+            modalTitle.innerText = isEdit ? 'Editar Troca de Óleo e Filtros' : 'Registrar Troca de Óleo e Filtros';
 
             modalBody.innerHTML = `
                 <form id="form-oleo" class="form-grid">
                     <div class="form-group">
                         <label>Data da Troca <span class="required">*</span></label>
-                        <input type="date" class="form-control" name="dataTroca" required value="${new Date().toISOString().split('T')[0]}">
+                        <input type="date" class="form-control" name="dataTroca" required value="${isEdit ? o.dataTroca : new Date().toISOString().split('T')[0]}">
                     </div>
 
                     <div class="form-group">
                         <label>Selecione o Veículo <span class="required">*</span></label>
-                        <select class="form-control" name="veiculoId" id="oil-veic-sel" required>
-                            ${vehicles.map(v => `<option value="${v.id}" data-km="${v.kmAtual}">${v.placa} - ${v.marca} ${v.modelo} (KM: ${v.kmAtual})</option>`).join('')}
+                        <select class="form-control" name="veiculoId" id="oil-veic-sel" required ${isEdit ? 'disabled' : ''}>
+                            ${vehicles.map(v => `<option value="${v.id}" data-km="${v.kmAtual}" ${isEdit && o.veiculoId === v.id ? 'selected' : ''}>${v.placa} - ${v.marca} ${v.modelo} (KM: ${v.kmAtual})</option>`).join('')}
                         </select>
+                        ${isEdit ? `<input type="hidden" name="veiculoId" value="${o.veiculoId}">` : ''}
                     </div>
 
                     <div class="form-group">
                         <label>KM Atual do Veículo <span class="required">*</span></label>
-                        <input type="number" class="form-control" name="kmTroca" id="oil-km-input" required placeholder="Ex: 145000" min="0">
+                        <input type="number" class="form-control" name="kmTroca" id="oil-km-input" required placeholder="Ex: 145000" min="0" value="${isEdit ? o.kmTroca : ''}">
                     </div>
 
                     <div class="form-group">
                         <label>Oficina / Lubrificantes <span class="required">*</span></label>
-                        <input type="text" class="form-control" name="estabelecimento" required placeholder="Ex: Posto BR Lubrax">
+                        <input type="text" class="form-control" name="estabelecimento" required placeholder="Ex: Posto BR Lubrax" value="${isEdit ? o.estabelecimento : ''}">
                     </div>
 
                     <div class="form-group">
                         <label>Especificação / Tipo do Óleo <span class="required">*</span></label>
-                        <input type="text" class="form-control" name="tipoOleo" required placeholder="Ex: Shell Rimula 15W40">
+                        <input type="text" class="form-control" name="tipoOleo" required placeholder="Ex: Shell Rimula 15W40" value="${isEdit ? o.tipoOleo : ''}">
                     </div>
 
                     <div class="form-group">
                         <label>Valor Total (R$) <span class="required">*</span></label>
-                        <input type="number" class="form-control" name="valor" required placeholder="Ex: 480.00" step="0.01" min="0">
+                        <input type="number" class="form-control" name="valor" required placeholder="Ex: 480.00" step="0.01" min="0" value="${isEdit ? o.valor : ''}">
                     </div>
 
                     <div class="form-group">
                         <label>Próxima Troca por KM (Previsão) <span class="required">*</span></label>
-                        <input type="number" class="form-control" name="proximaTrocaKM" id="oil-next-km" required placeholder="Ex: 155000" min="0">
+                        <input type="number" class="form-control" name="proximaTrocaKM" id="oil-next-km" required placeholder="Ex: 155000" min="0" value="${isEdit ? o.proximaTrocaKM : ''}">
                     </div>
 
                     <div class="form-group">
                         <label>Próxima Troca por Data (Previsão) <span class="required">*</span></label>
-                        <input type="date" class="form-control" name="proximaTrocaDias" required>
+                        <input type="date" class="form-control" name="proximaTrocaDias" required value="${isEdit ? o.proximaTrocaDias : ''}">
                     </div>
 
                     <!-- Filters checklist -->
@@ -221,13 +264,13 @@
                         <label>Substituição de Filtros Realizada:</label>
                         <div style="display:flex; gap:24px; margin-top:8px; font-size:0.85rem;">
                             <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
-                                <input type="checkbox" name="filtroOleo" value="true" checked style="width:16px; height:16px;"> Filtro de Óleo
+                                <input type="checkbox" name="filtroOleo" value="true" ${!isEdit || o.filtroOleo ? 'checked' : ''} style="width:16px; height:16px;"> Filtro de Óleo
                             </label>
                             <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
-                                <input type="checkbox" name="filtroAr" value="true" checked style="width:16px; height:16px;"> Filtro de Ar
+                                <input type="checkbox" name="filtroAr" value="true" ${!isEdit || o.filtroAr ? 'checked' : ''} style="width:16px; height:16px;"> Filtro de Ar
                             </label>
                             <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
-                                <input type="checkbox" name="filtroCombustivel" value="true" style="width:16px; height:16px;"> Filtro de Combustível
+                                <input type="checkbox" name="filtroCombustivel" value="true" ${isEdit && o.filtroCombustivel ? 'checked' : ''} style="width:16px; height:16px;"> Filtro de Combustível
                             </label>
                         </div>
                     </div>
@@ -236,7 +279,7 @@
 
             modalFooter.innerHTML = `
                 <button class="btn btn-secondary" id="btn-cancelar-modal">Cancelar</button>
-                <button class="btn btn-primary" id="btn-salvar-modal">Registrar Troca</button>
+                <button class="btn btn-primary" id="btn-salvar-modal">${isEdit ? 'Salvar Alterações' : 'Registrar Troca'}</button>
             `;
 
             modal.classList.add('active');
@@ -255,8 +298,12 @@
                 nextKmInput.value = parseInt(lastKM) + 10000;
             }
 
-            veicSel.addEventListener('change', syncKM);
-            syncKM();
+            if (!isEdit) {
+                veicSel.addEventListener('change', syncKM);
+                syncKM();
+            } else {
+                veicSel.addEventListener('change', syncKM);
+            }
 
             document.getElementById('btn-cancelar-modal').addEventListener('click', () => modal.classList.remove('active'));
 
@@ -270,7 +317,7 @@
                 // Verify minimum odometer rule
                 const enteredKM = parseFloat(kmInput.value);
                 const limitKM = parseFloat(kmInput.getAttribute('min'));
-                if (enteredKM < limitKM) {
+                if (enteredKM < limitKM && !isEdit) {
                     window.movixApp.showToast(`O KM inserido (${enteredKM}) é menor que o KM registrado do veículo (${limitKM})!`, 'danger');
                     return;
                 }
@@ -288,14 +335,62 @@
                 });
 
                 try {
-                    await window.movixStore.addOleo(data);
-                    window.movixApp.showToast('Troca de óleo cadastrada com sucesso!', 'success');
+                    if (isEdit) {
+                        await window.movixStore.updateOleo(oleoId, data);
+                        window.movixApp.showToast('Troca de óleo atualizada com sucesso!', 'success');
+                    } else {
+                        await window.movixStore.addOleo(data);
+                        window.movixApp.showToast('Troca de óleo cadastrada com sucesso!', 'success');
+                    }
                     modal.classList.remove('active');
-                    renderSemaphores();
-                    renderHistoryTable();
+                    renderOleo(container);
+                    window.movixApp.refreshAlertsCount();
+                    window.movixApp.refreshNotificationsPanel();
                 } catch (e) {
                     console.error(e);
                     window.movixApp.showToast(e.message || 'Erro ao registrar troca de óleo.', 'danger');
+                }
+            });
+        }
+
+        function confirmDeleteOleo(id) {
+            const o = oleos.find(item => item.id === id);
+            if (!o) return;
+            const v = vehicles.find(item => item.id === o.veiculoId);
+            const plaque = v ? v.placa : 'Deletado';
+
+            const modal = document.getElementById('global-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body-content');
+            const modalFooter = document.getElementById('modal-footer-actions');
+
+            modalTitle.innerText = 'Excluir Troca de Óleo';
+            modalBody.innerHTML = `
+                <div style="text-align: center; padding: 16px;">
+                    <i class="fa-solid fa-triangle-exclamation text-danger" style="font-size: 3rem; margin-bottom: 16px;"></i>
+                    <p style="font-size: 1.05rem; font-weight: 600;">Deseja realmente excluir a troca de óleo do veículo <strong>${plaque}</strong>?</p>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 8px;">Esta ação removerá permanentemente o registro de lubrificação e recalculará as metas da frota.</p>
+                </div>
+            `;
+
+            modalFooter.innerHTML = `
+                <button class="btn btn-secondary" id="btn-cancelar-del">Cancelar</button>
+                <button class="btn btn-danger" id="btn-confirmar-del">Confirmar Exclusão</button>
+            `;
+
+            modal.classList.add('active');
+
+            document.getElementById('btn-cancelar-del').addEventListener('click', () => modal.classList.remove('active'));
+            document.getElementById('btn-confirmar-del').addEventListener('click', async () => {
+                try {
+                    await window.movixStore.deleteOleo(id);
+                    window.movixApp.showToast('Registro de troca de óleo removido.', 'danger');
+                    modal.classList.remove('active');
+                    renderOleo(container);
+                    window.movixApp.refreshAlertsCount();
+                    window.movixApp.refreshNotificationsPanel();
+                } catch (err) {
+                    window.movixApp.showToast(err.message || 'Erro ao excluir troca de óleo.', 'danger');
                 }
             });
         }

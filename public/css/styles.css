@@ -1401,3 +1401,62 @@ body.not-logged-in .login-wrapper {
 }
 .kpi-trend.up { background-color: var(--success-light); color: var(--success); }
 .kpi-trend.down { background-color: var(--danger-light); color: var(--danger); }
+
+/* ─── ADDED RESPONSIVENESS OVERRIDES ─── */
+.table-responsive {
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 768px) {
+    .card {
+        padding: 16px !important;
+        gap: 12px !important;
+    }
+    .smart-table th, .smart-table td {
+        padding: 10px 12px !important;
+        font-size: 0.8rem !important;
+    }
+    .stat-value {
+        font-size: 1.35rem !important;
+    }
+    .timeline-operational {
+        padding-left: 14px !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .modal-container {
+        width: 94% !important;
+        margin: 8px !important;
+        max-height: 94vh !important;
+    }
+    .modal-body {
+        padding: 16px !important;
+    }
+    .modal-footer {
+        padding: 12px 16px !important;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .modal-footer .btn {
+        flex: 1 1 auto;
+        justify-content: center;
+    }
+    /* Force single-column grid form layouts on mobile smartphones */
+    .form-grid, form.form-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    .form-group, .form-group.full-width {
+        grid-column: span 1 !important;
+    }
+    .page-header {
+        gap: 10px !important;
+    }
+    .page-title {
+        font-size: 1.35rem !important;
+    }
+    .page-subtitle {
+        font-size: 0.75rem !important;
+    }
+}

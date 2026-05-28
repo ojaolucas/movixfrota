@@ -79,11 +79,11 @@ class MovixStore {
     }
 
     // Login Action
-    async login(identifier, senha) {
+    async login(identifier, senha, rememberMe = false) {
         const res = await fetch('/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ identifier, senha })
+            body: JSON.stringify({ identifier, senha, rememberMe })
         });
 
         if (!res.ok) {
@@ -374,6 +374,14 @@ class MovixStore {
         return true;
     }
 
+    async deletePneu(id) {
+        const res = await fetch(`/api/pneus/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Erro ao excluir pneu.');
+        this.state.pneus = this.state.pneus.filter(p => p.id !== id);
+        await this.loadData();
+        return true;
+    }
+
     // Oil Changes
     getOleos() { return this.state.oleos; }
 
@@ -388,6 +396,28 @@ class MovixStore {
         this.state.oleos.unshift(newO);
         await this.loadData();
         return newO;
+    }
+
+    async updateOleo(id, data) {
+        const res = await fetch(`/api/oleos/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        if (!res.ok) throw new Error('Erro ao atualizar registro de troca de óleo.');
+        const updatedO = await res.json();
+        const idx = this.state.oleos.findIndex(o => o.id === id);
+        if (idx !== -1) this.state.oleos[idx] = updatedO;
+        await this.loadData();
+        return true;
+    }
+
+    async deleteOleo(id) {
+        const res = await fetch(`/api/oleos/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Erro ao excluir registro de troca de óleo.');
+        this.state.oleos = this.state.oleos.filter(o => o.id !== id);
+        await this.loadData();
+        return true;
     }
 
     // Trips (Viagens)

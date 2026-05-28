@@ -61,7 +61,7 @@
                                     <th>Posição</th>
                                     <th>KM Restante</th>
                                     <th>Uso (%)</th>
-                                    ${!isVisualizador ? '<th style="width: 100px; text-align: center;">Ações</th>' : ''}
+                                    ${!isVisualizador ? '<th style="width: 140px; text-align: center;">Ações</th>' : ''}
                                 </tr>
                             </thead>
                             <tbody id="tbody-pneus">
@@ -99,7 +99,8 @@
             if (!tbody) return;
 
             tbody.innerHTML = '';
-            tires.forEach(p => {
+            const currentTires = window.movixStore.getPneus();
+            currentTires.forEach(p => {
                 const v = vehicles.find(item => item.id === p.veiculoAtual);
                 const kmLeft = window.movixStore.getRemainingKMForTire(p.id);
                 const percent = (kmLeft / p.vidaEstimada) * 100;
@@ -136,10 +137,20 @@
                             </div>
                         </td>
                         ${!isVisualizador ? `
-                            <td style="text-align: center; display:flex; gap:6px; justify-content:center; align-items:center; height:58px;">
-                                <button class="btn-icon-only btn-rodizio" data-id="${p.id}" title="Efetuar Rodízio / Alterar Posição">
-                                    <i class="fa-solid fa-arrows-spin"></i>
-                                </button>
+                            <td style="text-align: center;">
+                                <div style="display:flex; gap:6px; justify-content:center; align-items:center;">
+                                    <button class="btn-icon-only btn-edit-pneu" data-id="${p.id}" title="Editar Pneu">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <button class="btn-icon-only btn-rodizio" data-id="${p.id}" title="Efetuar Rodízio / Alterar Posição">
+                                        <i class="fa-solid fa-arrows-spin"></i>
+                                    </button>
+                                    ${activeUser.perfil === 'Administrador' ? `
+                                        <button class="btn-icon-only danger btn-delete-pneu" data-id="${p.id}" title="Excluir Pneu" style="background-color: var(--danger-light); color: var(--danger);">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    ` : ''}
+                                </div>
                             </td>
                         ` : ''}
                     </tr>
@@ -159,7 +170,7 @@
                 return;
             }
 
-            const activeTires = tires.filter(p => p.veiculoAtual === veicId);
+            const activeTires = window.movixStore.getPneus().filter(p => p.veiculoAtual === veicId);
             const qtdEixos = parseInt(selectedVeh.qtdEixos) || 2;
             const isTrailer = selectedVeh.tipoUnidade === 'Implemento/Reboque';
             const isMultiAxle = qtdEixos > 2;
@@ -252,56 +263,84 @@
             document.getElementById('btn-novo-pneu').addEventListener('click', () => openPneuModal());
         }
 
-        // Rodizio Action trigger
+        // CRUD Actions trigger in table
         document.getElementById('tbody-pneus').addEventListener('click', (e) => {
             const rodBtn = e.target.closest('.btn-rodizio');
+            const editBtn = e.target.closest('.btn-edit-pneu');
+            const deleteBtn = e.target.closest('.btn-delete-pneu');
+            
             if (rodBtn) {
                 const id = rodBtn.getAttribute('data-id');
                 openRodizioModal(id);
+            } else if (editBtn) {
+                const id = editBtn.getAttribute('data-id');
+                openPneuModal(id);
+            } else if (deleteBtn) {
+                const id = deleteBtn.getAttribute('data-id');
+                confirmDeletePneu(id);
             }
         });
 
         // Add Pneu Modal
-        function openPneuModal() {
+        function openPneuModal(pneuId = null) {
+            const isEdit = pneuId !== null;
+            const p = isEdit ? window.movixStore.getPneus().find(item => item.id === pneuId) : null;
+
             const modal = document.getElementById('global-modal');
             const modalTitle = document.getElementById('modal-title');
             const modalBody = document.getElementById('modal-body-content');
             const modalFooter = document.getElementById('modal-footer-actions');
 
-            modalTitle.innerText = 'Instalar Pneu na Frota';
+            modalTitle.innerText = isEdit ? 'Editar Cadastro de Pneu' : 'Instalar Pneu na Frota';
 
             modalBody.innerHTML = `
                 <form id="form-pneu" class="form-grid">
                     <div class="form-group">
                         <label>Código Interno <span class="required">*</span></label>
-                        <input type="text" class="form-control" name="codigo" required placeholder="Ex: PN-90022">
+                        <input type="text" class="form-control" name="codigo" required placeholder="Ex: PN-90022" value="${isEdit ? p.codigo : ''}">
                     </div>
                     <div class="form-group">
                         <label>Marca <span class="required">*</span></label>
-                        <input type="text" class="form-control" name="marca" required placeholder="Ex: Michelin, Goodyear">
+                        <input type="text" class="form-control" name="marca" required placeholder="Ex: Michelin, Goodyear" value="${isEdit ? p.marca : ''}">
                     </div>
                     <div class="form-group">
                         <label>Modelo Pneu <span class="required">*</span></label>
-                        <input type="text" class="form-control" name="modelo" required placeholder="Ex: X Multi Z">
+                        <input type="text" class="form-control" name="modelo" required placeholder="Ex: X Multi Z" value="${isEdit ? p.modelo : ''}">
                     </div>
                     <div class="form-group">
                         <label>Vida Útil Estimada (KM) <span class="required">*</span></label>
-                        <input type="number" class="form-control" name="vidaEstimada" required value="70000" min="0">
+                        <input type="number" class="form-control" name="vidaEstimada" required min="0" value="${isEdit ? p.vidaEstimada : '70000'}">
                     </div>
                     <div class="form-group">
                         <label>Custo Unitário (R$)</label>
-                        <input type="number" class="form-control" name="custo" placeholder="Ex: 2400.00" min="0" step="0.01">
+                        <input type="number" class="form-control" name="custo" placeholder="Ex: 2400.00" min="0" step="0.01" value="${isEdit ? p.custo : ''}">
                     </div>
                     <div class="form-group">
                         <label>Data de Instalação <span class="required">*</span></label>
-                        <input type="date" class="form-control" name="dataInstalacao" required value="${new Date().toISOString().split('T')[0]}">
+                        <input type="date" class="form-control" name="dataInstalacao" required value="${isEdit ? p.dataInstalacao : new Date().toISOString().split('T')[0]}">
                     </div>
                     
+                    <div class="form-group">
+                        <label>KM de Instalação (Inicial) <span class="required">*</span></label>
+                        <input type="number" class="form-control" name="kmInicial" id="pneu-kminicial-input" required min="0" value="${isEdit ? p.kmInicial : '0'}">
+                    </div>
+
+                    ${isEdit ? `
+                        <div class="form-group">
+                            <label>Status do Pneu</label>
+                            <select class="form-control" name="status">
+                                <option value="ok" ${p.status === 'ok' ? 'selected' : ''}>Regular (OK)</option>
+                                <option value="atencao" ${p.status === 'atencao' ? 'selected' : ''}>Atenção</option>
+                                <option value="vencido" ${p.status === 'vencido' ? 'selected' : ''}>Vencido (Trocar)</option>
+                            </select>
+                        </div>
+                    ` : ''}
+
                     <div class="form-group">
                         <label>Instalar no Veículo</label>
                         <select class="form-control" name="veiculoAtual" id="pneu-veic-sel">
                             <option value="">Apenas em Estoque (Sem veículo)</option>
-                            ${vehicles.map(v => `<option value="${v.id}" data-km="${v.kmAtual || 0}">${v.placa} (Eixos: ${v.qtdEixos || 2})</option>`).join('')}
+                            ${vehicles.map(v => `<option value="${v.id}" data-km="${v.kmAtual || 0}" ${isEdit && p.veiculoAtual === v.id ? 'selected' : ''}>${v.placa} (Eixos: ${v.qtdEixos || 2})</option>`).join('')}
                         </select>
                     </div>
 
@@ -311,12 +350,25 @@
                             <option value="">Apenas Estoque</option>
                         </select>
                     </div>
+
+                    <!-- History logs -->
+                    ${isEdit ? `
+                        <div class="form-group full-width" style="margin-top:10px;">
+                            <label>Histórico de Rodízios e Eventos</label>
+                            <div id="pneu-historico-lista" style="display:flex; flex-direction:column; gap:8px; max-height:130px; overflow-y:auto; background:var(--bg-surface-hover); border:1px solid var(--border-color); padding:10px; border-radius:6px; margin-bottom:8px;">
+                                ${(p.historico || []).length > 0 
+                                    ? p.historico.map(h => `<div style="font-size:0.75rem; border-bottom:1px solid var(--border-light); padding-bottom:4px; line-height:1.4;"><strong>${new Date(h.data).toLocaleDateString('pt-BR')}:</strong> ${h.detalhes}</div>`).join('') 
+                                    : '<div style="font-size:0.75rem; color:var(--text-muted); text-align:center;">Nenhum histórico registrado ainda.</div>'}
+                            </div>
+                            <input type="text" class="form-control" id="pneu-novo-historico-input" placeholder="Adicionar nova anotação/evento no histórico...">
+                        </div>
+                    ` : ''}
                 </form>
             `;
 
             modalFooter.innerHTML = `
                 <button class="btn btn-secondary" id="btn-cancelar-modal">Cancelar</button>
-                <button class="btn btn-primary" id="btn-salvar-modal">Instalar Pneu</button>
+                <button class="btn btn-primary" id="btn-salvar-modal">${isEdit ? 'Salvar Alterações' : 'Instalar Pneu'}</button>
             `;
 
             modal.classList.add('active');
@@ -333,7 +385,7 @@
                 }
                 const selectedVeh = vehicles.find(v => v.id === veicId);
                 const positions = getPositionsForVehicle(selectedVeh);
-                pneuPosSel.innerHTML = positions.map(pos => `<option value="${pos}">${pos}</option>`).join('');
+                pneuPosSel.innerHTML = positions.map(pos => `<option value="${pos}" ${isEdit && p.posicao === pos ? 'selected' : ''}>${pos}</option>`).join('');
             };
 
             if (pneuVeicSel && pneuPosSel) {
@@ -356,32 +408,67 @@
 
                 // Auto set initial KM to current Vehicle odometer on installation
                 if (data.veiculoAtual) {
-                    const veicOpt = document.getElementById('pneu-veic-sel');
                     const selectedVeh = vehicles.find(v => v.id === data.veiculoAtual);
-                    data.kmInicial = parseFloat(selectedVeh.kmAtual || 0);
-                    data.status = 'ok';
+                    data.kmInicial = isEdit ? parseFloat(data.kmInicial) : parseFloat(selectedVeh.kmAtual || 0);
+                    data.status = isEdit ? data.status : 'ok';
                 } else {
-                    data.kmInicial = 0;
-                    data.status = 'ok';
+                    data.kmInicial = isEdit ? parseFloat(data.kmInicial) : 0;
+                    data.status = isEdit ? data.status : 'ok';
                     data.posicao = '';
                 }
 
+                // Compile history
+                if (isEdit) {
+                    const historico = p.historico || [];
+                    const novaObs = document.getElementById('pneu-novo-historico-input').value.trim();
+                    if (novaObs) {
+                        historico.push({
+                            data: new Date().toISOString(),
+                            detalhes: novaObs
+                        });
+                    }
+                    // Se a posição mudou, registrar automaticamente no histórico!
+                    if (p.posicao !== data.posicao || p.veiculoAtual !== data.veiculoAtual) {
+                        const vOld = vehicles.find(item => item.id === p.veiculoAtual)?.placa || 'Estoque';
+                        const vNew = vehicles.find(item => item.id === data.veiculoAtual)?.placa || 'Estoque';
+                        historico.push({
+                            data: new Date().toISOString(),
+                            detalhes: `Rodízio/Remanejamento manual de [${vOld} - ${p.posicao || 'Estoque'}] para [${vNew} - ${data.posicao || 'Estoque'}]`
+                        });
+                    }
+                    data.historico = historico;
+                } else {
+                    data.historico = [
+                        {
+                            data: new Date().toISOString(),
+                            detalhes: 'Instalação inicial na frota'
+                        }
+                    ];
+                }
+
                 try {
-                    await window.movixStore.addPneu(data);
-                    window.movixApp.showToast('Pneu cadastrado com sucesso!', 'success');
+                    if (isEdit) {
+                        await window.movixStore.updatePneu(pneuId, data);
+                        window.movixApp.showToast('Pneu editado com sucesso!', 'success');
+                    } else {
+                        await window.movixStore.addPneu(data);
+                        window.movixApp.showToast('Pneu cadastrado com sucesso!', 'success');
+                    }
                     modal.classList.remove('active');
                     updateList();
                     renderAxleMap();
+                    window.movixApp.refreshAlertsCount();
+                    window.movixApp.refreshNotificationsPanel();
                 } catch (e) {
                     console.error(e);
-                    window.movixApp.showToast(e.message || 'Erro ao cadastrar pneu.', 'danger');
+                    window.movixApp.showToast(e.message || 'Erro ao salvar pneu.', 'danger');
                 }
             });
         }
 
         // Rodizio Position Swap Modal
         function openRodizioModal(pneuId) {
-            const p = tires.find(item => item.id === pneuId);
+            const p = window.movixStore.getPneus().find(item => item.id === pneuId);
             if (!p) return;
 
             const modal = document.getElementById('global-modal');
@@ -408,7 +495,7 @@
                                 return positions.length > 0 
                                     ? positions.map(pos => `<option value="${pos}" ${p.posicao === pos ? 'selected' : ''}>${pos}</option>`).join('')
                                     : `<option value="">Estoque</option>`;
-                            })()}
+                             })()}
                         </select>
                     </div>
 
@@ -433,15 +520,64 @@
                 const obs = document.getElementById('rodizio-obs').value;
 
                 try {
+                    const historico = p.historico || [];
+                    historico.push({
+                        data: new Date().toISOString(),
+                        detalhes: `Rodízio: Alterou de [${p.posicao}] para [${newPos}]${obs ? `. OBS: ${obs}` : ''}`
+                    });
+                    
                     // Update state
-                    await window.movixStore.updatePneu(pneuId, { ...p, posicao: newPos });
+                    await window.movixStore.updatePneu(pneuId, { ...p, posicao: newPos, historico });
                     window.movixApp.showToast('Rodízio de pneu executado com sucesso!', 'success');
                     modal.classList.remove('active');
                     updateList();
                     renderAxleMap();
+                    window.movixApp.refreshAlertsCount();
+                    window.movixApp.refreshNotificationsPanel();
                 } catch (e) {
                     console.error(e);
                     window.movixApp.showToast(e.message || 'Erro ao realizar rodízio do pneu.', 'danger');
+                }
+            });
+        }
+
+        function confirmDeletePneu(pneuId) {
+            const p = window.movixStore.getPneus().find(item => item.id === pneuId);
+            if (!p) return;
+
+            const modal = document.getElementById('global-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body-content');
+            const modalFooter = document.getElementById('modal-footer-actions');
+
+            modalTitle.innerText = 'Excluir Cadastro de Pneu';
+            modalBody.innerHTML = `
+                <div style="text-align: center; padding: 16px;">
+                    <i class="fa-solid fa-triangle-exclamation text-danger" style="font-size: 3rem; margin-bottom: 16px;"></i>
+                    <p style="font-size: 1.05rem; font-weight: 600;">Deseja realmente excluir o pneu <strong>${p.codigo}</strong> (${p.marca} ${p.modelo})?</p>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 8px;">Esta ação removerá permanentemente o pneu do sistema e dos relatórios de custo da frota.</p>
+                </div>
+            `;
+
+            modalFooter.innerHTML = `
+                <button class="btn btn-secondary" id="btn-cancelar-del">Cancelar</button>
+                <button class="btn btn-danger" id="btn-confirmar-del">Confirmar Exclusão</button>
+            `;
+
+            modal.classList.add('active');
+
+            document.getElementById('btn-cancelar-del').addEventListener('click', () => modal.classList.remove('active'));
+            document.getElementById('btn-confirmar-del').addEventListener('click', async () => {
+                try {
+                    await window.movixStore.deletePneu(pneuId);
+                    window.movixApp.showToast('Pneu excluído com sucesso.', 'danger');
+                    modal.classList.remove('active');
+                    updateList();
+                    renderAxleMap();
+                    window.movixApp.refreshAlertsCount();
+                    window.movixApp.refreshNotificationsPanel();
+                } catch (err) {
+                    window.movixApp.showToast(err.message || 'Erro ao excluir pneu.', 'danger');
                 }
             });
         }

@@ -118,7 +118,7 @@ function requireAdmin(req, res, next) {
 
 // ─── ROTAS DE AUTENTICAÇÃO ────────────────────────────────
 app.post('/api/auth/login', (req, res) => {
-    const { identifier, senha } = req.body;
+    const { identifier, senha, rememberMe } = req.body;
     if (!identifier || !senha) {
         return res.status(400).json({ error: 'Informe CPF/E-mail e senha.' });
     }
@@ -158,6 +158,12 @@ app.post('/api/auth/login', (req, res) => {
     req.session.userId = user.id;
     req.session.perfil = user.perfil;
     req.session.nome = user.nome;
+
+    if (rememberMe) {
+        req.session.cookie.maxAge = 7 * 24 * 60 * 60 * 1000; // 7 dias
+    } else {
+        req.session.cookie.maxAge = null; // Expira ao fechar o navegador
+    }
 
     // Log de acesso
     addLog(db, user.nome, user.perfil, 'Login', 'Sessão', `Login realizado com sucesso (${identifier})`);
@@ -581,10 +587,25 @@ app.put('/api/pneus/:id', requireAuth, (req, res) => {
     const db = readDB();
     const idx = db.pneus.findIndex(p => p.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: 'Pneu não encontrado.' });
-    db.pneus[idx] = { ...db.pneus[idx], ...req.body };
-    addLog(db, req.session.nome, req.session.perfil, 'Edição', 'Pneu', `Atualizou posição/rodízio do pneu ${db.pneus[idx].codigo}`);
+    const p = { ...db.pneus[idx], ...req.body };
+    p.kmInicial = parseFloat(p.kmInicial) || 0;
+    p.vidaEstimada = parseFloat(p.vidaEstimada) || 70000;
+    p.custo = parseFloat(p.custo) || 0;
+    db.pneus[idx] = p;
+    addLog(db, req.session.nome, req.session.perfil, 'Edição', 'Pneu', `Atualizou posição/rodízio do pneu ${p.codigo}`);
     writeDB(db);
-    res.json(db.pneus[idx]);
+    res.json(p);
+});
+
+app.delete('/api/pneus/:id', requireAuth, requireAdmin, (req, res) => {
+    const db = readDB();
+    const idx = db.pneus.findIndex(p => p.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Pneu não encontrado.' });
+    const p = db.pneus[idx];
+    db.pneus.splice(idx, 1);
+    addLog(db, req.session.nome, req.session.perfil, 'Exclusão', 'Pneu', `Excluiu pneu ${p.codigo}`);
+    writeDB(db);
+    res.json({ success: true });
 });
 
 // ─── ÓLEO ─────────────────────────────────────────────────
@@ -614,6 +635,44 @@ app.post('/api/oleos', requireAuth, (req, res) => {
     addLog(db, req.session.nome, req.session.perfil, 'Cadastro', 'Óleo', `Registrou troca de óleo ${db.veiculos[vidx]?.placa || ''}`);
     writeDB(db);
     res.json(o);
+});
+
+app.put('/api/oleos/:id', requireAuth, (req, res) => {
+    const db = readDB();
+    const idx = db.oleos.findIndex(o => o.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Troca de óleo não encontrada.' });
+    
+    const o = { ...db.oleos[idx], ...req.body };
+    o.kmTroca = parseFloat(o.kmTroca) || 0;
+    o.proximaTrocaKM = parseFloat(o.proximaTrocaKM) || 0;
+    o.valor = parseFloat(o.valor) || 0;
+    o.filtroAr = o.filtroAr === 'true' || o.filtroAr === true;
+    o.filtroOleo = o.filtroOleo === 'true' || o.filtroOleo === true;
+    o.filtroCombustivel = o.filtroCombustivel === 'true' || o.filtroCombustivel === true;
+
+    // Atualizar KM do veículo se aplicável
+    const vidx = db.veiculos.findIndex(v => v.id === o.veiculoId);
+    if (vidx !== -1 && o.kmTroca > parseFloat(db.veiculos[vidx].kmAtual)) {
+        db.veiculos[vidx].kmAtual = o.kmTroca;
+        if (!db.veiculos[vidx].historicoKM) db.veiculos[vidx].historicoKM = [];
+        db.veiculos[vidx].historicoKM.push({ data: new Date().toISOString().split('T')[0], km: o.kmTroca });
+    }
+    
+    db.oleos[idx] = o;
+    addLog(db, req.session.nome, req.session.perfil, 'Edição', 'Óleo', `Editou troca de óleo do veículo ${db.veiculos[vidx]?.placa || ''}`);
+    writeDB(db);
+    res.json(o);
+});
+
+app.delete('/api/oleos/:id', requireAuth, requireAdmin, (req, res) => {
+    const db = readDB();
+    const idx = db.oleos.findIndex(o => o.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Troca de óleo não encontrada.' });
+    const o = db.oleos[idx];
+    db.oleos.splice(idx, 1);
+    addLog(db, req.session.nome, req.session.perfil, 'Exclusão', 'Óleo', `Excluiu troca de óleo ID ${req.params.id}`);
+    writeDB(db);
+    res.json({ success: true });
 });
 
 // ─── VIAGENS ──────────────────────────────────────────────

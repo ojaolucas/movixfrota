@@ -47,13 +47,15 @@
             </div>
         `;
 
-        let filteredData = [...trips];
         let currentPage = 1;
         const itemsPerPage = 8;
 
         function updateTable() {
             const tbody = document.getElementById('tbody-viagens');
             if (!tbody) return;
+
+            const currentTrips = window.movixStore.getViagens();
+            const filteredData = [...currentTrips];
 
             const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
             if (currentPage > totalPages) currentPage = totalPages;
@@ -87,8 +89,8 @@
                         </td>
                         <td>
                             <div style="display:flex; flex-direction:column; font-size:0.8rem;">
-                                <span>Partida: ${t.dataSaida.split('-').reverse().join('/')}</span>
-                                <span>Retorno: ${t.dataRetorno ? t.dataRetorno.split('-').reverse().join('/') : '<strong class="text-warning">Em trânsito</strong>'}</span>
+                                <span>Partida: ${t.dataSaida.split('-').reverse().join('/')}${t.horaPartida ? ` às ${t.horaPartida}` : ''}</span>
+                                <span>Retorno: ${t.dataRetorno ? `${t.dataRetorno.split('-').reverse().join('/')}${t.horaChegada ? ` às ${t.horaChegada}` : ''}` : '<strong class="text-warning">Em trânsito</strong>'}</span>
                             </div>
                         </td>
                         <td>
@@ -97,7 +99,7 @@
                                 <span>Retorno: ${t.kmFinal > 0 ? `${parseFloat(t.kmFinal).toLocaleString('pt-BR')} km` : '-'}</span>
                             </div>
                         </td>
-                        <td style="font-weight:700;">R$ ${parseFloat(t.custos).toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
+                        <td style="font-weight:700;">R$ ${parseFloat(t.custos || 0).toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
                         <td><span class="status-pill ${statusClass}">${t.status}</span></td>
                         <td style="text-align: center;">
                             ${t.status === 'Em andamento' && !isVisualizador ? `
@@ -162,6 +164,11 @@
                     </div>
 
                     <div class="form-group">
+                        <label>Hora de Partida <span class="text-muted">(Opcional)</span></label>
+                        <input type="time" class="form-control" name="horaPartida">
+                    </div>
+
+                    <div class="form-group">
                         <label>Selecione o Veículo <span class="required">*</span></label>
                         <select class="form-control" name="veiculoId" id="via-veic-sel" required>
                             ${vehicles.filter(v => v.status === 'disponivel').map(v => `<option value="${v.id}" data-km="${v.kmAtual}">${v.placa} - ${v.marca} ${v.modelo} (KM: ${v.kmAtual})</option>`).join('')}
@@ -181,18 +188,13 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Origem <span class="required">*</span></label>
-                        <input type="text" class="form-control" name="origem" required placeholder="Cidade/UF de partida">
+                        <label>Local de Origem <span class="required">*</span></label>
+                        <input type="text" class="form-control" name="origem" required placeholder="Ex: Empresa, Galpão, Cliente, Cidade/UF">
                     </div>
 
                     <div class="form-group">
-                        <label>Destino <span class="required">*</span></label>
-                        <input type="text" class="form-control" name="destino" required placeholder="Cidade/UF de chegada">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Adiantamento de Custo (R$)</label>
-                        <input type="number" class="form-control" name="custos" placeholder="Combustível/Pedágio adiantado" value="0" step="0.01" min="0">
+                        <label>Local de Destino <span class="required">*</span></label>
+                        <input type="text" class="form-control" name="destino" required placeholder="Ex: Galpão B, Cliente X, Evento Y, Cidade/UF">
                     </div>
 
                     <div class="form-group full-width">
@@ -234,7 +236,8 @@
 
                 const formData = new FormData(form);
                 const data = {
-                    status: 'Em andamento'
+                    status: 'Em andamento',
+                    custos: 0 // Departure costs are initialized to 0 since adiantamento is removed
                 };
                 formData.forEach((value, key) => data[key] = value);
 
@@ -242,7 +245,9 @@
                     await window.movixStore.addViagem(data);
                     window.movixApp.showToast('Escala de viagem registrada!', 'success');
                     modal.classList.remove('active');
-                    updateTable();
+                    renderViagens(container);
+                    window.movixApp.refreshAlertsCount();
+                    window.movixApp.refreshNotificationsPanel();
                 } catch (e) {
                     console.error(e);
                     window.movixApp.showToast(e.message || 'Erro ao agendar viagem.', 'danger');
@@ -252,7 +257,8 @@
 
         // Conclude (Partida de Retorno) Dialog
         function openConcluirModal(tripId) {
-            const t = trips.find(item => item.id === tripId);
+            const currentTrips = window.movixStore.getViagens();
+            const t = currentTrips.find(item => item.id === tripId);
             if (!t) return;
 
             const modal = document.getElementById('global-modal');
@@ -272,6 +278,11 @@
                     <div class="form-group">
                         <label>Data de Retorno <span class="required">*</span></label>
                         <input type="date" class="form-control" name="dataRetorno" required value="${new Date().toISOString().split('T')[0]}">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Hora de Chegada <span class="text-muted">(Opcional)</span></label>
+                        <input type="time" class="form-control" name="horaChegada">
                     </div>
 
                     <div class="form-group">
@@ -318,7 +329,9 @@
                     await window.movixStore.updateViagem(tripId, data);
                     window.movixApp.showToast('Viagem concluída e odômetro do veículo atualizado!', 'success');
                     modal.classList.remove('active');
-                    updateTable();
+                    renderViagens(container);
+                    window.movixApp.refreshAlertsCount();
+                    window.movixApp.refreshNotificationsPanel();
                 } catch (e) {
                     console.error(e);
                     window.movixApp.showToast(e.message || 'Erro ao concluir viagem.', 'danger');
