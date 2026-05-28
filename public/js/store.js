@@ -452,7 +452,10 @@ class MovixStore {
 
     async deleteViagem(id) {
         const res = await fetch(`/api/viagens/${id}`, { method: 'DELETE' });
-        if (!res.ok) throw new Error('Erro ao excluir viagem.');
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || 'Erro ao excluir viagem.');
+        }
         this.state.viagens = this.state.viagens.filter(v => v.id !== id);
         await this.loadData();
         return true;
