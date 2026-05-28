@@ -783,22 +783,9 @@
                         <label>Data de Validade/Aferição</label>
                         <input type="date" class="form-control" name="validadeAfericaoTacografo" value="${isEdit && vehicle.validadeAfericaoTacografo ? vehicle.validadeAfericaoTacografo : ''}">
                     </div>
-                    <div class="form-group">
-                        <label>Próxima Troca ou Aferição</label>
-                        <input type="date" class="form-control" name="proximaTrocaAfericaoTacografo" value="${isEdit && vehicle.proximaTrocaAfericaoTacografo ? vehicle.proximaTrocaAfericaoTacografo : ''}">
-                    </div>
-                    <div class="form-group">
+                    <div class="form-group full-width">
                         <label>Empresa Responsável pela Aferição</label>
                         <input type="text" class="form-control" name="empresaAfericaoTacografo" value="${isEdit && vehicle.empresaAfericaoTacografo ? vehicle.empresaAfericaoTacografo : ''}" placeholder="Ex: Inmetro Autorizada">
-                    </div>
-                    <div class="form-group">
-                        <label>Status do Tacógrafo</label>
-                        <select class="form-control" name="statusTacografo">
-                            <option value="Regular" ${isEdit && vehicle.statusTacografo === 'Regular' ? 'selected' : ''}>Regular</option>
-                            <option value="Próximo do vencimento" ${isEdit && vehicle.statusTacografo === 'Próximo do vencimento' ? 'selected' : ''}>Próximo do vencimento</option>
-                            <option value="Vencido" ${isEdit && vehicle.statusTacografo === 'Vencido' ? 'selected' : ''}>Vencido</option>
-                            <option value="Em manutenção" ${isEdit && vehicle.statusTacografo === 'Em manutenção' ? 'selected' : ''}>Em manutenção</option>
-                        </select>
                     </div>
 
                     <!-- MULTIPLE ANEXOS TACÓGRAFO -->
@@ -806,88 +793,24 @@
                         <h4 style="font-family:var(--font-heading); color:var(--text-muted); font-size:0.85rem; text-transform:uppercase;"><i class="fa-solid fa-paperclip"></i> Anexos do Tacógrafo</h4>
                     </div>
 
-                    <!-- Certificado -->
-                    <div class="form-group">
-                        <label>Certificado de Aferição</label>
-                        <div class="file-upload-area" id="veh-tac-cert-upload-trigger" style="margin-top: 4px; cursor: pointer; padding: 12px;">
-                            <i class="fa-solid fa-file-invoice"></i>
-                            <span class="file-upload-text" id="veh-tac-cert-upload-text" style="font-size:0.75rem;">
-                                ${isEdit && vehicle.anexoCertificadoTacografo ? `<strong class="text-success"><i class="fa-solid fa-circle-check"></i> ${vehicle.anexoCertificadoTacografo.split('/').pop()}</strong>` : 'Anexar Certificado'}
-                            </span>
-                            <input type="file" id="veh-tac-cert-file-input" style="display:none;" accept="image/*,application/pdf">
-                        </div>
-                        <input type="hidden" name="anexoCertificadoTacografo" id="veh-tac-cert-anexo-url" value="${isEdit && vehicle.anexoCertificadoTacografo ? vehicle.anexoCertificadoTacografo : ''}">
-                        <div id="veh-tac-cert-actions" style="display:${isEdit && vehicle.anexoCertificadoTacografo ? 'flex' : 'none'}; gap:12px; margin-top:8px; align-items:center;">
-                            <a href="${isEdit && vehicle.anexoCertificadoTacografo ? vehicle.anexoCertificadoTacografo : '#'}" id="btn-ver-tac-cert" target="_blank" class="btn btn-secondary" style="height:28px; padding:0 8px; font-size:0.7rem; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">Ver</a>
-                            <button type="button" class="btn btn-danger" id="btn-rem-tac-cert" style="height:28px; padding:0 8px; font-size:0.7rem; display:inline-flex; align-items:center; gap:4px;">Remover</button>
-                        </div>
-                    </div>
-
-                    <!-- Laudo -->
-                    <div class="form-group">
-                        <label>Laudo Técnico</label>
-                        <div class="file-upload-area" id="veh-tac-laudo-upload-trigger" style="margin-top: 4px; cursor: pointer; padding: 12px;">
-                            <i class="fa-solid fa-file-shield"></i>
-                            <span class="file-upload-text" id="veh-tac-laudo-upload-text" style="font-size:0.75rem;">
-                                ${isEdit && vehicle.anexoLaudoTacografo ? `<strong class="text-success"><i class="fa-solid fa-circle-check"></i> ${vehicle.anexoLaudoTacografo.split('/').pop()}</strong>` : 'Anexar Laudo'}
-                            </span>
-                            <input type="file" id="veh-tac-laudo-file-input" style="display:none;" accept="image/*,application/pdf">
-                        </div>
-                        <input type="hidden" name="anexoLaudoTacografo" id="veh-tac-laudo-anexo-url" value="${isEdit && vehicle.anexoLaudoTacografo ? vehicle.anexoLaudoTacografo : ''}">
-                        <div id="veh-tac-laudo-actions" style="display:${isEdit && vehicle.anexoLaudoTacografo ? 'flex' : 'none'}; gap:12px; margin-top:8px; align-items:center;">
-                            <a href="${isEdit && vehicle.anexoLaudoTacografo ? vehicle.anexoLaudoTacografo : '#'}" id="btn-ver-tac-laudo" target="_blank" class="btn btn-secondary" style="height:28px; padding:0 8px; font-size:0.7rem; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">Ver</a>
-                            <button type="button" class="btn btn-danger" id="btn-rem-tac-laudo" style="height:28px; padding:0 8px; font-size:0.7rem; display:inline-flex; align-items:center; gap:4px;">Remover</button>
-                        </div>
-                    </div>
-
-                    <!-- Nota Fiscal -->
-                    <div class="form-group">
-                        <label>Nota Fiscal do Equipamento</label>
-                        <div class="file-upload-area" id="veh-tac-nf-upload-trigger" style="margin-top: 4px; cursor: pointer; padding: 12px;">
-                            <i class="fa-solid fa-file-invoice-dollar"></i>
-                            <span class="file-upload-text" id="veh-tac-nf-upload-text" style="font-size:0.75rem;">
-                                ${isEdit && vehicle.anexoNotaFiscalTacografo ? `<strong class="text-success"><i class="fa-solid fa-circle-check"></i> ${vehicle.anexoNotaFiscalTacografo.split('/').pop()}</strong>` : 'Anexar Nota Fiscal'}
-                            </span>
-                            <input type="file" id="veh-tac-nf-file-input" style="display:none;" accept="image/*,application/pdf">
-                        </div>
-                        <input type="hidden" name="anexoNotaFiscalTacografo" id="veh-tac-nf-anexo-url" value="${isEdit && vehicle.anexoNotaFiscalTacografo ? vehicle.anexoNotaFiscalTacografo : ''}">
-                        <div id="veh-tac-nf-actions" style="display:${isEdit && vehicle.anexoNotaFiscalTacografo ? 'flex' : 'none'}; gap:12px; margin-top:8px; align-items:center;">
-                            <a href="${isEdit && vehicle.anexoNotaFiscalTacografo ? vehicle.anexoNotaFiscalTacografo : '#'}" id="btn-ver-tac-nf" target="_blank" class="btn btn-secondary" style="height:28px; padding:0 8px; font-size:0.7rem; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">Ver</a>
-                            <button type="button" class="btn btn-danger" id="btn-rem-tac-nf" style="height:28px; padding:0 8px; font-size:0.7rem; display:inline-flex; align-items:center; gap:4px;">Remover</button>
-                        </div>
-                    </div>
-
                     <!-- Comprovantes -->
-                    <div class="form-group">
-                        <label>Comprovantes</label>
-                        <div class="file-upload-area" id="veh-tac-comp-upload-trigger" style="margin-top: 4px; cursor: pointer; padding: 12px;">
+                    <div class="form-group full-width">
+                        <label>Comprovante do Tacógrafo (Imagem ou PDF)</label>
+                        <div class="file-upload-area" id="veh-tac-comp-upload-trigger" style="margin-top: 4px; cursor: pointer; padding: 16px;">
                             <i class="fa-solid fa-receipt"></i>
-                            <span class="file-upload-text" id="veh-tac-comp-upload-text" style="font-size:0.75rem;">
-                                ${isEdit && vehicle.anexoComprovanteTacografo ? `<strong class="text-success"><i class="fa-solid fa-circle-check"></i> ${vehicle.anexoComprovanteTacografo.split('/').pop()}</strong>` : 'Anexar Comprovantes'}
+                            <span class="file-upload-text" id="veh-tac-comp-upload-text" style="font-size:0.8rem;">
+                                ${isEdit && vehicle.anexoComprovanteTacografo ? `<strong class="text-success"><i class="fa-solid fa-circle-check"></i> ${vehicle.anexoComprovanteTacografo.split('/').pop()}</strong>` : 'Arraste ou clique para anexar o Comprovante'}
                             </span>
                             <input type="file" id="veh-tac-comp-file-input" style="display:none;" accept="image/*,application/pdf">
                         </div>
                         <input type="hidden" name="anexoComprovanteTacografo" id="veh-tac-comp-anexo-url" value="${isEdit && vehicle.anexoComprovanteTacografo ? vehicle.anexoComprovanteTacografo : ''}">
                         <div id="veh-tac-comp-actions" style="display:${isEdit && vehicle.anexoComprovanteTacografo ? 'flex' : 'none'}; gap:12px; margin-top:8px; align-items:center;">
-                            <a href="${isEdit && vehicle.anexoComprovanteTacografo ? vehicle.anexoComprovanteTacografo : '#'}" id="btn-ver-tac-comp" target="_blank" class="btn btn-secondary" style="height:28px; padding:0 8px; font-size:0.7rem; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">Ver</a>
-                            <button type="button" class="btn btn-danger" id="btn-rem-tac-comp" style="height:28px; padding:0 8px; font-size:0.7rem; display:inline-flex; align-items:center; gap:4px;">Remover</button>
-                        </div>
-                    </div>
-
-                    <!-- Documentos do INMETRO -->
-                    <div class="form-group">
-                        <label>Documentos do INMETRO</label>
-                        <div class="file-upload-area" id="veh-tac-inmetro-upload-trigger" style="margin-top: 4px; cursor: pointer; padding: 12px;">
-                            <i class="fa-solid fa-file-contract"></i>
-                            <span class="file-upload-text" id="veh-tac-inmetro-upload-text" style="font-size:0.75rem;">
-                                ${isEdit && vehicle.anexoInmetroTacografo ? `<strong class="text-success"><i class="fa-solid fa-circle-check"></i> ${vehicle.anexoInmetroTacografo.split('/').pop()}</strong>` : 'Anexar Documentos INMETRO'}
-                            </span>
-                            <input type="file" id="veh-tac-inmetro-file-input" style="display:none;" accept="image/*,application/pdf">
-                        </div>
-                        <input type="hidden" name="anexoInmetroTacografo" id="veh-tac-inmetro-anexo-url" value="${isEdit && vehicle.anexoInmetroTacografo ? vehicle.anexoInmetroTacografo : ''}">
-                        <div id="veh-tac-inmetro-actions" style="display:${isEdit && vehicle.anexoInmetroTacografo ? 'flex' : 'none'}; gap:12px; margin-top:8px; align-items:center;">
-                            <a href="${isEdit && vehicle.anexoInmetroTacografo ? vehicle.anexoInmetroTacografo : '#'}" id="btn-ver-tac-inmetro" target="_blank" class="btn btn-secondary" style="height:28px; padding:0 8px; font-size:0.7rem; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">Ver</a>
-                            <button type="button" class="btn btn-danger" id="btn-rem-tac-inmetro" style="height:28px; padding:0 8px; font-size:0.7rem; display:inline-flex; align-items:center; gap:4px;">Remover</button>
+                            <a href="${isEdit && vehicle.anexoComprovanteTacografo ? vehicle.anexoComprovanteTacografo : '#'}" id="btn-ver-tac-comp" target="_blank" class="btn btn-secondary" style="height:32px; padding:0 12px; font-size:0.75rem; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                                <i class="fa-solid fa-eye"></i> Visualizar
+                            </a>
+                            <button type="button" class="btn btn-danger" id="btn-rem-tac-comp" style="height:32px; padding:0 12px; font-size:0.75rem; display:inline-flex; align-items:center; gap:6px;">
+                                <i class="fa-solid fa-trash"></i> Remover
+                            </button>
                         </div>
                     </div>
 
@@ -1226,33 +1149,16 @@
                 } else {
                     tacografoContainer.style.display = 'none';
                     document.querySelectorAll('#tacografo-fields-container input').forEach(input => input.value = '');
-                    document.querySelectorAll('#tacografo-fields-container select').forEach(sel => sel.value = 'Regular');
                     document.querySelectorAll('#tacografo-fields-container textarea').forEach(txt => txt.value = '');
-                    document.getElementById('veh-tac-cert-anexo-url').value = '';
-                    document.getElementById('veh-tac-laudo-anexo-url').value = '';
-                    document.getElementById('veh-tac-nf-anexo-url').value = '';
                     document.getElementById('veh-tac-comp-anexo-url').value = '';
-                    document.getElementById('veh-tac-inmetro-anexo-url').value = '';
-                    document.getElementById('veh-tac-cert-upload-text').innerText = 'Arraste ou clique para anexar';
-                    document.getElementById('veh-tac-laudo-upload-text').innerText = 'Arraste ou clique para anexar';
-                    document.getElementById('veh-tac-nf-upload-text').innerText = 'Arraste ou clique para anexar';
-                    document.getElementById('veh-tac-comp-upload-text').innerText = 'Arraste ou clique para anexar';
-                    document.getElementById('veh-tac-inmetro-upload-text').innerText = 'Arraste ou clique para anexar';
-                    document.getElementById('veh-tac-cert-actions').style.display = 'none';
-                    document.getElementById('veh-tac-laudo-actions').style.display = 'none';
-                    document.getElementById('veh-tac-nf-actions').style.display = 'none';
+                    document.getElementById('veh-tac-comp-upload-text').innerText = 'Arraste ou clique para anexar o Comprovante';
                     document.getElementById('veh-tac-comp-actions').style.display = 'none';
-                    document.getElementById('veh-tac-inmetro-actions').style.display = 'none';
                 }
             });
         }
 
         // Binds Tacógrafo file uploads
-        setupFieldUpload('veh-tac-cert-upload-trigger', 'veh-tac-cert-file-input', 'veh-tac-cert-upload-text', 'veh-tac-cert-anexo-url', 'veh-tac-cert-actions', 'btn-ver-tac-cert', 'btn-rem-tac-cert', 'Certificado do tacógrafo anexado!');
-        setupFieldUpload('veh-tac-laudo-upload-trigger', 'veh-tac-laudo-file-input', 'veh-tac-laudo-upload-text', 'veh-tac-laudo-anexo-url', 'veh-tac-laudo-actions', 'btn-ver-tac-laudo', 'btn-rem-tac-laudo', 'Laudo técnico do tacógrafo anexado!');
-        setupFieldUpload('veh-tac-nf-upload-trigger', 'veh-tac-nf-file-input', 'veh-tac-nf-upload-text', 'veh-tac-nf-anexo-url', 'veh-tac-nf-actions', 'btn-ver-tac-nf', 'btn-rem-tac-nf', 'Nota fiscal do tacógrafo anexada!');
         setupFieldUpload('veh-tac-comp-upload-trigger', 'veh-tac-comp-file-input', 'veh-tac-comp-upload-text', 'veh-tac-comp-anexo-url', 'veh-tac-comp-actions', 'btn-ver-tac-comp', 'btn-rem-tac-comp', 'Comprovante do tacógrafo anexado!');
-        setupFieldUpload('veh-tac-inmetro-upload-trigger', 'veh-tac-inmetro-file-input', 'veh-tac-inmetro-upload-text', 'veh-tac-inmetro-anexo-url', 'veh-tac-inmetro-actions', 'btn-ver-tac-inmetro', 'btn-rem-tac-inmetro', 'Documento do INMETRO anexado!');
 
         // Modal Action logic
         const saveBtn = document.getElementById('btn-salvar-modal');
@@ -1512,19 +1418,9 @@
                                     <i class="fa-solid fa-file-lines text-warning"></i> Certificado Extintor
                                 </a>
                             ` : ''}
-                            ${vehicle.anexoCertificadoTacografo ? `
-                                <a href="${vehicle.anexoCertificadoTacografo}" target="_blank" class="btn btn-secondary" style="font-size:0.75rem; text-decoration:none; padding:8px 12px; display:inline-flex; align-items:center; gap:8px; justify-content:center; width:100%;">
-                                    <i class="fa-solid fa-file-invoice text-success"></i> Certificado Tacógrafo
-                                </a>
-                            ` : ''}
-                            ${vehicle.anexoLaudoTacografo ? `
-                                <a href="${vehicle.anexoLaudoTacografo}" target="_blank" class="btn btn-secondary" style="font-size:0.75rem; text-decoration:none; padding:8px 12px; display:inline-flex; align-items:center; gap:8px; justify-content:center; width:100%;">
-                                    <i class="fa-solid fa-file-shield text-warning"></i> Laudo Tacógrafo
-                                </a>
-                            ` : ''}
-                            ${vehicle.anexoInmetroTacografo ? `
-                                <a href="${vehicle.anexoInmetroTacografo}" target="_blank" class="btn btn-secondary" style="font-size:0.75rem; text-decoration:none; padding:8px 12px; display:inline-flex; align-items:center; gap:8px; justify-content:center; width:100%;">
-                                    <i class="fa-solid fa-file-contract text-primary"></i> Doc. INMETRO Tacógrafo
+                            ${vehicle.anexoComprovanteTacografo ? `
+                                <a href="${vehicle.anexoComprovanteTacografo}" target="_blank" class="btn btn-secondary" style="font-size:0.75rem; text-decoration:none; padding:8px 12px; display:inline-flex; align-items:center; gap:8px; justify-content:center; width:100%;">
+                                    <i class="fa-solid fa-receipt text-info"></i> Comprovante Tacógrafo
                                 </a>
                             ` : ''}
                         </div>
@@ -1833,7 +1729,6 @@
                                         <ul class="detail-sidebar-info-list" style="border:none; padding:0; gap:12px; font-size:0.9rem;">
                                             <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Última Aferição</span><strong>${vehicle.dataUltimaAfericaoTacografo ? vehicle.dataUltimaAfericaoTacografo.split('-').reverse().join('/') : '-'}</strong></li>
                                             <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Empresa Responsável</span><strong>${vehicle.empresaAfericaoTacografo || '-'}</strong></li>
-                                            <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Próxima Troca/Aferição</span><strong>${vehicle.proximaTrocaAfericaoTacografo ? vehicle.proximaTrocaAfericaoTacografo.split('-').reverse().join('/') : '-'}</strong></li>
                                             <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Validade Aferição</span><strong>${vehicle.validadeAfericaoTacografo ? vehicle.validadeAfericaoTacografo.split('-').reverse().join('/') : '-'}</strong></li>
                                         </ul>
                                     </div>
@@ -1871,11 +1766,7 @@
                                 </div>
 
                                 <div style="margin-top:20px; display:flex; flex-wrap:wrap; gap:12px;">
-                                    ${vehicle.anexoCertificadoTacografo ? `<a href="${vehicle.anexoCertificadoTacografo}" target="_blank" class="btn btn-secondary" style="font-size:0.8rem; display:inline-flex; align-items:center; gap:8px;"><i class="fa-solid fa-file-invoice text-success"></i> Certificado de Aferição</a>` : ''}
-                                    ${vehicle.anexoLaudoTacografo ? `<a href="${vehicle.anexoLaudoTacografo}" target="_blank" class="btn btn-secondary" style="font-size:0.8rem; display:inline-flex; align-items:center; gap:8px;"><i class="fa-solid fa-file-shield text-warning"></i> Laudo Técnico</a>` : ''}
-                                    ${vehicle.anexoNotaFiscalTacografo ? `<a href="${vehicle.anexoNotaFiscalTacografo}" target="_blank" class="btn btn-secondary" style="font-size:0.8rem; display:inline-flex; align-items:center; gap:8px;"><i class="fa-solid fa-file-invoice-dollar text-danger"></i> Nota Fiscal</a>` : ''}
-                                    ${vehicle.anexoComprovanteTacografo ? `<a href="${vehicle.anexoComprovanteTacografo}" target="_blank" class="btn btn-secondary" style="font-size:0.8rem; display:inline-flex; align-items:center; gap:8px;"><i class="fa-solid fa-receipt text-info"></i> Comprovantes</a>` : ''}
-                                    ${vehicle.anexoInmetroTacografo ? `<a href="${vehicle.anexoInmetroTacografo}" target="_blank" class="btn btn-secondary" style="font-size:0.8rem; display:inline-flex; align-items:center; gap:8px;"><i class="fa-solid fa-file-contract text-primary"></i> Documentos INMETRO</a>` : ''}
+                                    ${vehicle.anexoComprovanteTacografo ? `<a href="${vehicle.anexoComprovanteTacografo}" target="_blank" class="btn btn-secondary" style="font-size:0.8rem; display:inline-flex; align-items:center; gap:8px;"><i class="fa-solid fa-receipt text-info"></i> Comprovante do Tacógrafo</a>` : ''}
                                 </div>
                             </div>
                         </div>
