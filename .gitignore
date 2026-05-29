@@ -10,3 +10,5 @@ yarn-error.log*
 .env.test
 .env.production
 .env.staging
+data/*.bak
+
