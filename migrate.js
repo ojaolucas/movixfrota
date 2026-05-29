@@ -52,6 +52,13 @@ async function migrate() {
         return String(val);
     };
 
+    // Helper for safe foreign keys (maps empty string to null)
+    const safeFK = (val) => {
+        if (val === undefined || val === null || val === '') return null;
+        const trimmed = String(val).trim();
+        return trimmed === '' ? null : trimmed;
+    };
+
     try {
         // 1. Migrate Usuarios
         if (Array.isArray(localData.usuarios)) {
@@ -131,7 +138,7 @@ async function migrate() {
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
                     ON CONFLICT (id) DO NOTHING
                 `, [
-                    a.id, a.veiculoId, a.motoristaId, a.data, a.combustivel, safeNum(a.litros), safeNum(a.valorLitro), safeNum(a.valorTotal), safeNum(a.kmAtual), a.posto, a.comprovante, a.observacoes, safeNum(a.kmL), safeNum(a.custoKM)
+                    a.id, safeFK(a.veiculoId), safeFK(a.motoristaId), a.data, a.combustivel, safeNum(a.litros), safeNum(a.valorLitro), safeNum(a.valorTotal), safeNum(a.kmAtual), a.posto, a.comprovante, a.observacoes, safeNum(a.kmL), safeNum(a.custoKM)
                 ]);
             }
         }
@@ -145,7 +152,7 @@ async function migrate() {
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
                     ON CONFLICT (id) DO NOTHING
                 `, [
-                    m.id, m.veiculoId, m.data, m.tipo, m.categoria, m.descricao, safeNum(m.valor), safeNum(m.km), m.oficina, m.fornecedor, m.status || 'Agendada', m.comprovante || m.anexo, m.anexo || m.comprovante
+                    m.id, safeFK(m.veiculoId), m.data, m.tipo, m.categoria, m.descricao, safeNum(m.valor), safeNum(m.km), m.oficina, m.fornecedor, m.status || 'Agendada', m.comprovante || m.anexo, m.anexo || m.comprovante
                 ]);
             }
         }
@@ -177,7 +184,7 @@ async function migrate() {
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
                     ON CONFLICT (id) DO NOTHING
                 `, [
-                    o.id, o.veiculoId, o.dataTroca, safeNum(o.kmTroca), safeNum(o.proximaTrocaKM), o.proximaTrocaDias, o.tipoOleo, safeNum(o.valor), o.estabelecimento, safeBool(o.filtroAr), safeBool(o.filtroOleo), safeBool(o.filtroCombustivel), o.observacoes
+                    o.id, safeFK(o.veiculoId), o.dataTroca, safeNum(o.kmTroca), safeNum(o.proximaTrocaKM), o.proximaTrocaDias, o.tipoOleo, safeNum(o.valor), o.estabelecimento, safeBool(o.filtroAr), safeBool(o.filtroOleo), safeBool(o.filtroCombustivel), o.observacoes
                 ]);
             }
         }
@@ -191,7 +198,7 @@ async function migrate() {
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
                     ON CONFLICT (id) DO NOTHING
                 `, [
-                    vi.id, vi.veiculoId, vi.motoristaId, vi.dataSaida, vi.horaSaida, vi.dataRetorno, vi.horaRetorno, safeNum(vi.kmInicial), safeNum(vi.kmFinal), vi.origem, vi.destino, vi.status || 'Em Andamento', vi.observacoes, safeNum(vi.kmRodado), safeNum(vi.custos)
+                    vi.id, safeFK(vi.veiculoId), safeFK(vi.motoristaId), vi.dataSaida, vi.horaSaida, vi.dataRetorno, vi.horaRetorno, safeNum(vi.kmInicial), safeNum(vi.kmFinal), vi.origem, vi.destino, vi.status || 'Em Andamento', vi.observacoes, safeNum(vi.kmRodado), safeNum(vi.custos)
                 ]);
             }
         }
@@ -205,7 +212,7 @@ async function migrate() {
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
                     ON CONFLICT (id) DO NOTHING
                 `, [
-                    mu.id, mu.veiculoId, mu.motoristaId, mu.data, mu.hora || mu.horario, mu.horario || mu.hora, mu.codigo, mu.descricao, mu.gravidade, safeNum(mu.pontos), safeNum(mu.valor), mu.status || 'Não Pago', mu.observacoes, mu.anexo, mu.anexoBoleto, mu.anexoComprovante, safeJson(mu.historico)
+                    mu.id, safeFK(mu.veiculoId), safeFK(mu.motoristaId), mu.data, mu.hora || mu.horario, mu.horario || mu.hora, mu.codigo, mu.descricao, mu.gravidade, safeNum(mu.pontos), safeNum(mu.valor), mu.status || 'Não Pago', mu.observacoes, mu.anexo, mu.anexoBoleto, mu.anexoComprovante, safeJson(mu.historico)
                 ]);
             }
         }
