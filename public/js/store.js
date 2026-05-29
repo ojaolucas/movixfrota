@@ -57,15 +57,52 @@ class MovixStore {
                 fetch('/api/logs').then(r => r.json())
             ]);
 
-            this.state.veiculos = veiculos;
-            this.state.motoristas = motoristas;
-            this.state.multas = multas;
-            this.state.abastecimentos = abastecimentos;
-            this.state.manutencoes = manutencoes;
-            this.state.pneus = pneus;
-            this.state.oleos = oleos;
-            this.state.viagens = viagens;
-            this.state.logs = logs;
+            this.state.veiculos = (veiculos || []).map(v => ({
+                ...v,
+                kmAtual: parseFloat(v.kmAtual) || 0,
+                valorMensalSeguro: parseFloat(v.valorMensalSeguro) || 0,
+                valorMensalRastreador: parseFloat(v.valorMensalRastreador) || 0
+            }));
+            this.state.motoristas = motoristas || [];
+            this.state.multas = (multas || []).map(mu => ({
+                ...mu,
+                pontos: parseInt(mu.pontos) || 0,
+                valor: parseFloat(mu.valor) || 0
+            }));
+            this.state.abastecimentos = (abastecimentos || []).map(a => ({
+                ...a,
+                litros: parseFloat(a.litros) || 0,
+                valorLitro: parseFloat(a.valorLitro) || 0,
+                valorTotal: parseFloat(a.valorTotal) || 0,
+                kmAtual: parseFloat(a.kmAtual) || 0,
+                kmL: parseFloat(a.kmL) || 0,
+                custoKM: parseFloat(a.custoKM) || 0
+            }));
+            this.state.manutencoes = (manutencoes || []).map(m => ({
+                ...m,
+                valor: parseFloat(m.valor) || 0,
+                km: parseFloat(m.km) || 0
+            }));
+            this.state.pneus = (pneus || []).map(p => ({
+                ...p,
+                custo: parseFloat(p.custo) || 0,
+                vidaEstimada: parseFloat(p.vidaEstimada) || 0,
+                kmInicial: parseFloat(p.kmInicial) || 0
+            }));
+            this.state.oleos = (oleos || []).map(o => ({
+                ...o,
+                kmTroca: parseFloat(o.kmTroca) || 0,
+                proximaTrocaKM: parseFloat(o.proximaTrocaKM) || 0,
+                valor: parseFloat(o.valor) || 0
+            }));
+            this.state.viagens = (viagens || []).map(vi => ({
+                ...vi,
+                kmInicial: parseFloat(vi.kmInicial) || 0,
+                kmFinal: parseFloat(vi.kmFinal) || 0,
+                kmRodado: parseFloat(vi.kmRodado) || 0,
+                custos: parseFloat(vi.custos) || 0
+            }));
+            this.state.logs = logs || [];
 
             // Load users list if logged user is Admin
             if (this.activeUser && this.activeUser.perfil === 'Administrador') {
@@ -1030,10 +1067,10 @@ class MovixStore {
         }
 
         // 2. Financial totals
-        let totalCombustivel = abastecimentos.reduce((acc, a) => acc + (a.valorTotal || 0), 0);
-        let totalManutencao = manutencoes.reduce((acc, m) => acc + (m.valor || 0), 0);
-        let totalPneus = pneus.reduce((acc, p) => acc + (p.custo || 0), 0);
-        let totalLubrificantes = oleos.reduce((acc, o) => acc + (o.valor || 0), 0);
+        let totalCombustivel = abastecimentos.reduce((acc, a) => acc + (parseFloat(a.valorTotal) || 0), 0);
+        let totalManutencao = manutencoes.reduce((acc, m) => acc + (parseFloat(m.valor) || 0), 0);
+        let totalPneus = pneus.reduce((acc, p) => acc + (parseFloat(p.custo) || 0), 0);
+        let totalLubrificantes = oleos.reduce((acc, o) => acc + (parseFloat(o.valor) || 0), 0);
 
         // Calculate dynamic Insurance Cost
         let totalSeguroMensal = 0;
