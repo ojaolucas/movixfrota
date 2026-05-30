@@ -561,9 +561,9 @@
                             <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
                                 <div style="display: flex; align-items: center; gap: 8px;">
                                     <i class="fa-solid fa-lightbulb text-success" style="font-size: 1.15rem;"></i>
-                                    <span style="font-weight: 700; color: var(--success); font-family: var(--font-heading);">💡 Possível motorista responsável identificado com base na viagem cadastrada.</span>
+                                    <span style="font-weight: 700; color: var(--success); font-family: var(--font-heading);">Possível motorista responsável identificado com base na viagem cadastrada.</span>
                                 </div>
-                                <button type="button" class="btn btn-secondary" id="btn-vincular-sugestao" style="font-size: 0.72rem; padding: 2px 10px; height: 28px; font-weight: 700; color: var(--success); border-color: var(--success); background: transparent;">
+                                <button type="button" class="btn btn-secondary" id="btn-vincular-sugestao" style="font-size: 0.72rem; padding: 2px 10px; height: 28px; font-weight: 700; color: var(--success); border-color: var(--success); background: transparent; transition: all 0.2s ease;">
                                     <i class="fa-solid fa-link"></i> Confirmar Sugestão
                                 </button>
                             </div>
@@ -575,23 +575,45 @@
                         </div>
                     `;
 
-                    // Bind suggestion trigger button
+                    // Bind suggestion trigger button with link/unlink toggle capability
                     const btnVincular = document.getElementById('btn-vincular-sugestao');
-                    if (btnVincular) {
-                        btnVincular.addEventListener('click', () => {
-                            driverSelect.value = d.id;
-                            assocTipoHidden.value = 'automatica';
-                            viagemIdHidden.value = vi.id;
-
-                            btnVincular.innerHTML = '<i class="fa-solid fa-check"></i> Vinculado!';
+                    
+                    function syncSuggestionButtonState() {
+                        if (!btnVincular) return;
+                        const isCurrentlyLinked = driverSelect.value === d.id && assocTipoHidden.value === 'automatica';
+                        if (isCurrentlyLinked) {
+                            btnVincular.innerHTML = '<i class="fa-solid fa-link-slash"></i> Desvincular';
                             btnVincular.style.backgroundColor = 'var(--success)';
                             btnVincular.style.color = '#fff';
                             btnVincular.style.borderColor = 'var(--success)';
-                            btnVincular.disabled = true;
+                        } else {
+                            btnVincular.innerHTML = '<i class="fa-solid fa-link"></i> Confirmar Sugestão';
+                            btnVincular.style.backgroundColor = 'transparent';
+                            btnVincular.style.color = 'var(--success)';
+                            btnVincular.style.borderColor = 'var(--success)';
+                        }
+                    }
 
-                            window.movixApp.showToast('Sugestão inteligente aplicada!', 'success');
+                    if (btnVincular) {
+                        btnVincular.addEventListener('click', () => {
+                            const isCurrentlyLinked = driverSelect.value === d.id && assocTipoHidden.value === 'automatica';
+                            if (isCurrentlyLinked) {
+                                driverSelect.value = "";
+                                assocTipoHidden.value = 'sem_motorista';
+                                viagemIdHidden.value = '';
+                                window.movixApp.showToast('Motorista desvinculado com sucesso!', 'info');
+                            } else {
+                                driverSelect.value = d.id;
+                                assocTipoHidden.value = 'automatica';
+                                viagemIdHidden.value = vi.id;
+                                window.movixApp.showToast('Sugestão inteligente aplicada!', 'success');
+                            }
+                            syncSuggestionButtonState();
                         });
                     }
+
+                    // Run initial state synchronization
+                    syncSuggestionButtonState();
                 } else {
                     // Conflict case
                     let conflictsHTML = '';
@@ -652,6 +674,26 @@
                     } else {
                         assocTipoHidden.value = 'sem_motorista';
                         viagemIdHidden.value = '';
+                    }
+
+                    // Synchronize dynamic button state if suggestion button is visible
+                    const btnVincular = document.getElementById('btn-vincular-sugestao');
+                    if (btnVincular) {
+                        const detection = detectSuggestedDriver(veiculoSelect.value, dataInput.value, horarioInput.value);
+                        if (detection.driver) {
+                            const isCurrentlyLinked = driverSelect.value === detection.driver.id && assocTipoHidden.value === 'automatica';
+                            if (isCurrentlyLinked) {
+                                btnVincular.innerHTML = '<i class="fa-solid fa-link-slash"></i> Desvincular';
+                                btnVincular.style.backgroundColor = 'var(--success)';
+                                btnVincular.style.color = '#fff';
+                                btnVincular.style.borderColor = 'var(--success)';
+                            } else {
+                                btnVincular.innerHTML = '<i class="fa-solid fa-link"></i> Confirmar Sugestão';
+                                btnVincular.style.backgroundColor = 'transparent';
+                                btnVincular.style.color = 'var(--success)';
+                                btnVincular.style.borderColor = 'var(--success)';
+                            }
+                        }
                     }
                 });
             }
