@@ -208,11 +208,11 @@ async function migrate() {
             console.log(`📋 Migrando ${localData.multas.length} multas...`);
             for (const mu of localData.multas) {
                 await db.query(`
-                    INSERT INTO multas (id, "veiculoId", "motoristaId", data, hora, horario, codigo, descricao, gravidade, pontos, valor, status, observacoes, anexo, "anexoBoleto", "anexoComprovante", historico)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+                    INSERT INTO multas (id, "veiculoId", "motoristaId", data, hora, horario, codigo, descricao, gravidade, pontos, valor, status, observacoes, anexo, "anexoBoleto", "anexoComprovante", historico, "associacaoTipo", "viagemId")
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
                     ON CONFLICT (id) DO NOTHING
                 `, [
-                    mu.id, safeFK(mu.veiculoId), safeFK(mu.motoristaId), mu.data, mu.hora || mu.horario, mu.horario || mu.hora, mu.codigo, mu.descricao, mu.gravidade, safeNum(mu.pontos), safeNum(mu.valor), mu.status || 'Não Pago', mu.observacoes, mu.anexo, mu.anexoBoleto, mu.anexoComprovante, safeJson(mu.historico)
+                    mu.id, safeFK(mu.veiculoId), safeFK(mu.motoristaId), mu.data, mu.hora || mu.horario, mu.horario || mu.hora, mu.codigo, mu.descricao, mu.gravidade, safeNum(mu.pontos), safeNum(mu.valor), mu.status || 'Não Pago', mu.observacoes, mu.anexo, mu.anexoBoleto, mu.anexoComprovante, safeJson(mu.historico), mu.associacaoTipo || 'sem_motorista', safeFK(mu.viagemId)
                 ]);
             }
         }

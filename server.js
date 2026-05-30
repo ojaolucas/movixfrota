@@ -1161,11 +1161,29 @@ app.post('/api/multas', requireAuth, async (req, res) => {
         ];
 
         const result = await db.query(`
-            INSERT INTO multas (id, "veiculoId", "motoristaId", data, hora, horario, codigo, descricao, gravidade, pontos, valor, status, observacoes, anexo, "anexoBoleto", "anexoComprovante", historico)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+            INSERT INTO multas (id, "veiculoId", "motoristaId", data, hora, horario, codigo, descricao, gravidade, pontos, valor, status, observacoes, anexo, "anexoBoleto", "anexoComprovante", historico, "associacaoTipo", "viagemId")
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
             RETURNING *
         `, [
-            id, m.veiculoId, m.motoristaId, m.data, m.hora || m.horario, m.horario || m.hora, m.codigo, m.descricao, m.gravidade, parseInt(m.pontos) || 0, valor, m.status || 'Não Pago', m.observacoes, m.anexo, m.anexoBoleto, m.anexoComprovante, JSON.stringify(historico)
+            id,
+            m.veiculoId && m.veiculoId !== "" ? m.veiculoId : null,
+            m.motoristaId && m.motoristaId !== "" ? m.motoristaId : null,
+            m.data,
+            m.hora || m.horario,
+            m.horario || m.hora,
+            m.codigo,
+            m.descricao,
+            m.gravidade,
+            parseInt(m.pontos) || 0,
+            valor,
+            m.status || 'Não Pago',
+            m.observacoes,
+            m.anexo,
+            m.anexoBoleto,
+            m.anexoComprovante,
+            JSON.stringify(historico),
+            m.associacaoTipo || 'sem_motorista',
+            m.viagemId && m.viagemId !== "" ? m.viagemId : null
         ]);
 
         await addLog(req.session.nome, req.session.perfil, 'Cadastro', 'Multa', `Registrou multa no valor de R$ ${valor.toFixed(2)}`);
@@ -1201,12 +1219,12 @@ app.put('/api/multas/:id', requireAuth, async (req, res) => {
 
         const result = await db.query(`
             UPDATE multas SET
-                "veiculoId" = $1, "motoristaId" = $2, data = $3, hora = $4, horario = $5, codigo = $6, descricao = $7, gravidade = $8, pontos = $9, valor = $10, status = $11, observacoes = $12, anexo = $13, "anexoBoleto" = $14, "anexoComprovante" = $15, historico = $16
-            WHERE id = $17
+                "veiculoId" = $1, "motoristaId" = $2, data = $3, hora = $4, horario = $5, codigo = $6, descricao = $7, gravidade = $8, pontos = $9, valor = $10, status = $11, observacoes = $12, anexo = $13, "anexoBoleto" = $14, "anexoComprovante" = $15, historico = $16, "associacaoTipo" = $17, "viagemId" = $18
+            WHERE id = $19
             RETURNING *
         `, [
-            m.veiculoId || original.veiculoId,
-            m.motoristaId || original.motoristaId,
+            m.veiculoId && m.veiculoId !== "" ? m.veiculoId : original.veiculoId,
+            m.motoristaId !== undefined ? (m.motoristaId && m.motoristaId !== "" ? m.motoristaId : null) : original.motoristaId,
             m.data || original.data,
             m.hora || m.horario || original.hora,
             m.horario || m.hora || original.horario,
@@ -1221,6 +1239,8 @@ app.put('/api/multas/:id', requireAuth, async (req, res) => {
             m.anexoBoleto || original.anexoBoleto,
             m.anexoComprovante || original.anexoComprovante,
             JSON.stringify(historico),
+            m.associacaoTipo || original.associacaoTipo || 'sem_motorista',
+            m.viagemId !== undefined ? (m.viagemId && m.viagemId !== "" ? m.viagemId : null) : (original.viagemId || null),
             req.params.id
         ]);
 

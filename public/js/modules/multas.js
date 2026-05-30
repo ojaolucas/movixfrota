@@ -1,6 +1,36 @@
 /* MovixFrota - Controle de Multas Module (CRUD & Auditing) */
 
 (function() {
+
+    // Dynamic intelligent driver suggestion crossover engine
+    function detectSuggestedDriver(veiculoId, dataVal, horarioVal) {
+        if (!veiculoId || !dataVal || !horarioVal) return { driver: null, trips: [] };
+        const viagens = window.movixStore.getViagens();
+        const fineTime = new Date(`${dataVal}T${horarioVal}:00`);
+        if (isNaN(fineTime.getTime())) return { driver: null, trips: [] };
+        
+        const matchingTrips = viagens.filter(vi => {
+            if (vi.veiculoId !== veiculoId) return false;
+            
+            const tripStart = new Date(`${vi.dataSaida}T${vi.horaSaida || '00:00'}:00`);
+            if (isNaN(tripStart.getTime())) return false;
+            
+            let tripEnd;
+            if (vi.status === 'Realizada' || vi.dataRetorno) {
+                tripEnd = new Date(`${vi.dataRetorno}T${vi.horaRetorno || '23:59'}:00`);
+            } else {
+                tripEnd = new Date();
+            }
+            if (isNaN(tripEnd.getTime())) return false;
+            
+            return fineTime >= tripStart && fineTime <= tripEnd;
+        });
+        
+        return {
+            trips: matchingTrips,
+            driver: matchingTrips.length === 1 ? window.movixStore.getMotoristas().find(d => d.id === matchingTrips[0].motoristaId) : null
+        };
+    }
     
     function renderMultas(container) {
         const multas = window.movixStore.getMultas();
@@ -349,6 +379,12 @@
                         </select>
                     </div>
 
+                    <div class="form-group full-width" id="driver-suggestion-container" style="display: none; margin-top: -8px; margin-bottom: 8px;">
+                        <!-- Suggestion alert injected here dynamically -->
+                    </div>
+                    <input type="hidden" name="associacaoTipo" id="fine-associacao-tipo" value="${isEdit ? multa.associacaoTipo || 'sem_motorista' : 'sem_motorista'}">
+                    <input type="hidden" name="viagemId" id="fine-viagem-id" value="${isEdit && multa.viagemId ? multa.viagemId : ''}">
+
                     <div class="form-group">
                         <label>Data da Infração <span class="required">*</span></label>
                         <input type="date" class="form-control" name="data" required value="${isEdit ? multa.data : new Date().toISOString().split('T')[0]}">
@@ -478,6 +514,151 @@
                 });
             }
 
+            // SUGGESTION DETECT ENGINE
+            function runDriverSuggestionEngine() {
+                const form = document.getElementById('form-multa');
+                if (!form) return;
+
+                const veiculoSelect = form.querySelector('[name="veiculoId"]');
+                const dataInput = form.querySelector('[name="data"]');
+                const horarioInput = form.querySelector('[name="horario"]');
+                const driverSelect = form.querySelector('[name="motoristaId"]');
+                const suggestionContainer = document.getElementById('driver-suggestion-container');
+                const assocTipoHidden = document.getElementById('fine-associacao-tipo');
+                const viagemIdHidden = document.getElementById('fine-viagem-id');
+
+                if (!veiculoSelect || !dataInput || !horarioInput || !suggestionContainer) return;
+
+                const veiculoId = veiculoSelect.value;
+                const dataVal = dataInput.value;
+                const horarioVal = horarioInput.value;
+
+                const detection = detectSuggestedDriver(veiculoId, dataVal, horarioVal);
+
+                if (detection.trips.length === 0) {
+                    suggestionContainer.style.display = 'none';
+                    suggestionContainer.innerHTML = '';
+                    return;
+                }
+
+                suggestionContainer.style.display = 'block';
+
+                if (detection.trips.length === 1) {
+                    const vi = detection.trips[0];
+                    const d = detection.driver;
+                    
+                    if (!d) {
+                        suggestionContainer.style.display = 'none';
+                        suggestionContainer.innerHTML = '';
+                        return;
+                    }
+
+                    const periodText = `${vi.dataSaida.split('-').reverse().join('/')} às ${vi.horaSaida || '00:00'} até ` +
+                        (vi.status === 'Realizada' ? `${vi.dataRetorno.split('-').reverse().join('/')} às ${vi.horaRetorno || '23:59'}` : 'Em Andamento');
+
+                    suggestionContainer.innerHTML = `
+                        <div class="alert-premium-suggestion" style="background: rgba(16, 185, 129, 0.08); border-left: 4px solid var(--success); padding: 12px 16px; border-radius: var(--border-radius-sm); font-size: 0.8rem; display: flex; flex-direction: column; gap: 8px; border: 1px solid rgba(16, 185, 129, 0.18);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <i class="fa-solid fa-lightbulb text-success" style="font-size: 1.15rem;"></i>
+                                    <span style="font-weight: 700; color: var(--success); font-family: var(--font-heading);">💡 Possível motorista responsável identificado com base na viagem cadastrada.</span>
+                                </div>
+                                <button type="button" class="btn btn-secondary" id="btn-vincular-sugestao" style="font-size: 0.72rem; padding: 2px 10px; height: 28px; font-weight: 700; color: var(--success); border-color: var(--success); background: transparent;">
+                                    <i class="fa-solid fa-link"></i> Confirmar Sugestão
+                                </button>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; color: var(--text-main); margin-top: 4px;">
+                                <div><span style="color: var(--text-muted); font-weight: 500;">Motorista:</span> <strong>${d.nome}</strong></div>
+                                <div><span style="color: var(--text-muted); font-weight: 500;">Horário da Viagem:</span> <strong>${periodText}</strong></div>
+                                <div style="grid-column: span 2;"><span style="color: var(--text-muted); font-weight: 500;">Rota da Viagem:</span> <strong>${vi.origem} ➔ ${vi.destino}</strong></div>
+                            </div>
+                        </div>
+                    `;
+
+                    // Bind suggestion trigger button
+                    const btnVincular = document.getElementById('btn-vincular-sugestao');
+                    if (btnVincular) {
+                        btnVincular.addEventListener('click', () => {
+                            driverSelect.value = d.id;
+                            assocTipoHidden.value = 'automatica';
+                            viagemIdHidden.value = vi.id;
+
+                            btnVincular.innerHTML = '<i class="fa-solid fa-check"></i> Vinculado!';
+                            btnVincular.style.backgroundColor = 'var(--success)';
+                            btnVincular.style.color = '#fff';
+                            btnVincular.style.borderColor = 'var(--success)';
+                            btnVincular.disabled = true;
+
+                            window.movixApp.showToast('Sugestão inteligente aplicada!', 'success');
+                        });
+                    }
+                } else {
+                    // Conflict case
+                    let conflictsHTML = '';
+                    detection.trips.forEach((vi, idx) => {
+                        const d = drivers.find(item => item.id === vi.motoristaId);
+                        const driverName = d ? d.nome : 'Motorista';
+                        const periodText = `${vi.dataSaida.split('-').reverse().join('/')} às ${vi.horaSaida || '00:00'} até ` +
+                            (vi.status === 'Realizada' ? `${vi.dataRetorno.split('-').reverse().join('/')} às ${vi.horaRetorno || '23:59'}` : 'Em Andamento');
+
+                        conflictsHTML += `
+                            <div style="font-size: 0.75rem; border-top: 1px solid rgba(245, 158, 11, 0.2); padding-top: 6px; margin-top: 6px; display: flex; flex-direction: column;">
+                                <span><strong>Viagem #${idx+1}:</strong> ${driverName} (${vi.origem} ➔ ${vi.destino})</span>
+                                <span style="font-size: 0.7rem; color: var(--text-muted);">${periodText}</span>
+                            </div>
+                        `;
+                    });
+
+                    suggestionContainer.innerHTML = `
+                        <div class="alert-premium-suggestion" style="background: rgba(245, 158, 11, 0.08); border-left: 4px solid var(--warning); padding: 12px 16px; border-radius: var(--border-radius-sm); font-size: 0.8rem; display: flex; flex-direction: column; gap: 6px; border: 1px solid rgba(245, 158, 11, 0.18);">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-triangle-exclamation text-warning" style="font-size: 1.2rem;"></i>
+                                <span style="font-weight: 700; color: var(--warning); font-family: var(--font-heading);">⚠️ Alerta de Conflito: Múltiplas viagens identificadas para este veículo!</span>
+                            </div>
+                            <span style="font-size: 0.75rem; color: var(--text-main);">Identificamos mais de uma viagem ativa para este veículo no período da infração. Escolha manualmente o motorista correto no campo acima:</span>
+                            <div style="display: flex; flex-direction: column;">
+                                ${conflictsHTML}
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            const veiculoSelect = document.querySelector('[name="veiculoId"]');
+            const dataInput = document.querySelector('[name="data"]');
+            const horarioInput = document.querySelector('[name="horario"]');
+            const driverSelect = document.querySelector('[name="motoristaId"]');
+
+            if (veiculoSelect && dataInput && horarioInput) {
+                veiculoSelect.addEventListener('change', runDriverSuggestionEngine);
+                dataInput.addEventListener('change', runDriverSuggestionEngine);
+                horarioInput.addEventListener('input', runDriverSuggestionEngine);
+            }
+
+            if (driverSelect) {
+                driverSelect.addEventListener('change', () => {
+                    const assocTipoHidden = document.getElementById('fine-associacao-tipo');
+                    const viagemIdHidden = document.getElementById('fine-viagem-id');
+                    
+                    if (driverSelect.value !== "") {
+                        const detection = detectSuggestedDriver(veiculoSelect.value, dataInput.value, horarioInput.value);
+                        if (detection.driver && detection.driver.id === driverSelect.value) {
+                            assocTipoHidden.value = 'automatica';
+                            viagemIdHidden.value = detection.trips[0].id;
+                        } else {
+                            assocTipoHidden.value = 'manual';
+                            viagemIdHidden.value = '';
+                        }
+                    } else {
+                        assocTipoHidden.value = 'sem_motorista';
+                        viagemIdHidden.value = '';
+                    }
+                });
+            }
+
+            // Run suggestion check initially
+            runDriverSuggestionEngine();
+
             // Save actions
             const saveBtn = document.getElementById('btn-salvar-modal');
             const cancelBtn = document.getElementById('btn-cancelar-modal');
@@ -558,6 +739,13 @@
                             <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Veículo</span><strong style="color:var(--primary);">${v ? `${v.placa} (${v.marca} ${v.modelo})` : '-'}</strong></li>
                             <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Valor da Multa</span><strong style="font-size:1rem; color:var(--text-main);">R$ ${(parseFloat(m.valor) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></li>
                             <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Responsável</span><strong>${d ? d.nome : '<span style="color:var(--text-muted); font-style:italic;">Sem motorista</span>'}</strong></li>
+                            <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Associação do Motorista</span>
+                                <strong>
+                                    ${m.associacaoTipo === 'automatica' ? '<span class="status-pill ok" style="font-weight:700;"><i class="fa-solid fa-robot"></i> Associado automaticamente</span>' :
+                                      (m.associacaoTipo === 'manual' ? '<span class="status-pill primary" style="background-color:rgba(59,130,246,0.12); color:var(--primary); font-weight:700;"><i class="fa-solid fa-user-pen"></i> Associado manualmente</span>' :
+                                      '<span class="status-pill status-gray" style="font-weight:700;"><i class="fa-solid fa-user-slash"></i> Sem motorista vinculado</span>')}
+                                </strong>
+                            </li>
                             <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Situação Atual</span>
                                 ${m.status === 'Pago' ? '<span class="status-pill ok">Pago</span>' : (m.status === 'Não Pago' ? '<span class="status-pill vencido">Não Pago</span>' : '<span class="status-pill atencao">Recorrendo</span>')}
                             </li>
@@ -574,6 +762,23 @@
                             <h5 style="font-weight:700; margin-bottom:6px; font-size:0.85rem;">Observações Adicionais:</h5>
                             <p style="font-size:0.8rem; line-height:1.5; color:var(--text-muted); background:var(--bg-surface-hover); padding:10px; border-radius:6px; border-left:3px solid var(--border-color); white-space:pre-wrap;">${m.observacoes}</p>
                         </div>` : ''}
+
+                        ${m.viagemId ? (() => {
+                            const vi = window.movixStore.getViagens().find(v => v.id === m.viagemId);
+                            if (!vi) return '';
+                            const periodText = `${vi.dataSaida.split('-').reverse().join('/')} às ${vi.horaSaida || '00:00'} até ` +
+                                (vi.status === 'Realizada' ? `${vi.dataRetorno.split('-').reverse().join('/')} às ${vi.horaRetorno || '23:59'}` : 'Em Andamento');
+                            return `
+                            <div style="margin-top:20px; padding:12px; background:var(--bg-surface-hover); border-radius:6px; border-left:3px solid var(--success); font-size:0.8rem; border:1px solid var(--border-light);">
+                                <h5 style="font-weight:700; margin-bottom:6px; color:var(--success); display:flex; align-items:center; gap:6px;"><i class="fa-solid fa-route"></i> Viagem Relacionada (Vínculo Inteligente)</h5>
+                                <div style="display:flex; flex-direction:column; gap:4px; margin-top:6px;">
+                                    <span><strong>Período da Viagem:</strong> ${periodText}</span>
+                                    <span><strong>Rota:</strong> ${vi.origem} ➔ ${vi.destino}</span>
+                                    <span><strong>Status da Viagem:</strong> <span class="status-pill ${vi.status === 'Realizada' ? 'ok' : 'atencao'}" style="font-size:0.6rem; padding:1px 4px; font-weight:700;">${vi.status}</span></span>
+                                </div>
+                            </div>
+                            `;
+                        })() : ''}
 
                         ${m.anexo ? `
                         <div style="margin-top:20px; display:flex; gap:12px;">

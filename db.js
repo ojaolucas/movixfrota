@@ -279,9 +279,15 @@ async function initDB() {
                 anexo TEXT,
                 "anexoBoleto" TEXT,
                 "anexoComprovante" TEXT,
-                historico JSONB DEFAULT '[]'::jsonb
+                historico JSONB DEFAULT '[]'::jsonb,
+                "associacaoTipo" VARCHAR(50) DEFAULT 'sem_motorista',
+                "viagemId" VARCHAR(50) REFERENCES viagens(id) ON DELETE SET NULL
             )
         `);
+
+        // Migration Alters for Multas
+        await query(`ALTER TABLE multas ADD COLUMN IF NOT EXISTS "associacaoTipo" VARCHAR(50) DEFAULT 'sem_motorista'`);
+        await query(`ALTER TABLE multas ADD COLUMN IF NOT EXISTS "viagemId" VARCHAR(50) REFERENCES viagens(id) ON DELETE SET NULL`);
 
         // 10. Logs Table
         await query(`

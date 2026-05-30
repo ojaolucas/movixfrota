@@ -67,7 +67,9 @@ class MovixStore {
             this.state.multas = (multas || []).map(mu => ({
                 ...mu,
                 pontos: parseInt(mu.pontos) || 0,
-                valor: parseFloat(mu.valor) || 0
+                valor: parseFloat(mu.valor) || 0,
+                associacaoTipo: mu.associacaoTipo || 'sem_motorista',
+                viagemId: mu.viagemId || null
             }));
             this.state.abastecimentos = (abastecimentos || []).map(a => ({
                 ...a,
