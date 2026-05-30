@@ -1094,6 +1094,37 @@ body.not-logged-in .login-wrapper {
     box-shadow: 0 0 0 3px var(--primary-light);
 }
 
+.password-input-container {
+    position: relative;
+    width: 100%;
+}
+
+.password-input-container .form-login-control {
+    padding-right: 46px;
+}
+
+.toggle-password-btn {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 1rem;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color var(--transition-fast) ease;
+    outline: none;
+}
+
+.toggle-password-btn:hover {
+    color: var(--primary);
+}
+
 .login-footer {
     text-align: center;
     margin-top: 24px;

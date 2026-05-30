@@ -112,6 +112,21 @@ class MovixApp {
             });
         }
 
+        // Toggle password visibility click listener
+        const togglePasswordBtn = document.getElementById('btn-toggle-password');
+        const loginPasswordInput = document.getElementById('login-password');
+        if (togglePasswordBtn && loginPasswordInput) {
+            togglePasswordBtn.addEventListener('click', () => {
+                const isPasswordType = loginPasswordInput.getAttribute('type') === 'password';
+                loginPasswordInput.setAttribute('type', isPasswordType ? 'text' : 'password');
+                
+                const icon = togglePasswordBtn.querySelector('i');
+                if (icon) {
+                    icon.className = isPasswordType ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+                }
+            });
+        }
+
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const identifier = document.getElementById('login-identifier').value.trim();
