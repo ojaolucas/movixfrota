@@ -55,8 +55,11 @@
                         <select class="filter-input" id="filter-combustivel">
                             <option value="">Todos</option>
                             <option value="Diesel">Diesel</option>
+                            <option value="Diesel S10">Diesel S10</option>
                             <option value="Flex">Flex</option>
                             <option value="Gasolina">Gasolina</option>
+                            <option value="Etanol">Etanol</option>
+                            <option value="GNV">GNV</option>
                         </select>
                     </div>
                     <div class="filter-group">
@@ -333,8 +336,11 @@
                         <label>Combustível <span class="required">*</span></label>
                         <select class="form-control" name="combustivel" id="veh-combustivel" required>
                             <option value="Diesel" ${isEdit && vehicle.combustivel === 'Diesel' ? 'selected' : ''}>Diesel</option>
+                            <option value="Diesel S10" ${isEdit && vehicle.combustivel === 'Diesel S10' ? 'selected' : ''}>Diesel S10</option>
                             <option value="Flex" ${isEdit && vehicle.combustivel === 'Flex' ? 'selected' : ''}>Flex</option>
                             <option value="Gasolina" ${isEdit && vehicle.combustivel === 'Gasolina' ? 'selected' : ''}>Gasolina</option>
+                            <option value="Etanol" ${isEdit && vehicle.combustivel === 'Etanol' ? 'selected' : ''}>Etanol</option>
+                            <option value="GNV" ${isEdit && vehicle.combustivel === 'GNV' ? 'selected' : ''}>GNV</option>
                         </select>
                     </div>
                     <div class="form-group full-width">

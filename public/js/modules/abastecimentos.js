@@ -47,8 +47,10 @@
                         <select class="filter-input" id="filter-fuel-type">
                             <option value="">Todos</option>
                             <option value="Diesel">Diesel</option>
+                            <option value="Diesel S10">Diesel S10</option>
                             <option value="Gasolina">Gasolina</option>
                             <option value="Etanol">Etanol</option>
+                            <option value="GNV">GNV</option>
                         </select>
                     </div>
                 </div>
@@ -256,8 +258,10 @@
                         <label>Combustível <span class="required">*</span></label>
                         <select class="form-control" name="combustivel" id="ab-fuel-sel" required>
                             <option value="Diesel" ${isEdit && ab.combustivel === 'Diesel' ? 'selected' : ''}>Diesel</option>
+                            <option value="Diesel S10" ${isEdit && ab.combustivel === 'Diesel S10' ? 'selected' : ''}>Diesel S10</option>
                             <option value="Gasolina" ${isEdit && ab.combustivel === 'Gasolina' ? 'selected' : ''}>Gasolina</option>
                             <option value="Etanol" ${isEdit && ab.combustivel === 'Etanol' ? 'selected' : ''}>Etanol</option>
+                            <option value="GNV" ${isEdit && ab.combustivel === 'GNV' ? 'selected' : ''}>GNV</option>
                         </select>
                     </div>
 
@@ -299,8 +303,11 @@
                 kmInput.value = parseInt(lastKM) + 100;
 
                 if (fuelType === 'Diesel') fuelSel.value = 'Diesel';
+                else if (fuelType === 'Diesel S10') fuelSel.value = 'Diesel S10';
                 else if (fuelType === 'Gasolina') fuelSel.value = 'Gasolina';
-                else fuelSel.value = 'Etanol';
+                else if (fuelType === 'Etanol') fuelSel.value = 'Etanol';
+                else if (fuelType === 'GNV') fuelSel.value = 'GNV';
+                else fuelSel.value = 'Gasolina';
             }
 
             function autoCalculate() {
