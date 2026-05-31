@@ -1188,7 +1188,10 @@
             const enteredKM = parseFloat(data.kmAtual) || 0;
             const originalKM = isEdit ? parseFloat(vehicle.kmAtual) || 0 : 0;
 
-            const saveAction = async () => {
+            const saveAction = async (justificativa) => {
+                if (justificativa) {
+                    data.observacoes = (data.observacoes || '') + (data.observacoes ? '\n' : '') + `Motivo da divergência de KM: ${justificativa}`;
+                }
                 try {
                     if (isEdit) {
                         data.historicoKM = vehicle.historicoKM;

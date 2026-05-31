@@ -421,56 +421,66 @@
                 const enteredKM = parseFloat(data.kmInicial) || 0;
                 const originalKM = isEdit ? parseFloat(p.kmInicial) || 0 : 0;
 
-                const saveAction = async () => {
-                    // Compile history
-                    if (isEdit) {
-                        const historico = p.historico || [];
-                        const novaObs = document.getElementById('pneu-novo-historico-input').value.trim();
-                        if (novaObs) {
-                            historico.push({
-                                data: new Date().toISOString(),
-                                detalhes: novaObs
-                            });
-                        }
-                        // Se a posição mudou, registrar automaticamente no histórico!
-                        if (p.posicao !== data.posicao || p.veiculoAtual !== data.veiculoAtual) {
-                            const vOld = vehicles.find(item => item.id === p.veiculoAtual)?.placa || 'Estoque';
-                            const vNew = vehicles.find(item => item.id === data.veiculoAtual)?.placa || 'Estoque';
-                            historico.push({
-                                data: new Date().toISOString(),
-                                detalhes: `Rodízio/Remanejamento manual de [${vOld} - ${p.posicao || 'Estoque'}] para [${vNew} - ${data.posicao || 'Estoque'}]`
-                            });
-                        }
-                        data.historico = historico;
-                    } else {
-                        data.historico = [
-                            {
-                                data: new Date().toISOString(),
-                                detalhes: 'Instalação inicial na frota'
-                            }
-                        ];
-                    }
+                const saveAction = async (justificativa) => {
+                     // Compile history
+                     if (isEdit) {
+                         const historico = p.historico || [];
+                         const novaObs = document.getElementById('pneu-novo-historico-input').value.trim();
+                         if (novaObs) {
+                             historico.push({
+                                 data: new Date().toISOString(),
+                                 detalhes: novaObs
+                             });
+                         }
+                         // Se a posição mudou, registrar automaticamente no histórico!
+                         if (p.posicao !== data.posicao || p.veiculoAtual !== data.veiculoAtual) {
+                             const vOld = vehicles.find(item => item.id === p.veiculoAtual)?.placa || 'Estoque';
+                             const vNew = vehicles.find(item => item.id === data.veiculoAtual)?.placa || 'Estoque';
+                             historico.push({
+                                 data: new Date().toISOString(),
+                                 detalhes: `Rodízio/Remanejamento manual de [${vOld} - ${p.posicao || 'Estoque'}] para [${vNew} - ${data.posicao || 'Estoque'}]`
+                             });
+                         }
+                         data.historico = historico;
+                     } else {
+                         data.historico = [
+                             {
+                                 data: new Date().toISOString(),
+                                 detalhes: 'Instalação inicial na frota'
+                             }
+                         ];
+                     }
 
-                    try {
-                        if (isEdit) {
-                            await window.movixStore.updatePneu(pneuId, data);
-                            window.movixApp.showToast('Pneu editado com sucesso!', 'success');
-                        } else {
-                            await window.movixStore.addPneu(data);
-                            window.movixApp.showToast('Pneu cadastrado com sucesso!', 'success');
-                        }
-                        modal.classList.remove('active');
-                        updateList();
-                        renderAxleMap();
-                        window.movixApp.refreshAlertsCount();
-                        window.movixApp.refreshNotificationsPanel();
-                    } catch (e) {
-                        console.error(e);
-                        window.movixApp.showToast(e.message || 'Erro ao salvar pneu.', 'danger');
-                    }
-                };
+                     if (justificativa) {
+                         if (!data.historico) {
+                             data.historico = [];
+                         }
+                         data.historico.push({
+                             data: new Date().toISOString(),
+                             detalhes: `Motivo da divergência de KM: ${justificativa}`
+                         });
+                     }
 
-                if (veiculoId) {
+                     try {
+                         if (isEdit) {
+                             await window.movixStore.updatePneu(pneuId, data);
+                             window.movixApp.showToast('Pneu editado com sucesso!', 'success');
+                         } else {
+                             await window.movixStore.addPneu(data);
+                             window.movixApp.showToast('Pneu cadastrado com sucesso!', 'success');
+                         }
+                         modal.classList.remove('active');
+                         updateList();
+                         renderAxleMap();
+                         window.movixApp.refreshAlertsCount();
+                         window.movixApp.refreshNotificationsPanel();
+                     } catch (e) {
+                         console.error(e);
+                         window.movixApp.showToast(e.message || 'Erro ao salvar pneu.', 'danger');
+                     }
+                 };
+
+                 if (veiculoId) {
                     window.movixApp.validateKM(veiculoId, enteredKM, saveAction, isEdit, originalKM);
                 } else {
                     saveAction();

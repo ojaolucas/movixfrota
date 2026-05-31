@@ -364,12 +364,16 @@
                 const enteredKM = parseFloat(kmInput.value) || 0;
                 const originalKM = isEdit ? parseFloat(ab.kmAtual) || 0 : 0;
 
-                const saveAction = async () => {
+                const saveAction = async (justificativa) => {
                     const formData = new FormData(form);
                     const data = {};
                     formData.forEach((value, key) => data[key] = value);
                     if (isEdit) {
                         data.veiculoId = ab.veiculoId;
+                    }
+
+                    if (justificativa) {
+                        data.observacoes = (data.observacoes || '') + (data.observacoes ? '\n' : '') + `Motivo da divergência de KM: ${justificativa}`;
                     }
 
                     try {

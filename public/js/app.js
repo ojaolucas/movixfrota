@@ -682,6 +682,117 @@ class MovixApp {
         });
     }
 
+    // --- CUSTOM PREMIUM KM VALIDATION MODAL ---
+    showKMValidationModal({ type, baseKM, enteredKM, diff, onConfirm, onCancel }) {
+        const backdrop = document.createElement('div');
+        backdrop.style.position = 'fixed';
+        backdrop.style.top = '0';
+        backdrop.style.left = '0';
+        backdrop.style.width = '100vw';
+        backdrop.style.height = '100vh';
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+        backdrop.style.backdropFilter = 'blur(4px)';
+        backdrop.style.zIndex = '99999';
+        backdrop.style.display = 'flex';
+        backdrop.style.alignItems = 'center';
+        backdrop.style.justifyContent = 'center';
+        backdrop.style.animation = 'fadeIn 0.2s ease-out';
+
+        const container = document.createElement('div');
+        container.style.background = 'var(--card-bg, #fff)';
+        container.style.border = '1px solid var(--border-color, #e2e8f0)';
+        container.style.borderRadius = 'var(--border-radius-md, 12px)';
+        container.style.padding = '28px';
+        container.style.maxWidth = '480px';
+        container.style.width = '90%';
+        container.style.boxShadow = 'var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1))';
+        container.style.textAlign = 'left';
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        container.style.gap = '16px';
+        container.style.animation = 'scaleUp 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)';
+
+        const formatKM = (num) => parseFloat(num).toLocaleString('pt-BR') + ' km';
+
+        let htmlContent = '';
+        let confirmBtnText = 'Confirmar Registro';
+        let cancelBtnText = 'Cancelar e Corrigir';
+
+        if (type === 'menor') {
+            cancelBtnText = 'Cancelar e Corrigir';
+            htmlContent = `
+                <div style="text-align: center; font-size: 3rem; color: var(--danger, #ef4444); margin-bottom: 8px;">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <h3 style="margin: 0; text-align: center; font-family: var(--font-heading); font-size: 1.3rem; font-weight: 800; color: var(--text-main, #0f172a);">Atenção!</h3>
+                <p style="margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--text-main, #0f172a); text-align: center;">O KM informado é menor que a última quilometragem registrada para este veículo.</p>
+                
+                <div style="background: var(--body-bg, #f8fafc); border: 1px solid var(--border-color, #e2e8f0); border-radius: 8px; padding: 12px 16px; margin: 4px 0; display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem;">
+                    <div><strong style="color: var(--text-main, #0f172a);">Último KM registrado:</strong> <span style="color: var(--danger, #ef4444); font-weight: 700;">${formatKM(baseKM)}</span></div>
+                    <div><strong style="color: var(--text-main, #0f172a);">KM informado:</strong> <span style="color: var(--text-main, #0f172a); font-weight: 700;">${formatKM(enteredKM)}</span></div>
+                </div>
+                
+                <p style="margin: 0; font-size: 0.9rem; line-height: 1.5; color: var(--text-muted, #64748b);">
+                    Isso pode causar inconsistências nos cálculos de consumo, manutenção, pneus e troca de óleo.
+                </p>
+                <p style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text-main, #0f172a); text-align: center;">Deseja continuar mesmo assim?</p>
+            `;
+        } else if (type === 'alto') {
+            cancelBtnText = 'Revisar Informação';
+            htmlContent = `
+                <div style="text-align: center; font-size: 3rem; color: var(--warning, #f59e0b); margin-bottom: 8px;">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                </div>
+                <h3 style="margin: 0; text-align: center; font-family: var(--font-heading); font-size: 1.3rem; font-weight: 800; color: var(--text-main, #0f172a);">Atenção!</h3>
+                <p style="margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--text-main, #0f172a); text-align: center;">
+                    Foi identificada uma diferença de <span style="color: var(--warning, #f59e0b); font-weight: 700;">${formatKM(diff)}</span> em relação ao último registro.
+                </p>
+                
+                <div style="background: var(--body-bg, #f8fafc); border: 1px solid var(--border-color, #e2e8f0); border-radius: 8px; padding: 12px 16px; margin: 4px 0; display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem;">
+                    <div><strong style="color: var(--text-main, #0f172a);">Último KM registrado:</strong> <span style="color: var(--text-main, #0f172a); font-weight: 700;">${formatKM(baseKM)}</span></div>
+                    <div><strong style="color: var(--text-main, #0f172a);">KM informado:</strong> <span style="color: var(--warning, #f59e0b); font-weight: 700;">${formatKM(enteredKM)}</span></div>
+                </div>
+                
+                <p style="margin: 0; font-size: 0.9rem; line-height: 1.5; color: var(--text-muted, #64748b); text-align: center;">
+                    Verifique se a quilometragem foi digitada corretamente.
+                </p>
+                <p style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text-main, #0f172a); text-align: center;">Deseja continuar?</p>
+            `;
+        }
+
+        container.innerHTML = `
+            ${htmlContent}
+            
+            <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px;">
+                <label for="validation-justificativa" style="font-size: 0.85rem; font-weight: 700; color: var(--text-main, #0f172a);">Motivo da divergência <span style="font-weight: 400; color: var(--text-muted);">(opcional)</span></label>
+                <textarea id="validation-justificativa" placeholder="Digite uma justificativa para este lançamento..." style="width: 100%; min-height: 70px; padding: 10px; border: 1px solid var(--border-color, #e2e8f0); border-radius: 6px; background: var(--input-bg, #fff); color: var(--text-main, #0f172a); font-family: inherit; font-size: 0.9rem; resize: vertical; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='var(--primary, #3b82f6)'" onblur="this.style.borderColor='var(--border-color, #e2e8f0)'"></textarea>
+            </div>
+            
+            <div style="display: flex; gap: 12px; margin-top: 12px;">
+                <button id="confirm-btn-corrigir" class="btn btn-secondary" style="flex: 1; justify-content: center; font-weight: 700; height: 42px;">${cancelBtnText}</button>
+                <button id="confirm-btn-continuar" class="btn btn-primary" style="flex: 1; justify-content: center; font-weight: 700; height: 42px; background-color: ${type === 'menor' ? 'var(--danger, #ef4444)' : 'var(--warning, #f59e0b)'}; border-color: ${type === 'menor' ? 'var(--danger, #ef4444)' : 'var(--warning, #f59e0b)'}; color: #fff;">${confirmBtnText}</button>
+            </div>
+        `;
+
+        backdrop.appendChild(container);
+        document.body.appendChild(backdrop);
+
+        const cleanUp = () => {
+            backdrop.remove();
+        };
+
+        backdrop.querySelector('#confirm-btn-continuar').addEventListener('click', () => {
+            const justificativa = backdrop.querySelector('#validation-justificativa').value.trim();
+            cleanUp();
+            if (onConfirm) onConfirm(justificativa);
+        });
+
+        backdrop.querySelector('#confirm-btn-corrigir').addEventListener('click', () => {
+            cleanUp();
+            if (onCancel) onCancel();
+        });
+    }
+
     // --- CENTRALIZED MILEAGE VALIDATION SERVICE ---
     validateKM(veiculoId, enteredKM, onValid, isEdit = false, originalKM = 0) {
         if (!veiculoId) {
@@ -699,42 +810,39 @@ class MovixApp {
         const enteredKMNum = parseFloat(enteredKM) || 0;
         const originalKMNum = parseFloat(originalKM) || 0;
 
-        if (isEdit) {
-            // Regra 1 – Impedir KM menor que o original registrado para este registro específico
-            if (enteredKMNum < originalKMNum) {
-                this.showToast("O KM informado é menor que a última quilometragem registrada para este veículo. Verifique os dados informados.", "danger");
-                return;
-            }
+        const baseKM = isEdit ? originalKMNum : currentKM;
 
-            // Regra 2 – Detectar KM muito acima do normal (diferença > 5.000 km)
-            const diff = enteredKMNum - originalKMNum;
-            if (diff > 5000) {
-                this.showConfirmModal(
-                    "Atenção! A quilometragem informada possui uma diferença elevada em relação ao último registro. Deseja continuar?",
-                    onValid,
-                    null
-                );
-            } else {
-                onValid();
-            }
-        } else {
-            // Regra 1 – Impedir KM menor que o atual do veículo
-            if (enteredKMNum < currentKM) {
-                this.showToast("O KM informado é menor que a última quilometragem registrada para este veículo. Verifique os dados informados.", "danger");
-                return;
-            }
-
-            // Regra 2 – Detectar KM muito acima do normal (diferença > 5.000 km)
-            if (enteredKMNum - currentKM > 5000) {
-                this.showConfirmModal(
-                    "Atenção! A quilometragem informada possui uma diferença elevada em relação ao último registro. Deseja continuar?",
-                    onValid,
-                    null
-                );
-            } else {
-                onValid();
-            }
+        // Regra 1 – KM menor que o último registrado (baseKM)
+        if (enteredKMNum < baseKM) {
+            this.showKMValidationModal({
+                type: 'menor',
+                baseKM,
+                enteredKM: enteredKMNum,
+                onConfirm: (justificativa) => {
+                    onValid(justificativa);
+                },
+                onCancel: null
+            });
+            return;
         }
+
+        // Regra 2 – Diferença muito alta de KM (acima de 5.000 km)
+        const diff = enteredKMNum - baseKM;
+        if (diff > 5000) {
+            this.showKMValidationModal({
+                type: 'alto',
+                baseKM,
+                enteredKM: enteredKMNum,
+                diff,
+                onConfirm: (justificativa) => {
+                    onValid(justificativa);
+                },
+                onCancel: null
+            });
+            return;
+        }
+
+        onValid();
     }
 }
 

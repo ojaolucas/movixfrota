@@ -313,12 +313,20 @@
                 };
 
                 // Validate kmInicial first
-                window.movixApp.validateKM(veiculoId, enteredKMInicial, () => {
+                window.movixApp.validateKM(veiculoId, enteredKMInicial, (justificativaInicial) => {
+                    if (justificativaInicial) {
+                        data.observacoes = (data.observacoes || '') + (data.observacoes ? '\n' : '') + `Motivo da divergência de KM Inicial: ${justificativaInicial}`;
+                    }
                     // If isEdit and it is 'Realizada', we must also validate kmFinal
                     if (isEdit && t.status === 'Realizada' && data.kmFinal) {
                         const enteredKMFinal = parseFloat(data.kmFinal) || 0;
                         const originalKMFinal = parseFloat(t.kmFinal) || 0;
-                        window.movixApp.validateKM(veiculoId, enteredKMFinal, saveAction, true, originalKMFinal);
+                        window.movixApp.validateKM(veiculoId, enteredKMFinal, (justificativaFinal) => {
+                            if (justificativaFinal) {
+                                data.observacoes = (data.observacoes || '') + (data.observacoes ? '\n' : '') + `Motivo da divergência de KM Final: ${justificativaFinal}`;
+                            }
+                            saveAction();
+                        }, true, originalKMFinal);
                     } else {
                         saveAction();
                     }
@@ -393,8 +401,10 @@
 
                 const veiculoId = t.veiculoId;
                 const enteredKMFinal = parseFloat(data.kmFinal) || 0;
-
-                const saveAction = async () => {
+                const saveAction = async (justificativa) => {
+                    if (justificativa) {
+                        data.observacoes = (data.observacoes || '') + (data.observacoes ? '\n' : '') + `Motivo da divergência de KM Final: ${justificativa}`;
+                    }
                     try {
                         await window.movixStore.updateViagem(tripId, data);
                         window.movixApp.showToast('Viagem concluída e odômetro do veículo atualizado!', 'success');
