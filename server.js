@@ -1632,6 +1632,18 @@ async function boot() {
         await db.initDB();
         const migrate = require('./migrate');
         await migrate();
+
+        // Se a tabela de usuários estiver vazia, inserir o administrador padrão!
+        const userRes = await db.query('SELECT COUNT(*) FROM usuarios');
+        if (parseInt(userRes.rows[0].count) === 0) {
+            console.log("👤 Tabela de usuários vazia. Criando administrador padrão...");
+            const hash = bcrypt.hashSync('movix@2026', 10);
+            await db.query(`
+                INSERT INTO usuarios (id, nome, cpf, email, cargo, perfil, status, foto, "senhaHash", "dataCadastro")
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            `, ['USR-001', 'Carlos Silveira', '123.456.789-00', 'carlos.admin@movixfrota.com.br', 'Administrador de Frota', 'Administrador', 'ativo', '/img/avatar-default.png', hash, '2024-01-01']);
+            console.log("✅ Administrador padrão USR-001 (CPF: 123.456.789-00) cadastrado com sucesso.");
+        }
     } catch (err) {
         console.error("Falha crítica ao bootar banco de dados PostgreSQL:", err);
     }
