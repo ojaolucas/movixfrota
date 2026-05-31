@@ -139,29 +139,29 @@
                         <label>Tipo de Análise Gerencial</label>
                         <select class="filter-input" id="report-type-sel" style="font-weight:700; color:var(--primary);">
                             <optgroup label="Operações & Custos">
-                                <option value="fuel_costs" selected>📊 Relatório de Combustíveis</option>
-                                <option value="multas_report">🚨 Relatório de Multas</option>
-                                <option value="maint_report">🔧 Relatório de Manutenções</option>
-                                <option value="trips_report">🚚 Relatório de Viagens</option>
+                                <option value="fuel_costs" selected>Relatório de Combustíveis</option>
+                                <option value="multas_report">Relatório de Multas</option>
+                                <option value="maint_report">Relatório de Manutenções</option>
+                                <option value="trips_report">Relatório de Viagens</option>
                             </optgroup>
                             <optgroup label="Manutenção Fina & Equipamentos">
-                                <option value="pneus_report">🛞 Relatório de Pneus</option>
-                                <option value="oil_report">🛢️ Relatório de Troca de Óleo</option>
-                                <option value="extinguishers_report">🧯 Relatório de Extintores</option>
+                                <option value="pneus_report">Relatório de Pneus</option>
+                                <option value="oil_report">Relatório de Troca de Óleo</option>
+                                <option value="extinguishers_report">Relatório de Extintores</option>
                             </optgroup>
                             <optgroup label="Contratos & Serviços">
-                                <option value="insurances_report">🛡️ Relatório de Seguros</option>
-                                <option value="trackers_report">📡 Relatório de Rastreadores</option>
+                                <option value="insurances_report">Relatório de Seguros</option>
+                                <option value="trackers_report">Relatório de Rastreadores</option>
                             </optgroup>
                             <optgroup label="Cadastros & Auditorias">
-                                <option value="veiculos_report">🚗 Relatório de Veículos</option>
-                                <option value="drivers_report">👨✈️ Relatório de Motoristas</option>
-                                <option value="implements_report">🏗️ Relatório de Implementos</option>
+                                <option value="veiculos_report">Relatório de Veículos</option>
+                                <option value="drivers_report">Relatório de Motoristas</option>
+                                <option value="implements_report">Relatório de Implementos</option>
                             </optgroup>
                             <optgroup label="Executivos & Vencimentos">
-                                <option value="fleet_costs_consolidated">💰 Relatório de Custos da Frota</option>
-                                <option value="vehicle_lifetime">📈 Relatório de Vida Útil do Veículo</option>
-                                <option value="expirations_alerts">🔔 Relatório de Vencimentos e Alertas</option>
+                                <option value="fleet_costs_consolidated">Relatório de Custos da Frota</option>
+                                <option value="vehicle_lifetime">Relatório de Vida Útil do Veículo</option>
+                                <option value="expirations_alerts">Relatório de Vencimentos e Alertas</option>
                             </optgroup>
                         </select>
                     </div>
@@ -280,6 +280,7 @@
                         <option value="all">Todo o histórico</option>
                         <option value="1">Este mês</option>
                         <option value="3">Últimos 3 meses</option>
+                        <option value="6">Últimos 6 meses</option>
                         <option value="12" selected>Últimos 12 meses</option>
                         <option value="custom">Personalizado...</option>
                     </select>
