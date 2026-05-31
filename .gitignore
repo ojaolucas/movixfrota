@@ -11,4 +11,4 @@ yarn-error.log*
 .env.production
 .env.staging
 data/*.bak
-
+public/uploads/
