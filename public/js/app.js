@@ -621,6 +621,121 @@ class MovixApp {
             }
         });
     }
+
+    // --- CUSTOM CONFIRMATION DIALOG (REGRA 2 OVERLAY) ---
+    showConfirmModal(message, onConfirm, onCancel) {
+        const backdrop = document.createElement('div');
+        backdrop.style.position = 'fixed';
+        backdrop.style.top = '0';
+        backdrop.style.left = '0';
+        backdrop.style.width = '100vw';
+        backdrop.style.height = '100vh';
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+        backdrop.style.backdropFilter = 'blur(4px)';
+        backdrop.style.zIndex = '99999';
+        backdrop.style.display = 'flex';
+        backdrop.style.alignItems = 'center';
+        backdrop.style.justifyContent = 'center';
+        backdrop.style.animation = 'fadeIn 0.2s ease-out';
+
+        const container = document.createElement('div');
+        container.style.background = 'var(--card-bg, #fff)';
+        container.style.border = '1px solid var(--border-color, #e2e8f0)';
+        container.style.borderRadius = 'var(--border-radius-md, 12px)';
+        container.style.padding = '24px';
+        container.style.maxWidth = '420px';
+        container.style.width = '90%';
+        container.style.boxShadow = 'var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1))';
+        container.style.textAlign = 'center';
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        container.style.gap = '16px';
+        container.style.animation = 'scaleUp 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)';
+
+        container.innerHTML = `
+            <div style="font-size: 3rem; color: var(--warning, #f59e0b);">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 style="margin: 0; font-family: var(--font-heading); font-size: 1.25rem; font-weight: 800; color: var(--text-main, #0f172a);">Atenção!</h3>
+            <p style="margin: 0; font-size: 0.95rem; line-height: 1.5; color: var(--text-muted, #64748b);">${message}</p>
+            <div style="display: flex; gap: 12px; margin-top: 8px;">
+                <button id="confirm-btn-corrigir" class="btn btn-secondary" style="flex: 1; justify-content: center; font-weight: 700; height: 38px;">Corrigir</button>
+                <button id="confirm-btn-continuar" class="btn btn-primary" style="flex: 1; justify-content: center; font-weight: 700; height: 38px; background-color: var(--warning, #f59e0b); border-color: var(--warning, #f59e0b);">Continuar</button>
+            </div>
+        `;
+
+        backdrop.appendChild(container);
+        document.body.appendChild(backdrop);
+
+        const cleanUp = () => {
+            backdrop.remove();
+        };
+
+        backdrop.querySelector('#confirm-btn-continuar').addEventListener('click', () => {
+            cleanUp();
+            if (onConfirm) onConfirm();
+        });
+
+        backdrop.querySelector('#confirm-btn-corrigir').addEventListener('click', () => {
+            cleanUp();
+            if (onCancel) onCancel();
+        });
+    }
+
+    // --- CENTRALIZED MILEAGE VALIDATION SERVICE ---
+    validateKM(veiculoId, enteredKM, onValid, isEdit = false, originalKM = 0) {
+        if (!veiculoId) {
+            onValid();
+            return;
+        }
+
+        const vehicle = window.movixStore.getVeiculo(veiculoId);
+        if (!vehicle) {
+            onValid();
+            return;
+        }
+
+        const currentKM = parseFloat(vehicle.kmAtual) || 0;
+        const enteredKMNum = parseFloat(enteredKM) || 0;
+        const originalKMNum = parseFloat(originalKM) || 0;
+
+        if (isEdit) {
+            // Regra 1 – Impedir KM menor que o original registrado para este registro específico
+            if (enteredKMNum < originalKMNum) {
+                this.showToast("O KM informado é menor que a última quilometragem registrada para este veículo. Verifique os dados informados.", "danger");
+                return;
+            }
+
+            // Regra 2 – Detectar KM muito acima do normal (diferença > 5.000 km)
+            const diff = enteredKMNum - originalKMNum;
+            if (diff > 5000) {
+                this.showConfirmModal(
+                    "Atenção! A quilometragem informada possui uma diferença elevada em relação ao último registro. Deseja continuar?",
+                    onValid,
+                    null
+                );
+            } else {
+                onValid();
+            }
+        } else {
+            // Regra 1 – Impedir KM menor que o atual do veículo
+            if (enteredKMNum < currentKM) {
+                this.showToast("O KM informado é menor que a última quilometragem registrada para este veículo. Verifique os dados informados.", "danger");
+                return;
+            }
+
+            // Regra 2 – Detectar KM muito acima do normal (diferença > 5.000 km)
+            if (enteredKMNum - currentKM > 5000) {
+                this.showConfirmModal(
+                    "Atenção! A quilometragem informada possui uma diferença elevada em relação ao último registro. Deseja continuar?",
+                    onValid,
+                    null
+                );
+            } else {
+                onValid();
+            }
+        }
+    }
 }
 
 // Instantiate App Control

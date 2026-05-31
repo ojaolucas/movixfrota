@@ -477,19 +477,34 @@
                 const data = {};
                 formData.forEach((value, key) => data[key] = value);
 
-                try {
-                    if (isEdit) {
-                        data.veiculoId = m.veiculoId;
-                        await window.movixStore.updateMaintenance(id, data);
-                        window.movixApp.showToast('Ordem de serviço atualizada!', 'success');
-                    } else {
-                        await window.movixStore.addMaintenance(data);
-                        window.movixApp.showToast('Nova ordem registrada!', 'success');
+                const veiculoId = isEdit ? m.veiculoId : veicSel.value;
+                const enteredKM = parseFloat(data.km) || 0;
+                const originalKM = isEdit ? parseFloat(m.km) || 0 : 0;
+
+                const selectedVeh = vehicles.find(v => v.id === veiculoId);
+                const isTrailer = selectedVeh && selectedVeh.tipoUnidade === 'Implemento/Reboque';
+
+                const saveAction = async () => {
+                    try {
+                        if (isEdit) {
+                            data.veiculoId = m.veiculoId;
+                            await window.movixStore.updateMaintenance(id, data);
+                            window.movixApp.showToast('Ordem de serviço atualizada!', 'success');
+                        } else {
+                            await window.movixStore.addMaintenance(data);
+                            window.movixApp.showToast('Nova ordem registrada!', 'success');
+                        }
+                        modal.classList.remove('active');
+                        renderManutencoes(document.getElementById('view-content-wrapper'));
+                    } catch (err) {
+                        window.movixApp.showToast(err.message || 'Erro ao salvar manutenção.', 'danger');
                     }
-                    modal.classList.remove('active');
-                    renderManutencoes(document.getElementById('view-content-wrapper'));
-                } catch (err) {
-                    window.movixApp.showToast(err.message || 'Erro ao salvar manutenção.', 'danger');
+                };
+
+                if (isTrailer) {
+                    saveAction();
+                } else {
+                    window.movixApp.validateKM(veiculoId, enteredKM, saveAction, isEdit, originalKM);
                 }
             });
         }

@@ -843,6 +843,18 @@ app.post('/api/pneus', requireAuth, async (req, res) => {
             id, p.codigo, p.marca, p.modelo, p.medida, custo, vidaEstimada, kmInicial, p.veiculoAtual || null, p.posicao, p.status || 'Regular', p.dataInstalacao, p.comprovanteAnexo, JSON.stringify(anotacoes), JSON.stringify(historico)
         ]);
 
+        if (p.veiculoAtual && kmInicial > 0) {
+            const veicRes = await db.query('SELECT "kmAtual", "historicoKM" FROM veiculos WHERE id = $1', [p.veiculoAtual]);
+            if (veicRes.rowCount > 0) {
+                const veic = veicRes.rows[0];
+                if (kmInicial > (parseFloat(veic.kmAtual) || 0)) {
+                    const historicoKM = veic.historicoKM || [];
+                    historicoKM.push({ data: p.dataInstalacao || new Date().toISOString().split('T')[0], km: kmInicial });
+                    await db.query('UPDATE veiculos SET "kmAtual" = $1, "historicoKM" = $2 WHERE id = $3', [kmInicial, JSON.stringify(historicoKM), p.veiculoAtual]);
+                }
+            }
+        }
+
         await addLog(req.session.nome, req.session.perfil, 'Cadastro', 'Pneu', `Cadastrou pneu ${p.marca} ${p.modelo} (${p.codigo})`);
         res.json(result.rows[0]);
     } catch (err) {
@@ -888,6 +900,19 @@ app.put('/api/pneus/:id', requireAuth, async (req, res) => {
             JSON.stringify(historico),
             req.params.id
         ]);
+
+        const updatedPneu = result.rows[0];
+        if (updatedPneu.veiculoAtual && kmInicial > 0) {
+            const veicRes = await db.query('SELECT "kmAtual", "historicoKM" FROM veiculos WHERE id = $1', [updatedPneu.veiculoAtual]);
+            if (veicRes.rowCount > 0) {
+                const veic = veicRes.rows[0];
+                if (kmInicial > (parseFloat(veic.kmAtual) || 0)) {
+                    const historicoKM = veic.historicoKM || [];
+                    historicoKM.push({ data: updatedPneu.dataInstalacao || new Date().toISOString().split('T')[0], km: kmInicial });
+                    await db.query('UPDATE veiculos SET "kmAtual" = $1, "historicoKM" = $2 WHERE id = $3', [kmInicial, JSON.stringify(historicoKM), updatedPneu.veiculoAtual]);
+                }
+            }
+        }
 
         await addLog(req.session.nome, req.session.perfil, 'Edição', 'Pneu', `Atualizou posição/rodízio do pneu ${result.rows[0].codigo}`);
         res.json(result.rows[0]);

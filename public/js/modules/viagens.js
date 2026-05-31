@@ -287,24 +287,42 @@
                 const data = {};
                 formData.forEach((value, key) => data[key] = value);
 
-                try {
-                    if (isEdit) {
-                        await window.movixStore.updateViagem(tripId, data);
-                        window.movixApp.showToast('Viagem atualizada com sucesso!', 'success');
-                    } else {
-                        data.status = 'Em andamento';
-                        data.custos = 0;
-                        await window.movixStore.addViagem(data);
-                        window.movixApp.showToast('Escala de viagem registrada!', 'success');
+                const veiculoId = isEdit ? t.veiculoId : veicSel.value;
+                const enteredKMInicial = parseFloat(data.kmInicial) || 0;
+                const originalKMInicial = isEdit ? parseFloat(t.kmInicial) || 0 : 0;
+
+                const saveAction = async () => {
+                    try {
+                        if (isEdit) {
+                            await window.movixStore.updateViagem(tripId, data);
+                            window.movixApp.showToast('Viagem updated com sucesso!', 'success');
+                        } else {
+                            data.status = 'Em andamento';
+                            data.custos = 0;
+                            await window.movixStore.addViagem(data);
+                            window.movixApp.showToast('Escala de viagem registrada!', 'success');
+                        }
+                        modal.classList.remove('active');
+                        renderViagens(container);
+                        window.movixApp.refreshAlertsCount();
+                        window.movixApp.refreshNotificationsPanel();
+                    } catch (e) {
+                        console.error(e);
+                        window.movixApp.showToast(e.message || 'Erro ao salvar viagem.', 'danger');
                     }
-                    modal.classList.remove('active');
-                    renderViagens(container);
-                    window.movixApp.refreshAlertsCount();
-                    window.movixApp.refreshNotificationsPanel();
-                } catch (e) {
-                    console.error(e);
-                    window.movixApp.showToast(e.message || 'Erro ao salvar viagem.', 'danger');
-                }
+                };
+
+                // Validate kmInicial first
+                window.movixApp.validateKM(veiculoId, enteredKMInicial, () => {
+                    // If isEdit and it is 'Realizada', we must also validate kmFinal
+                    if (isEdit && t.status === 'Realizada' && data.kmFinal) {
+                        const enteredKMFinal = parseFloat(data.kmFinal) || 0;
+                        const originalKMFinal = parseFloat(t.kmFinal) || 0;
+                        window.movixApp.validateKM(veiculoId, enteredKMFinal, saveAction, true, originalKMFinal);
+                    } else {
+                        saveAction();
+                    }
+                }, isEdit, originalKMInicial);
             });
         }
 
@@ -373,17 +391,24 @@
                 };
                 formData.forEach((value, key) => data[key] = value);
 
-                try {
-                    await window.movixStore.updateViagem(tripId, data);
-                    window.movixApp.showToast('Viagem concluída e odômetro do veículo atualizado!', 'success');
-                    modal.classList.remove('active');
-                    renderViagens(container);
-                    window.movixApp.refreshAlertsCount();
-                    window.movixApp.refreshNotificationsPanel();
-                } catch (e) {
-                    console.error(e);
-                    window.movixApp.showToast(e.message || 'Erro ao concluir viagem.', 'danger');
-                }
+                const veiculoId = t.veiculoId;
+                const enteredKMFinal = parseFloat(data.kmFinal) || 0;
+
+                const saveAction = async () => {
+                    try {
+                        await window.movixStore.updateViagem(tripId, data);
+                        window.movixApp.showToast('Viagem concluída e odômetro do veículo atualizado!', 'success');
+                        modal.classList.remove('active');
+                        renderViagens(container);
+                        window.movixApp.refreshAlertsCount();
+                        window.movixApp.refreshNotificationsPanel();
+                    } catch (e) {
+                        console.error(e);
+                        window.movixApp.showToast(e.message || 'Erro ao concluir viagem.', 'danger');
+                    }
+                };
+
+                window.movixApp.validateKM(veiculoId, enteredKMFinal, saveAction, false, 0);
             });
         }
 

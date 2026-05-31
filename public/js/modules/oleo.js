@@ -314,14 +314,6 @@
                     return;
                 }
 
-                // Verify minimum odometer rule
-                const enteredKM = parseFloat(kmInput.value);
-                const limitKM = parseFloat(kmInput.getAttribute('min'));
-                if (enteredKM < limitKM && !isEdit) {
-                    window.movixApp.showToast(`O KM inserido (${enteredKM}) é menor que o KM registrado do veículo (${limitKM})!`, 'danger');
-                    return;
-                }
-
                 const formData = new FormData(form);
                 const data = {
                     filtroOleo: form.querySelector('input[name="filtroOleo"]').checked,
@@ -334,22 +326,30 @@
                     }
                 });
 
-                try {
-                    if (isEdit) {
-                        await window.movixStore.updateOleo(oleoId, data);
-                        window.movixApp.showToast('Troca de óleo atualizada com sucesso!', 'success');
-                    } else {
-                        await window.movixStore.addOleo(data);
-                        window.movixApp.showToast('Troca de óleo cadastrada com sucesso!', 'success');
+                const veiculoId = isEdit ? o.veiculoId : veicSel.value;
+                const enteredKM = parseFloat(kmInput.value) || 0;
+                const originalKM = isEdit ? parseFloat(o.kmTroca) || 0 : 0;
+
+                const saveAction = async () => {
+                    try {
+                        if (isEdit) {
+                            await window.movixStore.updateOleo(oleoId, data);
+                            window.movixApp.showToast('Troca de óleo atualizada com sucesso!', 'success');
+                        } else {
+                            await window.movixStore.addOleo(data);
+                            window.movixApp.showToast('Troca de óleo cadastrada com sucesso!', 'success');
+                        }
+                        modal.classList.remove('active');
+                        renderOleo(container);
+                        window.movixApp.refreshAlertsCount();
+                        window.movixApp.refreshNotificationsPanel();
+                    } catch (e) {
+                        console.error(e);
+                        window.movixApp.showToast(e.message || 'Erro ao registrar troca de óleo.', 'danger');
                     }
-                    modal.classList.remove('active');
-                    renderOleo(container);
-                    window.movixApp.refreshAlertsCount();
-                    window.movixApp.refreshNotificationsPanel();
-                } catch (e) {
-                    console.error(e);
-                    window.movixApp.showToast(e.message || 'Erro ao registrar troca de óleo.', 'danger');
-                }
+                };
+
+                window.movixApp.validateKM(veiculoId, enteredKM, saveAction, isEdit, originalKM);
             });
         }
 

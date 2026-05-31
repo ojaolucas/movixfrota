@@ -1173,7 +1173,7 @@
         const closeModal = () => modal.classList.remove('active');
  
         cancelBtn.addEventListener('click', closeModal);
- 
+
         saveBtn.addEventListener('click', async () => {
             const form = document.getElementById('form-veiculo');
             if (!form.checkValidity()) {
@@ -1184,20 +1184,31 @@
             const formData = new FormData(form);
             const data = {};
             formData.forEach((value, key) => data[key] = value);
- 
-            try {
-                if (isEdit) {
-                    data.historicoKM = vehicle.historicoKM;
-                    await window.movixStore.updateVeiculo(id, data);
-                    window.movixApp.showToast('Veículo atualizado com sucesso!', 'success');
-                } else {
-                    await window.movixStore.addVeiculo(data);
-                    window.movixApp.showToast('Veículo cadastrado com sucesso!', 'success');
+
+            const enteredKM = parseFloat(data.kmAtual) || 0;
+            const originalKM = isEdit ? parseFloat(vehicle.kmAtual) || 0 : 0;
+
+            const saveAction = async () => {
+                try {
+                    if (isEdit) {
+                        data.historicoKM = vehicle.historicoKM;
+                        await window.movixStore.updateVeiculo(id, data);
+                        window.movixApp.showToast('Veículo atualizado com sucesso!', 'success');
+                    } else {
+                        await window.movixStore.addVeiculo(data);
+                        window.movixApp.showToast('Veículo cadastrado com sucesso!', 'success');
+                    }
+                    closeModal();
+                    renderListagemVeiculos(document.getElementById('view-content-wrapper'));
+                } catch (err) {
+                    window.movixApp.showToast(err.message || 'Erro ao salvar veículo.', 'danger');
                 }
-                closeModal();
-                renderListagemVeiculos(document.getElementById('view-content-wrapper'));
-            } catch (err) {
-                window.movixApp.showToast(err.message || 'Erro ao salvar veículo.', 'danger');
+            };
+
+            if (isEdit && enteredKM !== originalKM) {
+                window.movixApp.validateKM(id, enteredKM, saveAction, true, originalKM);
+            } else {
+                saveAction();
             }
         });
     }

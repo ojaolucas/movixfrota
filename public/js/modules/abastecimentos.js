@@ -360,37 +360,35 @@
                     return;
                 }
 
-                if (!isEdit) {
-                    const opt = veicSel.options[veicSel.selectedIndex];
-                    const lastKM = parseFloat(opt.getAttribute('data-km'));
-                    const enteredKM = parseFloat(kmInput.value);
-                    if (enteredKM < lastKM) {
-                        window.movixApp.showToast(`O KM digitado (${enteredKM}) é menor que o KM atual registrado do veículo (${lastKM})!`, 'danger');
-                        return;
-                    }
-                }
+                const veiculoId = isEdit ? ab.veiculoId : veicSel.value;
+                const enteredKM = parseFloat(kmInput.value) || 0;
+                const originalKM = isEdit ? parseFloat(ab.kmAtual) || 0 : 0;
 
-                const formData = new FormData(form);
-                const data = {};
-                formData.forEach((value, key) => data[key] = value);
-                if (isEdit) {
-                    data.veiculoId = ab.veiculoId;
-                }
-
-                try {
+                const saveAction = async () => {
+                    const formData = new FormData(form);
+                    const data = {};
+                    formData.forEach((value, key) => data[key] = value);
                     if (isEdit) {
-                        await window.movixStore.updateAbastecimento(id, data);
-                        window.movixApp.showToast('Abastecimento atualizado com sucesso!', 'success');
-                    } else {
-                        await window.movixStore.addAbastecimento(data);
-                        window.movixApp.showToast('Abastecimento registrado com sucesso!', 'success');
+                        data.veiculoId = ab.veiculoId;
                     }
-                    modal.classList.remove('active');
-                    renderAbastecimentos(container);
-                } catch (e) {
-                    console.error(e);
-                    window.movixApp.showToast(e.message || 'Erro ao salvar abastecimento.', 'danger');
-                }
+
+                    try {
+                        if (isEdit) {
+                            await window.movixStore.updateAbastecimento(id, data);
+                            window.movixApp.showToast('Abastecimento atualizado com sucesso!', 'success');
+                        } else {
+                            await window.movixStore.addAbastecimento(data);
+                            window.movixApp.showToast('Abastecimento registrado com sucesso!', 'success');
+                        }
+                        modal.classList.remove('active');
+                        renderAbastecimentos(container);
+                    } catch (e) {
+                        console.error(e);
+                        window.movixApp.showToast(e.message || 'Erro ao salvar abastecimento.', 'danger');
+                    }
+                };
+
+                window.movixApp.validateKM(veiculoId, enteredKM, saveAction, isEdit, originalKM);
             });
         }
 
