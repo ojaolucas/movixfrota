@@ -770,7 +770,7 @@ class MovixApp {
             
             <div style="display: flex; gap: 12px; margin-top: 12px;">
                 <button id="confirm-btn-corrigir" class="btn btn-secondary" style="flex: 1; justify-content: center; font-weight: 700; height: 42px;">${cancelBtnText}</button>
-                <button id="confirm-btn-continuar" class="btn btn-primary" style="flex: 1; justify-content: center; font-weight: 700; height: 42px; background-color: ${type === 'menor' ? 'var(--danger, #ef4444)' : 'var(--warning, #f59e0b)'}; border-color: ${type === 'menor' ? 'var(--danger, #ef4444)' : 'var(--warning, #f59e0b)'}; color: #fff;">${confirmBtnText}</button>
+                <button id="confirm-btn-continuar" class="btn btn-primary" style="flex: 1; justify-content: center; font-weight: 700; height: 42px; color: #fff;">${confirmBtnText}</button>
             </div>
         `;
 
