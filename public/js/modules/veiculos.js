@@ -1353,8 +1353,7 @@
         const totalFuelSpent = fuel.reduce((acc, a) => acc + a.valorTotal, 0);
         const totalMaintenanceSpent = maintenance.reduce((acc, m) => acc + m.valor, 0);
         const totalOilSpent = oil.reduce((acc, o) => acc + o.valor, 0);
-        const totalTripsCost = trips.reduce((acc, t) => acc + t.custos, 0);
-        const combinedVehicleCost = totalFuelSpent + totalMaintenanceSpent + totalOilSpent + totalTripsCost;
+        const combinedVehicleCost = totalFuelSpent + totalMaintenanceSpent + totalOilSpent;
 
         // Render layout
         container.innerHTML = `
@@ -1492,8 +1491,7 @@
                                 </div>
                                 <ul class="detail-sidebar-info-list" style="border:none; padding:0; font-size:0.9rem; gap:16px;">
                                     <li class="detail-sidebar-info-item"><span>Gasto Oficina/Peças</span><strong>R$ ${totalMaintenanceSpent.toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong></li>
-                                    <li class="detail-sidebar-info-item"><span>Custos Operacionais de Viagem</span><strong>R$ ${totalTripsCost.toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong></li>
-                                    <li class="detail-sidebar-info-item" style="border-top:2px solid var(--border-color); padding-top:16px; font-weight:700;"><span>Total de Custos de Vida</span><strong class="text-danger" style="font-size:1.15rem;">R$ ${(totalMaintenanceSpent + totalTripsCost).toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong></li>
+                                    <li class="detail-sidebar-info-item" style="border-top:2px solid var(--border-color); padding-top:16px; font-weight:700;"><span>Total de Custos de Vida</span><strong class="text-danger" style="font-size:1.15rem;">R$ ${totalMaintenanceSpent.toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong></li>
                                 </ul>
                             </div>
                         ` : `
@@ -1507,7 +1505,6 @@
                                         <li class="detail-sidebar-info-item"><span>Gasto Combustível</span><strong>R$ ${totalFuelSpent.toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong></li>
                                         <li class="detail-sidebar-info-item"><span>Gasto Oficina/Peças</span><strong>R$ ${totalMaintenanceSpent.toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong></li>
                                         <li class="detail-sidebar-info-item"><span>Gasto Lubrificantes (Óleo)</span><strong>R$ ${totalOilSpent.toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong></li>
-                                        <li class="detail-sidebar-info-item"><span>Custos Operacionais de Viagem</span><strong>R$ ${totalTripsCost.toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong></li>
                                         <li class="detail-sidebar-info-item" style="border-top:2px solid var(--border-color); padding-top:16px; font-weight:700;"><span>Total de Custos de Vida</span><strong class="text-danger" style="font-size:1.15rem;">R$ ${combinedVehicleCost.toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong></li>
                                     </ul>
                                 </div>
