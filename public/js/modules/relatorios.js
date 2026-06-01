@@ -2164,15 +2164,19 @@
                     // Style status badges or special columns
                     if (key === 'status' || key === 'situacaoVencimento' || key === 'gravidade') {
                         let badgeClass = 'status-gray';
+                        let displayVal = val;
                         const text = String(val).toLowerCase();
                         if (text === 'pago' || text === 'realizada' || text === 'regular' || text === 'disponivel' || text === 'vigente' || text === 'ativo' || text === 'válido' || text === 'ok') {
                             badgeClass = 'ok';
                         } else if (text === 'não pago' || text === 'corretiva' || text === 'vencido' || text === 'vencida' || text === 'crítico' || text === 'desativado' || text === 'inativo') {
                             badgeClass = 'vencido';
-                        } else if (text === 'recorrendo' || text === 'em andamento' || text === 'agendada' || text === 'manutencao' || text === 'vence em breve' || text === 'atenção') {
-                            badgeClass = 'atencao';
+                        } else if (text === 'recorrendo' || text === 'em andamento' || text === 'agendada' || text === 'manutencao' || text === 'em_manutencao' || text === 'vence em breve' || text === 'atenção') {
+                            badgeClass = 'em_manutencao';
+                            if (text === 'em_manutencao') {
+                                displayVal = 'Em Oficina';
+                            }
                         }
-                        cellHTML = `<td><span class="status-pill ${badgeClass}" style="font-weight:700; font-size:0.7rem; padding: 2px 6px;">${val}</span></td>`;
+                        cellHTML = `<td><span class="status-pill ${badgeClass}" style="font-weight:700; font-size:0.7rem; padding: 2px 6px;">${displayVal}</span></td>`;
                     } else if (key === 'veiculo' || key === 'placa') {
                         cellHTML = `<td style="font-weight:700; color:var(--primary);">${val}</td>`;
                     } else if (key === 'total' || key === 'maintCost' || key === 'valorTotal' || key === 'valor') {
