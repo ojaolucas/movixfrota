@@ -844,6 +844,23 @@ class MovixApp {
 
         onValid();
     }
+
+    // --- CENTRALIZED LOADING INDICATOR SERVICE ---
+    startLoading(button, loadingText = "Processando...") {
+        if (!button) return { stop: () => {} };
+        const originalHTML = button.innerHTML;
+        const originalDisabled = button.disabled;
+        
+        button.disabled = true;
+        button.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin" style="margin-right: 6px;"></i>${loadingText}`;
+        
+        return {
+            stop: () => {
+                button.disabled = originalDisabled;
+                button.innerHTML = originalHTML;
+            }
+        };
+    }
 }
 
 // Instantiate App Control

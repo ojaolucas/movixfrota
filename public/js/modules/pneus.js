@@ -461,6 +461,8 @@
                          });
                      }
 
+                     const saveBtn = document.getElementById('btn-salvar-modal');
+                     const loader = window.movixApp.startLoading(saveBtn, isEdit ? "Atualizando..." : "Salvando...");
                      try {
                          if (isEdit) {
                              await window.movixStore.updatePneu(pneuId, data);
@@ -477,6 +479,8 @@
                      } catch (e) {
                          console.error(e);
                          window.movixApp.showToast(e.message || 'Erro ao salvar pneu.', 'danger');
+                     } finally {
+                         loader.stop();
                      }
                  };
 
@@ -541,6 +545,8 @@
                 const newPos = document.querySelector('#form-rodizio select[name="posicao"]').value;
                 const obs = document.getElementById('rodizio-obs').value;
 
+                const saveBtn = document.getElementById('btn-salvar-modal');
+                const loader = window.movixApp.startLoading(saveBtn, "Processando...");
                 try {
                     const historico = p.historico || [];
                     historico.push({
@@ -559,6 +565,8 @@
                 } catch (e) {
                     console.error(e);
                     window.movixApp.showToast(e.message || 'Erro ao realizar rodízio do pneu.', 'danger');
+                } finally {
+                    loader.stop();
                 }
             });
         }
@@ -590,6 +598,8 @@
 
             document.getElementById('btn-cancelar-del').addEventListener('click', () => modal.classList.remove('active'));
             document.getElementById('btn-confirmar-del').addEventListener('click', async () => {
+                const delBtn = document.getElementById('btn-confirmar-del');
+                const loader = window.movixApp.startLoading(delBtn, "Excluindo...");
                 try {
                     await window.movixStore.deletePneu(pneuId);
                     window.movixApp.showToast('Pneu excluído com sucesso.', 'danger');
@@ -600,6 +610,8 @@
                     window.movixApp.refreshNotificationsPanel();
                 } catch (err) {
                     window.movixApp.showToast(err.message || 'Erro ao excluir pneu.', 'danger');
+                } finally {
+                    loader.stop();
                 }
             });
         }

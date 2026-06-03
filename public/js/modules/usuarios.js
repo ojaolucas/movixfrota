@@ -397,8 +397,7 @@
                 return;
             }
 
-            saveBtn.disabled = true;
-            saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
+            const loader = window.movixApp.startLoading(saveBtn, isEdit ? "Atualizando..." : "Salvando...");
 
             const formData = new FormData(form);
             const data = {};
@@ -419,8 +418,8 @@
             } catch (err) {
                 console.error("Failed saving user", err);
                 window.movixApp.showToast(err.message || 'Falha ao salvar dados do usuário.', 'danger');
-                saveBtn.disabled = false;
-                saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Salvar Registro';
+            } finally {
+                loader.stop();
             }
         });
     }
@@ -452,6 +451,8 @@
 
         document.getElementById('btn-cancelar-del').addEventListener('click', () => modal.classList.remove('active'));
         document.getElementById('btn-confirmar-del').addEventListener('click', async () => {
+            const delBtn = document.getElementById('btn-confirmar-del');
+            const loader = window.movixApp.startLoading(delBtn, "Excluindo...");
             try {
                 await window.movixStore.deleteUsuario(id);
                 window.movixApp.showToast('Usuário excluído com sucesso!', 'danger');
@@ -460,6 +461,8 @@
             } catch (err) {
                 window.movixApp.showToast(err.message || 'Erro ao excluir usuário.', 'danger');
                 modal.classList.remove('active');
+            } finally {
+                loader.stop();
             }
         });
     }

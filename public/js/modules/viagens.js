@@ -36,7 +36,7 @@
                             <th>KM Inicial / Final</th>
                             <th>Situação</th>
                             <th style="width: 80px; text-align: center;">Retorno</th>
-                            ${!isVisualizador ? '<th style="width: 120px; text-align: center;">Ações</th>' : ''}
+                            <th style="width: 120px; text-align: center;">Ações</th>
                         </tr>
                     </thead>
                     <tbody id="tbody-viagens">
@@ -64,7 +64,7 @@
 
             tbody.innerHTML = '';
             if (paginatedItems.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="${isVisualizador ? 7 : 8}" class="search-no-results" style="text-align: center;">Nenhuma viagem registrada no momento.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="search-no-results" style="text-align: center;">Nenhuma viagem registrada no momento.</td></tr>`;
                 document.getElementById('pagination-viagens').innerHTML = '';
                 return;
             }
@@ -75,11 +75,13 @@
                 
                 const statusClass = t.status === 'Realizada' ? 'realizada' : 'em_andamento';
 
-                let actionsHTML = '';
-                if (!isVisualizador) {
-                    actionsHTML = `
-                        <td style="text-align: center;">
-                            <div style="display:flex; gap:6px; justify-content:center; align-items:center;">
+                const actionsHTML = `
+                    <td style="text-align: center;">
+                        <div style="display:flex; gap:6px; justify-content:center; align-items:center;">
+                            <button class="btn-icon-only btn-view-viagem" data-id="${t.id}" title="Visualizar Detalhes & Auditoria">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                            ${!isVisualizador ? `
                                 <button class="btn-icon-only btn-edit-viagem" data-id="${t.id}" title="Editar Viagem">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
@@ -88,10 +90,10 @@
                                         <i class="fa-solid fa-trash-can"></i>
                                     </button>
                                 ` : ''}
-                            </div>
-                        </td>
-                    `;
-                }
+                            ` : ''}
+                        </div>
+                    </td>
+                `;
 
                 tbody.innerHTML += `
                     <tr>
@@ -107,8 +109,8 @@
                         </td>
                         <td>
                             <div style="display:flex; flex-direction:column; font-size:0.8rem;">
-                                <span>Partida: ${t.dataSaida.split('-').reverse().join('/')}${t.horaPartida ? ` às ${t.horaPartida}` : ''}</span>
-                                <span>Retorno: ${t.dataRetorno ? `${t.dataRetorno.split('-').reverse().join('/')}${t.horaChegada ? ` às ${t.horaChegada}` : ''}` : '<strong class="text-warning">Em trânsito</strong>'}</span>
+                                <span>Partida: ${t.dataSaida.split('-').reverse().join('/')}${t.horaSaida ? ` às ${t.horaSaida}` : ''}</span>
+                                <span>Retorno: ${t.dataRetorno ? `${t.dataRetorno.split('-').reverse().join('/')}${t.horaRetorno ? ` às ${t.horaRetorno}` : ''}` : '<strong class="text-warning">Em trânsito</strong>'}</span>
                             </div>
                         </td>
                         <td>
@@ -159,11 +161,14 @@
 
         // Table actions triggers
         document.querySelector('.table-responsive').addEventListener('click', (e) => {
+            const viewDetailBtn = e.target.closest('.btn-view-viagem');
             const conclBtn = e.target.closest('.btn-conclude');
             const editBtn = e.target.closest('.btn-edit-viagem');
             const deleteBtn = e.target.closest('.btn-delete-viagem');
             
-            if (conclBtn) {
+            if (viewDetailBtn) {
+                openViagemDetailModal(viewDetailBtn.getAttribute('data-id'));
+            } else if (conclBtn) {
                 openConcluirModal(conclBtn.getAttribute('data-id'));
             } else if (editBtn) {
                 openViagemModal(editBtn.getAttribute('data-id'));
@@ -171,6 +176,93 @@
                 confirmDeleteViagem(deleteBtn.getAttribute('data-id'));
             }
         });
+
+        // Detailed View & Audit Timeline Modal
+        function openViagemDetailModal(tripId) {
+            const currentTrips = window.movixStore.getViagens();
+            const t = currentTrips.find(item => item.id === tripId);
+            if (!t) return;
+
+            const v = vehicles.find(item => item.id === t.veiculoId);
+            const m = drivers.find(item => item.id === t.motoristaId);
+
+            const modal = document.getElementById('global-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body-content');
+            const modalFooter = document.getElementById('modal-footer-actions');
+
+            modalTitle.innerText = `Detalhes da Viagem: ${t.id}`;
+
+            // Filter audit logs from state
+            const tripLogs = (window.movixStore.state.logs || []).filter(log => 
+                log.entidade === 'Viagem' && 
+                (log.detalhes.includes(t.id) || 
+                 (log.acao === 'Cadastro' && log.detalhes.includes(t.origem) && log.detalhes.includes(t.destino)))
+            );
+
+            let historyTimelineHTML = '';
+            if (tripLogs.length > 0) {
+                historyTimelineHTML = tripLogs.map(h => `
+                    <div style="display:flex; gap:16px; border-left:2px solid var(--border-color); padding-left:16px; margin-left:8px; position:relative; padding-bottom:12px;">
+                        <span style="position:absolute; left:-6px; top:4px; width:10px; height:10px; border-radius:50%; background-color:var(--primary);"></span>
+                        <div style="display:flex; flex-direction:column; gap:2px; font-size:0.8rem;">
+                            <div style="display:flex; gap:8px; align-items:center;">
+                                <strong style="color:var(--text-main); font-weight:700;">${h.usuario}</strong>
+                                <span style="font-size:0.7rem; color:var(--text-muted);">${new Date(h.data).toLocaleString('pt-BR')}</span>
+                            </div>
+                            <span style="color:var(--text-muted); font-size:0.75rem;">Ação: ${h.acao}</span>
+                            <span style="color:var(--text-muted); font-size:0.72rem;">Detalhes: ${h.detalhes}</span>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                historyTimelineHTML = '<p style="font-size:0.8rem; color:var(--text-muted); font-style:italic;">Nenhum log de auditoria encontrado para esta viagem.</p>';
+            }
+
+            modalBody.innerHTML = `
+                <div class="grid-1-1" style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px;">
+                    <div>
+                        <h4 style="font-family:var(--font-heading); color:var(--primary); margin-bottom:12px;"><i class="fa-solid fa-circle-info"></i> Informações Gerais</h4>
+                        <ul class="detail-sidebar-info-list" style="border:none; padding:0; font-size:0.85rem; display:flex; flex-direction:column; gap:10px;">
+                            <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Veículo</span><strong style="color:var(--primary);">${v ? `${v.placa} (${v.marca} ${v.modelo})` : 'Deletado'}</strong></li>
+                            <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Motorista</span><strong>${m ? m.nome : 'Deletado'}</strong></li>
+                            <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Origem</span><strong>${t.origem}</strong></li>
+                            <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Destino</span><strong>${t.destino}</strong></li>
+                            <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Partida</span><strong>${t.dataSaida.split('-').reverse().join('/')} às ${t.horaSaida || '-'}</strong></li>
+                            <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Retorno</span><strong>${t.dataRetorno ? `${t.dataRetorno.split('-').reverse().join('/')} às ${t.horaRetorno || '-'}` : '<span class="text-warning">Em trânsito</span>'}</strong></li>
+                            <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>KM Inicial</span><strong>${parseFloat(t.kmInicial).toLocaleString('pt-BR')} km</strong></li>
+                            <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>KM Final</span><strong>${t.kmFinal > 0 ? `${parseFloat(t.kmFinal).toLocaleString('pt-BR')} km` : '-'}</strong></li>
+                            <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>KM Rodados</span><strong>${t.kmRodado > 0 ? `${parseFloat(t.kmRodado).toLocaleString('pt-BR')} km` : '-'}</strong></li>
+                            <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Custos de Viagem</span><strong>R$ ${(parseFloat(t.custos) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></li>
+                            <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Situação</span>
+                                <span class="status-pill ${t.status === 'Realizada' ? 'realizada' : 'em_andamento'}">${t.status}</span>
+                            </li>
+                        </ul>
+
+                        ${t.observacoes ? `
+                        <div style="margin-top:20px;">
+                            <h5 style="font-weight:700; margin-bottom:6px; font-size:0.85rem;">Instruções e Observações:</h5>
+                            <p style="font-size:0.8rem; line-height:1.5; color:var(--text-muted); background:var(--bg-surface-hover); padding:10px; border-radius:6px; border-left:3px solid var(--primary); white-space:pre-wrap;">${t.observacoes}</p>
+                        </div>` : ''}
+                    </div>
+
+                    <div style="border-left:1px solid var(--border-color); padding-left:20px;">
+                        <h4 style="font-family:var(--font-heading); color:var(--primary); margin-bottom:16px;"><i class="fa-solid fa-clock-rotate-left"></i> Histórico de Alterações (Auditoria)</h4>
+                        <div style="max-height: 380px; overflow-y:auto; padding-right:8px;">
+                            ${historyTimelineHTML}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            modalFooter.innerHTML = `
+                <button class="btn btn-secondary" id="btn-fechar-detalhe">Fechar</button>
+            `;
+
+            modal.classList.add('active');
+
+            document.getElementById('btn-fechar-detalhe').addEventListener('click', () => modal.classList.remove('active'));
+        }
 
         // CRUD Modal Dialog
         function openViagemModal(tripId = null) {
@@ -192,8 +284,8 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Hora de Partida <span class="text-muted">(Opcional)</span></label>
-                        <input type="time" class="form-control" name="horaPartida" value="${isEdit && t.horaPartida ? t.horaPartida : ''}">
+                        <label>Hora de Partida <span class="required">*</span></label>
+                        <input type="time" class="form-control" name="horaSaida" required value="${isEdit && t.horaSaida ? t.horaSaida : ''}">
                     </div>
 
                     <div class="form-group">
@@ -236,8 +328,8 @@
                         </div>
 
                         <div class="form-group">
-                            <label>Hora de Chegada <span class="text-muted">(Opcional)</span></label>
-                            <input type="time" class="form-control" name="horaChegada" value="${t.horaChegada || ''}">
+                            <label>Hora de Chegada <span class="required">*</span></label>
+                            <input type="time" class="form-control" name="horaRetorno" required value="${t.horaRetorno || ''}">
                         </div>
 
                         <div class="form-group">
@@ -291,11 +383,18 @@
                 const enteredKMInicial = parseFloat(data.kmInicial) || 0;
                 const originalKMInicial = isEdit ? parseFloat(t.kmInicial) || 0 : 0;
 
-                const saveAction = async () => {
+                const saveAction = async (justificativaInicial) => {
+                    if (justificativaInicial) {
+                        data.observacoes = (data.observacoes || '') + (data.observacoes ? '\n' : '') + `Motivo da divergência de KM Inicial: ${justificativaInicial}`;
+                    }
+
+                    const saveBtn = document.getElementById('btn-salvar-modal');
+                    const loader = window.movixApp.startLoading(saveBtn, isEdit ? "Atualizando..." : "Salvando...");
+
                     try {
                         if (isEdit) {
                             await window.movixStore.updateViagem(tripId, data);
-                            window.movixApp.showToast('Viagem updated com sucesso!', 'success');
+                            window.movixApp.showToast('Viagem atualizada com sucesso!', 'success');
                         } else {
                             data.status = 'Em andamento';
                             data.custos = 0;
@@ -309,14 +408,13 @@
                     } catch (e) {
                         console.error(e);
                         window.movixApp.showToast(e.message || 'Erro ao salvar viagem.', 'danger');
+                    } finally {
+                        loader.stop();
                     }
                 };
 
                 // Validate kmInicial first
                 window.movixApp.validateKM(veiculoId, enteredKMInicial, (justificativaInicial) => {
-                    if (justificativaInicial) {
-                        data.observacoes = (data.observacoes || '') + (data.observacoes ? '\n' : '') + `Motivo da divergência de KM Inicial: ${justificativaInicial}`;
-                    }
                     // If isEdit and it is 'Realizada', we must also validate kmFinal
                     if (isEdit && t.status === 'Realizada' && data.kmFinal) {
                         const enteredKMFinal = parseFloat(data.kmFinal) || 0;
@@ -325,10 +423,10 @@
                             if (justificativaFinal) {
                                 data.observacoes = (data.observacoes || '') + (data.observacoes ? '\n' : '') + `Motivo da divergência de KM Final: ${justificativaFinal}`;
                             }
-                            saveAction();
+                            saveAction(justificativaInicial);
                         }, true, originalKMFinal);
                     } else {
-                        saveAction();
+                        saveAction(justificativaInicial);
                     }
                 }, isEdit, originalKMInicial);
             });
@@ -360,8 +458,8 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Hora de Chegada <span class="text-muted">(Opcional)</span></label>
-                        <input type="time" class="form-control" name="horaChegada">
+                        <label>Hora de Chegada <span class="required">*</span></label>
+                        <input type="time" class="form-control" name="horaRetorno" required>
                     </div>
 
                     <div class="form-group">
@@ -401,10 +499,15 @@
 
                 const veiculoId = t.veiculoId;
                 const enteredKMFinal = parseFloat(data.kmFinal) || 0;
+                
                 const saveAction = async (justificativa) => {
                     if (justificativa) {
                         data.observacoes = (data.observacoes || '') + (data.observacoes ? '\n' : '') + `Motivo da divergência de KM Final: ${justificativa}`;
                     }
+                    
+                    const saveBtn = document.getElementById('btn-salvar-modal');
+                    const loader = window.movixApp.startLoading(saveBtn, "Finalizando...");
+
                     try {
                         await window.movixStore.updateViagem(tripId, data);
                         window.movixApp.showToast('Viagem concluída e odômetro do veículo atualizado!', 'success');
@@ -415,6 +518,8 @@
                     } catch (e) {
                         console.error(e);
                         window.movixApp.showToast(e.message || 'Erro ao concluir viagem.', 'danger');
+                    } finally {
+                        loader.stop();
                     }
                 };
 
@@ -435,7 +540,7 @@
             modalTitle.innerText = 'Excluir Viagem';
             modalBody.innerHTML = `
                 <div style="text-align: center; padding: 16px;">
-                    <i class="fa-solid fa-triangle-exclamation text-danger" style="font-size: 3rem; margin-bottom: 16px;"></i>
+                    <i class="fa-solid fa-trash text-danger" style="font-size: 3rem; margin-bottom: 16px;"></i>
                     <p style="font-size: 1.05rem; font-weight: 600;">Deseja realmente excluir a viagem de <strong>${t.origem} → ${t.destino}</strong>?</p>
                     <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 8px;">Esta ação removerá permanentemente o registro de escala e o histórico da frota.</p>
                 </div>
@@ -450,6 +555,9 @@
 
             document.getElementById('btn-cancelar-del').addEventListener('click', () => modal.classList.remove('active'));
             document.getElementById('btn-confirmar-del').addEventListener('click', async () => {
+                const delBtn = document.getElementById('btn-confirmar-del');
+                const loader = window.movixApp.startLoading(delBtn, "Excluindo...");
+                
                 try {
                     await window.movixStore.deleteViagem(tripId);
                     window.movixApp.showToast('Viagem excluída com sucesso.', 'danger');
@@ -459,6 +567,8 @@
                     window.movixApp.refreshNotificationsPanel();
                 } catch (err) {
                     window.movixApp.showToast(err.message || 'Erro ao excluir viagem.', 'danger');
+                } finally {
+                    loader.stop();
                 }
             });
         }

@@ -488,6 +488,8 @@
                      if (justificativa) {
                          data.descricao = (data.descricao || '') + (data.descricao ? '\n' : '') + `Motivo da divergência de KM: ${justificativa}`;
                      }
+                     const saveBtn = document.getElementById('btn-salvar-modal');
+                     const loader = window.movixApp.startLoading(saveBtn, isEdit ? "Atualizando..." : "Salvando...");
                      try {
                          if (isEdit) {
                              data.veiculoId = m.veiculoId;
@@ -501,6 +503,8 @@
                          renderManutencoes(document.getElementById('view-content-wrapper'));
                      } catch (err) {
                          window.movixApp.showToast(err.message || 'Erro ao salvar manutenção.', 'danger');
+                     } finally {
+                         loader.stop();
                      }
                  };
 
@@ -536,6 +540,8 @@
 
             document.getElementById('btn-cancelar-del').addEventListener('click', () => modal.classList.remove('active'));
             document.getElementById('btn-confirmar-del').addEventListener('click', async () => {
+                const delBtn = document.getElementById('btn-confirmar-del');
+                const loader = window.movixApp.startLoading(delBtn, "Excluindo...");
                 try {
                     await window.movixStore.deleteMaintenance(id);
                     window.movixApp.showToast('OS removida.', 'danger');
@@ -543,6 +549,8 @@
                     renderManutencoes(document.getElementById('view-content-wrapper'));
                 } catch (err) {
                     window.movixApp.showToast(err.message || 'Erro ao excluir OS.', 'danger');
+                } finally {
+                    loader.stop();
                 }
             });
         }

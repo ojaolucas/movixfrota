@@ -1189,6 +1189,8 @@
             const originalKM = isEdit ? parseFloat(vehicle.kmAtual) || 0 : 0;
 
             const saveAction = async (justificativa) => {
+                const saveBtn = document.getElementById('btn-salvar-modal');
+                const loader = window.movixApp.startLoading(saveBtn, isEdit ? "Atualizando..." : "Salvando...");
                 if (justificativa) {
                     data.observacoes = (data.observacoes || '') + (data.observacoes ? '\n' : '') + `Motivo da divergência de KM: ${justificativa}`;
                 }
@@ -1205,6 +1207,8 @@
                     renderListagemVeiculos(document.getElementById('view-content-wrapper'));
                 } catch (err) {
                     window.movixApp.showToast(err.message || 'Erro ao salvar veículo.', 'danger');
+                } finally {
+                    loader.stop();
                 }
             };
 
@@ -1243,6 +1247,8 @@
 
         document.getElementById('btn-cancelar-del').addEventListener('click', () => modal.classList.remove('active'));
         document.getElementById('btn-confirmar-del').addEventListener('click', async () => {
+            const delBtn = document.getElementById('btn-confirmar-del');
+            const loader = window.movixApp.startLoading(delBtn, "Excluindo...");
             try {
                 await window.movixStore.deleteVeiculo(id);
                 window.movixApp.showToast('Veículo removido com sucesso!', 'danger');
@@ -1250,6 +1256,8 @@
                 renderListagemVeiculos(document.getElementById('view-content-wrapper'));
             } catch (err) {
                 window.movixApp.showToast(err.message || 'Erro ao excluir veículo.', 'danger');
+            } finally {
+                loader.stop();
             }
         });
     }

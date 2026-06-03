@@ -715,6 +715,7 @@
                     return;
                 }
 
+                const loader = window.movixApp.startLoading(saveBtn, isEdit ? "Atualizando..." : "Salvando...");
                 const formData = new FormData(form);
                 const data = {};
                 formData.forEach((value, key) => data[key] = value);
@@ -732,6 +733,8 @@
                     renderMultas(document.getElementById('view-content-wrapper'));
                 } catch (err) {
                     window.movixApp.showToast(err.message || 'Erro ao registrar multa.', 'danger');
+                } finally {
+                    loader.stop();
                 }
             });
         }
@@ -878,6 +881,8 @@
 
             document.getElementById('btn-cancelar-del').addEventListener('click', () => modal.classList.remove('active'));
             document.getElementById('btn-confirmar-del').addEventListener('click', async () => {
+                const delBtn = document.getElementById('btn-confirmar-del');
+                const loader = window.movixApp.startLoading(delBtn, "Excluindo...");
                 try {
                     await window.movixStore.deleteMulta(id);
                     window.movixApp.showToast('Multa removida com sucesso.', 'success');
@@ -885,6 +890,8 @@
                     renderMultas(document.getElementById('view-content-wrapper'));
                 } catch (err) {
                     window.movixApp.showToast(err.message || 'Erro ao deletar multa.', 'danger');
+                } finally {
+                    loader.stop();
                 }
             });
         }

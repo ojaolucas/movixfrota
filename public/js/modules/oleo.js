@@ -326,33 +326,37 @@
                     }
                 });
 
-                 const veiculoId = isEdit ? o.veiculoId : veicSel.value;
-                 const enteredKM = parseFloat(kmInput.value) || 0;
-                 const originalKM = isEdit ? parseFloat(o.kmTroca) || 0 : 0;
+                const veiculoId = isEdit ? o.veiculoId : veicSel.value;
+                const enteredKM = parseFloat(kmInput.value) || 0;
+                const originalKM = isEdit ? parseFloat(o.kmTroca) || 0 : 0;
 
-                 const saveAction = async (justificativa) => {
-                     if (justificativa) {
-                         data.observacoes = (data.observacoes || '') + (data.observacoes ? '\n' : '') + `Motivo da divergência de KM: ${justificativa}`;
-                     }
-                     try {
-                         if (isEdit) {
-                             await window.movixStore.updateOleo(oleoId, data);
-                             window.movixApp.showToast('Troca de óleo atualizada com sucesso!', 'success');
-                         } else {
-                             await window.movixStore.addOleo(data);
-                             window.movixApp.showToast('Troca de óleo cadastrada com sucesso!', 'success');
-                         }
-                         modal.classList.remove('active');
-                         renderOleo(container);
-                         window.movixApp.refreshAlertsCount();
-                         window.movixApp.refreshNotificationsPanel();
-                     } catch (e) {
-                         console.error(e);
-                         window.movixApp.showToast(e.message || 'Erro ao registrar troca de óleo.', 'danger');
-                     }
-                 };
+                const saveAction = async (justificativa) => {
+                    const saveBtn = document.getElementById('btn-salvar-modal');
+                    const loader = window.movixApp.startLoading(saveBtn, isEdit ? "Atualizando..." : "Salvando...");
+                    if (justificativa) {
+                        data.observacoes = (data.observacoes || '') + (data.observacoes ? '\n' : '') + `Motivo da divergência de KM: ${justificativa}`;
+                    }
+                    try {
+                        if (isEdit) {
+                            await window.movixStore.updateOleo(oleoId, data);
+                            window.movixApp.showToast('Troca de óleo atualizada com sucesso!', 'success');
+                        } else {
+                            await window.movixStore.addOleo(data);
+                            window.movixApp.showToast('Troca de óleo cadastrada com sucesso!', 'success');
+                        }
+                        modal.classList.remove('active');
+                        renderOleo(container);
+                        window.movixApp.refreshAlertsCount();
+                        window.movixApp.refreshNotificationsPanel();
+                    } catch (e) {
+                        console.error(e);
+                        window.movixApp.showToast(e.message || 'Erro ao registrar troca de óleo.', 'danger');
+                    } finally {
+                        loader.stop();
+                    }
+                };
 
-                 window.movixApp.validateKM(veiculoId, enteredKM, saveAction, isEdit, originalKM);
+                window.movixApp.validateKM(veiculoId, enteredKM, saveAction, isEdit, originalKM);
             });
         }
 
@@ -385,6 +389,8 @@
 
             document.getElementById('btn-cancelar-del').addEventListener('click', () => modal.classList.remove('active'));
             document.getElementById('btn-confirmar-del').addEventListener('click', async () => {
+                const delBtn = document.getElementById('btn-confirmar-del');
+                const loader = window.movixApp.startLoading(delBtn, "Excluindo...");
                 try {
                     await window.movixStore.deleteOleo(id);
                     window.movixApp.showToast('Registro de troca de óleo removido.', 'danger');
@@ -394,6 +400,8 @@
                     window.movixApp.refreshNotificationsPanel();
                 } catch (err) {
                     window.movixApp.showToast(err.message || 'Erro ao excluir troca de óleo.', 'danger');
+                } finally {
+                    loader.stop();
                 }
             });
         }

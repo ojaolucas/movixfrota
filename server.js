@@ -1116,6 +1116,9 @@ app.get('/api/viagens', requireAuth, async (req, res) => {
 app.post('/api/viagens', requireAuth, async (req, res) => {
     try {
         const v = req.body;
+        if (!v.horaSaida) {
+            return res.status(400).json({ error: 'O horário de saída é obrigatório.' });
+        }
         const id = 'VIA-' + uuidv4().substr(0, 8).toUpperCase();
         const kmInicial = parseFloat(v.kmInicial) || 0;
         const kmFinal = parseFloat(v.kmFinal) || 0;
@@ -1146,6 +1149,11 @@ app.put('/api/viagens/:id', requireAuth, async (req, res) => {
             return res.status(404).json({ error: 'Viagem não encontrada.' });
         }
         const original = originalRes.rows[0];
+
+        // Validar obrigatoriedade do horário de retorno ao finalizar viagem
+        if (updates.status === 'Realizada' && !updates.horaRetorno && !original.horaRetorno) {
+            return res.status(400).json({ error: 'O horário de retorno é obrigatório para concluir a viagem.' });
+        }
 
         const kmInicial = updates.kmInicial !== undefined ? parseFloat(updates.kmInicial) || 0 : parseFloat(original.kmInicial) || 0;
         const kmFinal = updates.kmFinal !== undefined ? parseFloat(updates.kmFinal) || 0 : parseFloat(original.kmFinal) || 0;

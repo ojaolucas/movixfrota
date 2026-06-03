@@ -365,6 +365,8 @@
                 const originalKM = isEdit ? parseFloat(ab.kmAtual) || 0 : 0;
 
                 const saveAction = async (justificativa) => {
+                    const saveBtn = document.getElementById('btn-salvar-modal');
+                    const loader = window.movixApp.startLoading(saveBtn, isEdit ? "Atualizando..." : "Salvando...");
                     const formData = new FormData(form);
                     const data = {};
                     formData.forEach((value, key) => data[key] = value);
@@ -389,6 +391,8 @@
                     } catch (e) {
                         console.error(e);
                         window.movixApp.showToast(e.message || 'Erro ao salvar abastecimento.', 'danger');
+                    } finally {
+                        loader.stop();
                     }
                 };
 
@@ -420,6 +424,8 @@
 
             document.getElementById('btn-cancelar-del').addEventListener('click', () => modal.classList.remove('active'));
             document.getElementById('btn-confirmar-del').addEventListener('click', async () => {
+                const delBtn = document.getElementById('btn-confirmar-del');
+                const loader = window.movixApp.startLoading(delBtn, "Excluindo...");
                 try {
                     await window.movixStore.deleteAbastecimento(id);
                     window.movixApp.showToast('Abastecimento removido com sucesso.', 'success');
@@ -428,6 +434,8 @@
                 } catch (e) {
                     console.error(e);
                     window.movixApp.showToast(e.message || 'Erro ao remover abastecimento.', 'danger');
+                } finally {
+                    loader.stop();
                 }
             });
         }
