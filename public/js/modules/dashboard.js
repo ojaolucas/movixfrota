@@ -71,10 +71,7 @@
         const emManutCount = metrics.veiculosEmManutencao;
         const multasRegCount = metrics.totalMultas;
 
-        // circular progress execution concentric percentage (Total budget: R$ 36.500)
-        const predictedBudget = 36500;
-        const executionPercent = Math.min(100, Math.round((totalCustoVal / predictedBudget) * 100)) || 0;
-        const strokeDashoffset = 314 * (1 - (executionPercent / 100));
+
 
         // Averages
         const dailyAverage = totalCustoVal / 30;
@@ -444,54 +441,35 @@
                         <h3>Resumo Financeiro (Mês)</h3>
                         <i class="fa-solid fa-chart-line text-muted"></i>
                     </div>
-                    <div style="display: flex; align-items: center; justify-content: space-between; height: 100%; gap: 16px;">
-                        <!-- Left Side metrics -->
-                        <div style="display: flex; flex-direction: column; gap: 12px; width: 55%;">
-                            <!-- Gasto -->
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <div class="stat-icon success" style="width:36px; height:36px; font-size: 0.95rem; border-radius: 50%;"><i class="fa-solid fa-dollar-sign"></i></div>
-                                <div style="display: flex; flex-direction: column;">
-                                    <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">Total Gasto</span>
-                                    <span style="font-size: 1.05rem; font-weight: 700;">R$ ${totalCustoVal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                                </div>
+                    <div style="display: flex; flex-direction: column; justify-content: center; height: 100%; gap: 20px; padding: 10px 0;">
+                        <!-- Gasto Principal -->
+                        <div style="display: flex; align-items: center; gap: 14px;">
+                            <div class="stat-icon success" style="width:46px; height:46px; font-size: 1.2rem; border-radius: 50%;"><i class="fa-solid fa-dollar-sign"></i></div>
+                            <div style="display: flex; flex-direction: column;">
+                                <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Total Gasto</span>
+                                <span style="font-size: 1.4rem; font-weight: 800; color: var(--text-main); line-height: 1.1;">R$ ${totalCustoVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
-                            <!-- Previsto -->
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <div class="stat-icon success" style="width:36px; height:36px; font-size: 0.95rem; border-radius: 50%; background-color: rgba(16, 185, 129, 0.15);"><i class="fa-solid fa-calendar-check"></i></div>
-                                <div style="display: flex; flex-direction: column;">
-                                    <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">Previsto</span>
-                                    <span style="font-size: 1.05rem; font-weight: 700;">R$ ${predictedBudget.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>
-                                </div>
-                            </div>
+                        </div>
+                        
+                        <div style="border-top: 1px dashed var(--border-color); margin: 2px 0;"></div>
+                        
+                        <!-- Secundary Row -->
+                        <div style="display: grid; grid-template-columns: 1fr; gap: 16px;">
                             <!-- Média Diária -->
-                            <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
                                 <div class="stat-icon warning" style="width:36px; height:36px; font-size: 0.95rem; border-radius: 50%;"><i class="fa-solid fa-receipt"></i></div>
                                 <div style="display: flex; flex-direction: column;">
                                     <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">Média Diária</span>
-                                    <span style="font-size: 1.05rem; font-weight: 700;">R$ ${dailyAverage.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    <span style="font-size: 1.1rem; font-weight: 700; color: var(--text-main);">R$ ${dailyAverage.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
                             </div>
+                            
                             <!-- Projeção Mensal -->
-                            <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
                                 <div class="stat-icon primary" style="width:36px; height:36px; font-size: 0.95rem; border-radius: 50%; background-color: rgba(59, 130, 246, 0.15);"><i class="fa-solid fa-chart-simple"></i></div>
                                 <div style="display: flex; flex-direction: column;">
                                     <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">Projeção Mensal</span>
-                                    <span style="font-size: 1.05rem; font-weight: 700;">R$ ${monthlyProjection.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Right Side circular ring -->
-                        <div style="display: flex; justify-content: center; width: 45%;">
-                            <div class="circular-progress-wrapper">
-                                <svg class="circular-progress-circle">
-                                    <circle class="circular-progress-bg" cx="70" cy="70" r="50"></circle>
-                                    <circle class="circular-progress-bar" cx="70" cy="70" r="50" style="stroke-dasharray: 314; stroke-dashoffset: ${strokeDashoffset};"></circle>
-                                </svg>
-                                <div class="circular-progress-text">
-                                    <span class="circular-progress-label" style="margin-bottom: 2px;">Execução</span>
-                                    <span class="circular-progress-value">${executionPercent}%</span>
-                                    <span class="circular-progress-label" style="font-size: 0.6rem; max-width: 75px; line-height:1.2;">do previsto</span>
+                                    <span style="font-size: 1.1rem; font-weight: 700; color: var(--text-main);">R$ ${monthlyProjection.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
                             </div>
                         </div>
@@ -877,7 +855,6 @@
         const labels = ['Dez/25', 'Jan/26', 'Fev/26', 'Mar/26', 'Abr/26', 'Mai/26'];
         const fuelMonthlyData = [0, 0, 0, 0, 0, 0];
         const maintMonthlyData = [0, 0, 0, 0, 0, 0];
-        const othersMonthlyData = [0, 0, 0, 0, 0, 0]; // seeded proportional proration helper
 
         // Sum real fuel refuels monthly values
         abastecimentos.forEach(a => {
@@ -905,24 +882,7 @@
             }
         });
 
-        // Seed some minor proportional historical numbers if database is completely empty (to keep premium appearance)
-        const totalFuelCalculated = fuelMonthlyData.reduce((x, y) => x + y, 0);
-        const totalMaintCalculated = maintMonthlyData.reduce((x, y) => x + y, 0);
-
-        if (totalFuelCalculated === 0) {
-            // Seed visual values if and only if no data has been registered yet
-            fuelMonthlyData[0] = 3200; fuelMonthlyData[1] = 3600; fuelMonthlyData[2] = 3100;
-            fuelMonthlyData[3] = 3800; fuelMonthlyData[4] = 3700; fuelMonthlyData[5] = 4100;
-        }
-        if (totalMaintCalculated === 0) {
-            // Seed visual values if and only if no data has been registered yet
-            maintMonthlyData[0] = 1500; maintMonthlyData[1] = 800; maintMonthlyData[2] = 2200;
-            maintMonthlyData[3] = 1800; maintMonthlyData[4] = 3900; maintMonthlyData[5] = 2100;
-        }
-
-        // Generate lines dataset for others/fixed costs
-        othersMonthlyData[0] = 800; othersMonthlyData[1] = 950; othersMonthlyData[2] = 1200;
-        othersMonthlyData[3] = 1050; othersMonthlyData[4] = 1400; othersMonthlyData[5] = 1350;
+        // No seed/mock values. Using 100% real database statistics.
 
         // 1. Cost Evolution Chart
         const ctxCost = document.getElementById('costChartRedesign');
@@ -945,13 +905,6 @@
                                 data: maintMonthlyData,
                                 borderColor: '#10b981',
                                 backgroundColor: 'rgba(16, 185, 129, 0.05)',
-                                fill: true, tension: 0.3, borderWidth: 3
-                            },
-                            {
-                                label: 'Outros',
-                                data: othersMonthlyData,
-                                borderColor: '#8b5cf6',
-                                backgroundColor: 'rgba(139, 92, 246, 0.05)',
                                 fill: true, tension: 0.3, borderWidth: 3
                             }
                         ]
