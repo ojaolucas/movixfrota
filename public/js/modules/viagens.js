@@ -45,6 +45,7 @@
                             <th>Rota / Trajeto</th>
                             <th>Saída / Retorno</th>
                             <th>KM Inicial / Final</th>
+                            <th>Custo</th>
                             <th>Situação</th>
                             <th style="width: 80px; text-align: center;">Retorno</th>
                             <th style="width: 120px; text-align: center;">Ações</th>
@@ -83,7 +84,7 @@
                 const emptyMsg = activeTabStatus === 'Em andamento'
                     ? 'Nenhuma viagem em andamento registrada no momento.'
                     : 'Nenhuma viagem finalizada registrada no histórico.';
-                tbody.innerHTML = `<tr><td colspan="8" class="search-no-results" style="text-align: center;">${emptyMsg}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="9" class="search-no-results" style="text-align: center;">${emptyMsg}</td></tr>`;
                 document.getElementById('pagination-viagens').innerHTML = '';
                 return;
             }
@@ -138,6 +139,7 @@
                                 <span>Retorno: ${t.kmFinal > 0 ? `${parseFloat(t.kmFinal).toLocaleString('pt-BR')} km` : '-'}</span>
                             </div>
                         </td>
+                        <td style="font-weight:700;">R$ ${parseFloat(t.custos || 0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
                         <td><span class="status-pill ${statusClass}">${t.status}</span></td>
                         <td style="text-align: center;">
                             ${t.status && t.status.toLowerCase() === 'em andamento' && !isVisualizador ? `
@@ -364,6 +366,11 @@
                         <input type="text" class="form-control" name="destino" required placeholder="Ex: Galpão B, Cliente X, Evento Y, Cidade/UF" value="${isEdit ? t.destino : ''}">
                     </div>
 
+                    <div class="form-group">
+                        <label>Custos da Viagem (R$)</label>
+                        <input type="number" class="form-control" name="custos" placeholder="Ex: 150.00" step="0.01" min="0" value="${isEdit ? (t.custos || '') : ''}">
+                    </div>
+
                     ${isEdit && t.status === 'Realizada' ? `
                         <div class="form-group">
                             <label>Data de Retorno <span class="required">*</span></label>
@@ -440,7 +447,7 @@
                             window.movixApp.showToast('Viagem atualizada com sucesso!', 'success');
                         } else {
                             data.status = 'Em andamento';
-                            data.custos = 0;
+                            data.custos = parseFloat(data.custos) || 0;
                             await window.movixStore.addViagem(data);
                             window.movixApp.showToast('Escala de viagem registrada!', 'success');
                         }
@@ -508,6 +515,11 @@
                     <div class="form-group">
                         <label>KM de Retorno (Odômetro Final) <span class="required">*</span></label>
                         <input type="number" class="form-control" name="kmFinal" required placeholder="Odômetro de chegada" min="${t.kmInicial}">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Custos Operacionais da Viagem (R$)</label>
+                        <input type="number" class="form-control" name="custos" placeholder="Ex: 150.00" step="0.01" min="0" value="${t.custos || ''}">
                     </div>
 
                     <div class="form-group full-width">
