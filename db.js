@@ -306,6 +306,13 @@ async function initDB() {
             )
         `);
 
+        // Enable Row Level Security (RLS) on all tables to prevent unauthorized public REST API access
+        const tables = ['usuarios', 'veiculos', 'motoristas', 'abastecimentos', 'manutencoes', 'pneus', 'oleos', 'viagens', 'multas', 'logs'];
+        for (const table of tables) {
+            await query(`ALTER TABLE ${table} ENABLE ROW LEVEL SECURITY`);
+        }
+        console.log("🛡️  Row Level Security (RLS) ativado em todas as tabelas.");
+
         console.log("✅ Todas as tabelas do PostgreSQL prontas para uso.");
     } catch (err) {
         console.error("❌ Falha crítica ao inicializar banco de dados PostgreSQL:", err);
