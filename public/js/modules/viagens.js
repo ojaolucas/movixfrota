@@ -66,7 +66,12 @@
             if (!tbody) return;
 
             const currentTrips = window.movixStore.getViagens();
-            const filteredData = currentTrips.filter(t => t.status === activeTabStatus);
+            const filteredData = currentTrips.filter(t => {
+                if (activeTabStatus === 'Em andamento') {
+                    return t.status && t.status.toLowerCase() === 'em andamento';
+                }
+                return t.status === activeTabStatus;
+            });
 
             const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
             if (currentPage > totalPages) currentPage = totalPages;
@@ -87,7 +92,7 @@
                 const v = vehicles.find(item => item.id === t.veiculoId);
                 const m = drivers.find(item => item.id === t.motoristaId);
                 
-                const statusClass = t.status === 'Realizada' ? 'realizada' : 'em_andamento';
+                const statusClass = (t.status && t.status.toLowerCase() === 'realizada') ? 'realizada' : 'em_andamento';
 
                 const actionsHTML = `
                     <td style="text-align: center;">
@@ -135,7 +140,7 @@
                         </td>
                         <td><span class="status-pill ${statusClass}">${t.status}</span></td>
                         <td style="text-align: center;">
-                            ${t.status === 'Em andamento' && !isVisualizador ? `
+                            ${t.status && t.status.toLowerCase() === 'em andamento' && !isVisualizador ? `
                                 <button class="btn-icon-only btn-conclude" data-id="${t.id}" title="Registrar Retorno da Viagem">
                                     <i class="fa-solid fa-flag-checkered text-success"></i>
                                 </button>
@@ -273,7 +278,7 @@
                             <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>KM Rodados</span><strong>${t.kmRodado > 0 ? `${parseFloat(t.kmRodado).toLocaleString('pt-BR')} km` : '-'}</strong></li>
                             <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Custos de Viagem</span><strong>R$ ${(parseFloat(t.custos) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></li>
                             <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Situação</span>
-                                <span class="status-pill ${t.status === 'Realizada' ? 'realizada' : 'em_andamento'}">${t.status}</span>
+                                <span class="status-pill ${t.status && t.status.toLowerCase() === 'realizada' ? 'realizada' : 'em_andamento'}">${t.status}</span>
                             </li>
                         </ul>
 

@@ -1099,7 +1099,7 @@
 
                 const totalViagens = filtered.length;
                 const totalKM = filtered.reduce((acc, vi) => acc + (parseFloat(vi.kmRodado) || 0), 0);
-                const emAndamento = filtered.filter(vi => vi.status === 'Em Andamento').length;
+                const emAndamento = filtered.filter(vi => vi.status && vi.status.toLowerCase() === 'em andamento').length;
                 const totalCustos = filtered.reduce((acc, vi) => acc + (parseFloat(vi.custos) || 0), 0);
 
                 summaryContainer.innerHTML = `
@@ -1130,7 +1130,7 @@
                     const d = drivers.find(item => item.id === vi.motoristaId);
                     return {
                         id: vi.id,
-                        dataSaida: vi.dataSaida,
+                        _dataSaida: vi.dataSaida,
                         dataFormatted: vi.dataSaida.split('-').reverse().join('/'),
                         horaSaida: vi.horaSaida || '-',
                         dataRetorno: vi.dataRetorno ? vi.dataRetorno.split('-').reverse().join('/') : '-',
@@ -1141,6 +1141,7 @@
                         destino: vi.destino,
                         kmRodado: `${(parseFloat(vi.kmRodado) || 0).toLocaleString('pt-BR')} km`,
                         status: vi.status,
+                        _rawDataRetorno: vi.dataRetorno || '',
                         _rawTotal: parseFloat(vi.kmRodado) || 0
                     };
                 });
@@ -2067,43 +2068,57 @@
                     // Fallback search keys mapping to actual object properties
                     if (valA === undefined) {
                         const mapping = {
-                            'código_pneu': 'codigo',
+                            'codigo_pneu': 'codigo',
                             'marca_/_modelo': 'marcaModelo',
-                            'custo_unitário': '_rawTotal',
-                            'veículo_vinculado': 'veiculo',
-                            'vida_útil_estimada': '_rawTotal',
-                            'veículo_(placa)': 'placa',
-                            'nº_apólice': 'apolice',
+                            'custo_unitario': '_rawTotal',
+                            'veiculo_vinculado': 'veiculo',
+                            'vida_util_estimada': '_rawTotal',
+                            'veiculo_(placa)': 'placa',
+                            'nº_apolice': 'apolice',
+                            'no_apolice': 'apolice',
                             'valor_mensal': '_rawTotal',
-                            'início_vigência': 'inicioContrato',
-                            'término_vigência': 'validadeContrato',
-                            'vencimento_situação': 'status',
+                            'inicio_vigencia': 'inicioContrato',
+                            'termino_vigencia': 'validadeContrato',
+                            'vencimento_situacao': 'status',
                             'empresa_rastreador': 'empresaRastreador',
                             'modelo_/_id_rastreador': 'modeloRastreador',
-                            'criação_lançamento': 'categoria',
-                            'valor_lançado': '_rawTotal',
-                            'odômetro_registro': 'km',
-                            'lançamento_/_categoria': 'categoria',
-                            'detalhe_/_observação': 'detalhe',
+                            'criacao_lancamento': 'categoria',
+                            'valor_lancado': '_rawTotal',
+                            'odometro_registro': 'km',
+                            'lancamento_/_categoria': 'categoria',
+                            'detalhe_/_observacao': 'detalhe',
                             'alvo_relacionado': 'alvo',
                             'categoria_alerta': 'categoria',
-                            'especificação_/_detalhe': 'descricao',
+                            'especificacao_/_detalhe': 'descricao',
                             'dias_restantes': '_rawDays',
                             'tipo_os': 'tipo',
                             'valor_os': '_rawTotal',
                             'oficina_/_fornecedor': 'oficina',
                             'km_os': '_rawTotal',
-                            'data_saída': 'dataSaida',
+                            'data_saida': '_dataSaida',
+                            'data_retorno': '_rawDataRetorno',
                             'km_rodado': '_rawTotal',
                             'tipo_implemento': 'tipoImplemento',
                             'pneus_ativos': 'qtdPneus',
-                            'manutenções_os_(custo)': '_rawTotal',
+                            'manutencoes_os_(custo)': '_rawTotal',
                             'tipo_extintor': 'tipoExtintor',
                             'selo_inmetro': 'seloExtintor',
                             'data_recarga': 'dataRecargaExtintor',
                             'validade_carga': 'validadeExtintor',
                             'cnh_status': 'situacaoVencimento',
-                            'custo_total': '_rawTotal'
+                            'custo_total': '_rawTotal',
+                            'tipo_unidade': 'tipoUnidade',
+                            'km_atual': '_rawTotal',
+                            'seguro?': 'seguro',
+                            'rastreador?': 'rastreador',
+                            'nome_motorista': 'nome',
+                            'categoria': 'categoriaCNH',
+                            'vencimento_cnh': '_rawTotal',
+                            'e-mail': 'email',
+                            'eixos': 'qtdEixos',
+                            'capacidade': 'capacidadeCarga',
+                            'situacao': 'status',
+                            'data_vencimento': 'data'
                         };
                         const mappedKey = mapping[currentSort.column];
                         if (mappedKey) {
