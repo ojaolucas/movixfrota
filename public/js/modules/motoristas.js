@@ -313,7 +313,7 @@
                 </div>
                 <div class="form-group">
                     <label>CPF <span class="required">*</span></label>
-                    <input type="text" class="form-control" name="cpf" required value="${isEdit ? m.cpf : ''}" placeholder="000.000.000-00">
+                    <input type="text" class="form-control" name="cpf" required value="${isEdit ? m.cpf : ''}" placeholder="000.000.000-00" id="input-cpf-mask">
                 </div>
                 <div class="form-group">
                     <label>RG</label>
@@ -387,6 +387,19 @@
         `;
 
         modal.classList.add('active');
+
+        // Simple CPF Mask formatting
+        const cpfInput = document.getElementById('input-cpf-mask');
+        if (cpfInput) {
+            cpfInput.addEventListener('input', (e) => {
+                let v = e.target.value.replace(/\D/g, "");
+                if (v.length > 11) v = v.substring(0, 11);
+                if (v.length > 9) v = v.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
+                else if (v.length > 6) v = v.replace(/^(\d{3})(\d{3})(\d{1,3})$/, "$1.$2.$3");
+                else if (v.length > 3) v = v.replace(/^(\d{3})(\d{1,3})$/, "$1.$2");
+                e.target.value = v;
+            });
+        }
 
         // Photo Upload Logic
         const btnFoto = document.getElementById('btn-mot-foto');
@@ -503,6 +516,9 @@
                 return;
             }
 
+            const saveBtn = document.getElementById('btn-salvar-modal');
+            const loader = window.movixApp.startLoading(saveBtn, isEdit ? "Atualizando..." : "Salvando...");
+
             const formData = new FormData(form);
             const data = {};
             formData.forEach((value, key) => data[key] = value);
@@ -519,6 +535,8 @@
                 renderMotoristas(document.getElementById('view-content-wrapper'));
             } catch (err) {
                 window.movixApp.showToast(err.message || 'Erro ao salvar motorista.', 'danger');
+            } finally {
+                loader.stop();
             }
         });
     }
@@ -550,6 +568,8 @@
 
         document.getElementById('btn-cancelar-del').addEventListener('click', () => modal.classList.remove('active'));
         document.getElementById('btn-confirmar-del').addEventListener('click', async () => {
+            const delBtn = document.getElementById('btn-confirmar-del');
+            const loader = window.movixApp.startLoading(delBtn, "Excluindo...");
             try {
                 await window.movixStore.deleteMotorista(id);
                 window.movixApp.showToast('Motorista removido da base.', 'danger');
@@ -557,6 +577,8 @@
                 renderMotoristas(document.getElementById('view-content-wrapper'));
             } catch (err) {
                 window.movixApp.showToast(err.message || 'Erro ao excluir motorista.', 'danger');
+            } finally {
+                loader.stop();
             }
         });
     }

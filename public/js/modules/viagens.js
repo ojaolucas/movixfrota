@@ -1,6 +1,7 @@
 /* MovixFrota - Viagens Module */
 
 (function() {
+    let activeTabStatus = 'Em andamento';
     
     function renderViagens(container) {
         const trips = window.movixStore.getViagens();
@@ -22,6 +23,16 @@
                         </button>
                     ` : ''}
                 </div>
+            </div>
+
+            <!-- TAB SELECTION -->
+            <div class="detail-tab-menu" style="margin-bottom: 16px;">
+                <button class="detail-tab-btn ${activeTabStatus === 'Em andamento' ? 'active' : ''}" id="tab-btn-em-andamento">
+                    <i class="fa-solid fa-truck-fast"></i> Viagens em Andamento
+                </button>
+                <button class="detail-tab-btn ${activeTabStatus === 'Realizada' ? 'active' : ''}" id="tab-btn-realizadas">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Histórico de Viagens Finalizadas
+                </button>
             </div>
 
             <!-- TABLE -->
@@ -55,7 +66,7 @@
             if (!tbody) return;
 
             const currentTrips = window.movixStore.getViagens();
-            const filteredData = [...currentTrips];
+            const filteredData = currentTrips.filter(t => t.status === activeTabStatus);
 
             const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
             if (currentPage > totalPages) currentPage = totalPages;
@@ -64,7 +75,10 @@
 
             tbody.innerHTML = '';
             if (paginatedItems.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="search-no-results" style="text-align: center;">Nenhuma viagem registrada no momento.</td></tr>`;
+                const emptyMsg = activeTabStatus === 'Em andamento'
+                    ? 'Nenhuma viagem em andamento registrada no momento.'
+                    : 'Nenhuma viagem finalizada registrada no histórico.';
+                tbody.innerHTML = `<tr><td colspan="8" class="search-no-results" style="text-align: center;">${emptyMsg}</td></tr>`;
                 document.getElementById('pagination-viagens').innerHTML = '';
                 return;
             }
@@ -153,6 +167,30 @@
             else currentPage = parseInt(btn.getAttribute('data-page'));
             updateTable();
         });
+
+        // Tab Clicks Bindings
+        const tabEmAndamento = document.getElementById('tab-btn-em-andamento');
+        const tabRealizadas = document.getElementById('tab-btn-realizadas');
+
+        if (tabEmAndamento && tabRealizadas) {
+            tabEmAndamento.addEventListener('click', () => {
+                if (activeTabStatus === 'Em andamento') return;
+                activeTabStatus = 'Em andamento';
+                tabEmAndamento.classList.add('active');
+                tabRealizadas.classList.remove('active');
+                currentPage = 1;
+                updateTable();
+            });
+
+            tabRealizadas.addEventListener('click', () => {
+                if (activeTabStatus === 'Realizada') return;
+                activeTabStatus = 'Realizada';
+                tabRealizadas.classList.add('active');
+                tabEmAndamento.classList.remove('active');
+                currentPage = 1;
+                updateTable();
+            });
+        }
 
         // Add Trip Trigger
         if (document.getElementById('btn-nova-viagem')) {

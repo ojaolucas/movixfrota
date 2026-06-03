@@ -616,9 +616,7 @@ class MovixApp {
 
         // Close modal when clicking on transparent backdrop overlay
         overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
-                overlay.classList.remove('active');
-            }
+            // Disabled to keep modal open when clicking outside. Close only via button clicks (X, Cancelar, Salvar).
         });
     }
 
