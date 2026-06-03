@@ -42,6 +42,45 @@ app.use(session({
     }
 }));
 
+// Helper para ler cookies sem cookie-parser
+function getCookie(req, name) {
+    const rc = req.headers.cookie;
+    if (!rc) return null;
+    const cookies = rc.split(';').reduce((acc, cookie) => {
+        const parts = cookie.split('=');
+        acc[parts.shift().trim()] = decodeURIComponent(parts.join('='));
+        return acc;
+    }, {});
+    return cookies[name] || null;
+}
+
+// Middleware para restaurar sessão persistente via "Manter Conectado"
+app.use(async (req, res, next) => {
+    if (req.session && !req.session.userId) {
+        const token = getCookie(req, 'remember_token');
+        if (token) {
+            try {
+                const result = await db.query('SELECT * FROM usuarios WHERE "rememberToken" = $1', [token]);
+                const user = result.rows[0];
+                if (user) {
+                    if (user.status === 'ativo') {
+                        req.session.userId = user.id;
+                        req.session.perfil = user.perfil;
+                        req.session.nome = user.nome;
+                    } else {
+                        // Se o usuário foi inativado, limpa o token dele
+                        await db.query('UPDATE usuarios SET "rememberToken" = NULL WHERE id = $1', [user.id]);
+                        res.setHeader('Set-Cookie', 'remember_token=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax');
+                    }
+                }
+            } catch (err) {
+                console.error("Erro ao restaurar sessão persistente:", err);
+            }
+        }
+    }
+    next();
+});
+
 // Servir arquivos estáticos da pasta public
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(UPLOADS_PATH));
@@ -132,9 +171,16 @@ app.post('/api/auth/login', async (req, res) => {
         req.session.nome = user.nome;
 
         if (rememberMe) {
-            req.session.cookie.maxAge = 7 * 24 * 60 * 60 * 1000; // 7 dias
+            req.session.cookie.maxAge = 365 * 24 * 60 * 60 * 1000; // 365 dias para a sessão local
+            // Gerar token de lembrança
+            const token = uuidv4();
+            await db.query('UPDATE usuarios SET "rememberToken" = $1 WHERE id = $2', [token, user.id]);
+            res.setHeader('Set-Cookie', `remember_token=${token}; Max-Age=${365 * 24 * 60 * 60}; Path=/; HttpOnly; SameSite=Lax`);
         } else {
             req.session.cookie.maxAge = null; // Expira ao fechar o navegador
+            // Limpar token antigo
+            await db.query('UPDATE usuarios SET "rememberToken" = NULL WHERE id = $1', [user.id]);
+            res.setHeader('Set-Cookie', 'remember_token=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax');
         }
 
         // Log de acesso
@@ -150,6 +196,11 @@ app.post('/api/auth/login', async (req, res) => {
 
 app.post('/api/auth/logout', requireAuth, async (req, res) => {
     try {
+        if (req.session.userId) {
+            await db.query('UPDATE usuarios SET "rememberToken" = NULL WHERE id = $1', [req.session.userId]);
+        }
+        res.setHeader('Set-Cookie', 'remember_token=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax');
+        
         await addLog(req.session.nome, req.session.perfil, 'Logout', 'Sessão', 'Usuário encerrou a sessão.');
         req.session.destroy();
         res.json({ success: true });

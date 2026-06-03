@@ -59,9 +59,13 @@ async function initDB() {
                 status VARCHAR(20) DEFAULT 'ativo',
                 foto TEXT,
                 "senhaHash" TEXT NOT NULL,
-                "dataCadastro" VARCHAR(20)
+                "dataCadastro" VARCHAR(20),
+                "rememberToken" VARCHAR(255)
             )
         `);
+
+        // Migration logic for existing tables
+        await query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS "rememberToken" VARCHAR(255)`);
 
         // 2. Veiculos Table
         await query(`
