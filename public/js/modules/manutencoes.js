@@ -187,6 +187,9 @@
                         <td style="font-weight:700;">R$ ${m.valor.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
                         <td><span class="status-pill ${statusClass}">${m.status}</span></td>
                         <td style="text-align: center; display: flex; justify-content: center; gap: 8px;">
+                            <button class="btn-icon-only btn-view" data-id="${m.id}" title="Visualizar OS">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
                             ${!isVisualizador ? `
                                 <button class="btn-icon-only btn-edit" data-id="${m.id}" title="Alterar Status / Editar">
                                     <i class="fa-solid fa-pen-to-square"></i>
@@ -196,7 +199,7 @@
                                         <i class="fa-solid fa-trash-can"></i>
                                     </button>
                                 ` : ''}
-                            ` : '<span style="color:var(--text-muted); font-size:0.8rem;">-</span>'}
+                            ` : ''}
                         </td>
                     </tr>
                 `;
@@ -235,11 +238,13 @@
             document.getElementById('btn-nova-manutencao').addEventListener('click', () => openManutencaoModal());
         }
 
-        // Deletion and Editing Triggers
+        // Deletion, Editing and View Triggers
         document.querySelector('.table-responsive').addEventListener('click', (e) => {
+            const viewBtn = e.target.closest('.btn-view');
             const editBtn = e.target.closest('.btn-edit');
             const delBtn = e.target.closest('.btn-delete');
             
+            if (viewBtn) openManutencaoDetailModal(viewBtn.getAttribute('data-id'));
             if (editBtn) openManutencaoModal(editBtn.getAttribute('data-id'));
             if (delBtn) confirmDeleteManutencao(delBtn.getAttribute('data-id'));
         });
@@ -515,6 +520,62 @@
                 }
             });
         }
+
+    function openManutencaoDetailModal(id) {
+        const m = maintenances.find(item => item.id === id);
+        if (!m) return;
+
+        const v = vehicles.find(item => item.id === m.veiculoId);
+
+        const modal = document.getElementById('global-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalBody = document.getElementById('modal-body-content');
+        const modalFooter = document.getElementById('modal-footer-actions');
+
+        modalTitle.innerText = `Detalhes da Ordem de Serviço: ${m.id}`;
+
+        const statusClass = m.status === 'Realizada' ? 'realizada' : (m.status === 'Em andamento' ? 'em_andamento' : (m.status === 'Programada' ? 'programada' : 'atrasada'));
+
+        modalBody.innerHTML = `
+            <div style="padding: 10px;">
+                <h4 style="font-family:var(--font-heading); color:var(--primary); margin-bottom:12px;"><i class="fa-solid fa-circle-info"></i> Informações da OS</h4>
+                <ul class="detail-sidebar-info-list" style="border:none; padding:0; font-size:0.85rem; display:flex; flex-direction:column; gap:10px;">
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Veículo</span><strong style="color:var(--primary);">${v ? `${v.placa} (${v.marca} ${v.modelo})` : 'Deletado'}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Tipo da Manutenção</span><strong>${m.tipo}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Categoria</span><strong>${m.categoria}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Data Programada</span><strong>${m.data.split('-').reverse().join('/')}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Quilometragem (KM)</span><strong>${parseFloat(m.km || 0).toLocaleString('pt-BR')} km</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Oficina / Estabelecimento</span><strong>${m.oficina || '-'}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Fornecedor de Peças</span><strong>${m.fornecedor || '-'}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Valor da Manutenção</span><strong style="font-size:1.05rem; color:var(--text-main);">R$ ${(parseFloat(m.valor) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Status da OS</span><strong><span class="status-pill ${statusClass}">${m.status}</span></strong></li>
+                </ul>
+
+                ${m.descricao ? `
+                <div style="margin-top:20px;">
+                    <h5 style="font-weight:700; margin-bottom:6px; font-size:0.85rem;">Descrição dos Serviços:</h5>
+                    <p style="font-size:0.8rem; line-height:1.5; color:var(--text-muted); background:var(--bg-surface-hover); padding:10px; border-radius:6px; border-left:3px solid var(--primary); white-space:pre-wrap;">${m.descricao}</p>
+                </div>` : ''}
+
+                ${m.anexo ? `
+                <div style="margin-top:20px; display:flex; gap:12px;">
+                    <a href="${m.anexo}" target="_blank" class="btn btn-secondary" style="font-size:0.8rem; text-decoration:none; display:inline-flex; align-items:center; gap:8px;">
+                        <i class="fa-solid fa-eye text-primary"></i> Visualizar Nota Fiscal / Recibo
+                    </a>
+                    <a href="${m.anexo}" download class="btn btn-secondary" style="font-size:0.8rem; text-decoration:none; display:inline-flex; align-items:center; gap:8px;">
+                        <i class="fa-solid fa-download"></i> Baixar Nota Fiscal / Recibo
+                    </a>
+                </div>` : ''}
+            </div>
+        `;
+
+        modalFooter.innerHTML = `
+            <button class="btn btn-secondary" id="btn-fechar-detalhe">Fechar</button>
+        `;
+
+        modal.classList.add('active');
+        document.getElementById('btn-fechar-detalhe').addEventListener('click', () => modal.classList.remove('active'));
+    }
 
         function confirmDeleteManutencao(id) {
             const modal = document.getElementById('global-modal');

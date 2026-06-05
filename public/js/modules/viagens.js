@@ -406,10 +406,20 @@
             const kmInput = document.getElementById('via-km-input');
 
             function syncKM() {
-                if (veicSel.options.length > 0 && !isEdit) {
+                if (veicSel.options.length > 0) {
                     const opt = veicSel.options[veicSel.selectedIndex];
-                    kmInput.value = opt.getAttribute('data-km');
-                    kmInput.setAttribute('min', opt.getAttribute('data-km'));
+                    if (!isEdit) {
+                        kmInput.value = opt.getAttribute('data-km');
+                        kmInput.setAttribute('min', opt.getAttribute('data-km'));
+                    } else {
+                        if (opt.value === t.veiculoId) {
+                            kmInput.value = t.kmInicial;
+                            kmInput.setAttribute('min', '0');
+                        } else {
+                            kmInput.value = opt.getAttribute('data-km');
+                            kmInput.setAttribute('min', opt.getAttribute('data-km'));
+                        }
+                    }
                 }
             }
 
@@ -429,7 +439,7 @@
                 const data = {};
                 formData.forEach((value, key) => data[key] = value);
 
-                const veiculoId = isEdit ? t.veiculoId : veicSel.value;
+                const veiculoId = veicSel.value;
                 const enteredKMInicial = parseFloat(data.kmInicial) || 0;
                 const originalKMInicial = isEdit ? parseFloat(t.kmInicial) || 0 : 0;
 

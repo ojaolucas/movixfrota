@@ -69,7 +69,7 @@
                             <th>Custo Total</th>
                             <th>Consumo KM/L</th>
                             <th>Custo por KM</th>
-                            ${!isVisualizador ? '<th style="width: 120px; text-align: center;">Ações</th>' : ''}
+                            <th style="width: 120px; text-align: center;">Ações</th>
                         </tr>
                     </thead>
                     <tbody id="tbody-abastecimentos">
@@ -138,8 +138,11 @@
                         <td style="font-weight:600; color:var(--text-muted);">
                             ${a.custoKM > 0 ? `R$ ${a.custoKM.toFixed(2)}/km` : 'N/A'}
                         </td>
-                        ${!isVisualizador ? `
-                            <td style="text-align: center; display: flex; justify-content: center; gap: 8px;">
+                        <td style="text-align: center; display: flex; justify-content: center; gap: 8px;">
+                            <button class="btn-icon-only btn-view" data-id="${a.id}" title="Visualizar Detalhes">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                            ${!isVisualizador ? `
                                 <button class="btn-icon-only btn-edit" data-id="${a.id}" title="Editar">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
@@ -148,8 +151,8 @@
                                         <i class="fa-solid fa-trash-can"></i>
                                     </button>
                                 ` : ''}
-                            </td>
-                        ` : ''}
+                            ` : ''}
+                        </td>
                     </tr>
                 `;
             });
@@ -188,9 +191,14 @@
 
         // Deletion and Editing Triggers
         document.querySelector('.table-responsive').addEventListener('click', (e) => {
+            const viewBtn = e.target.closest('.btn-view');
             const editBtn = e.target.closest('.btn-edit');
             const delBtn = e.target.closest('.btn-delete');
             
+            if (viewBtn) {
+                const id = viewBtn.getAttribute('data-id');
+                openAbastecimentoDetailModal(id);
+            }
             if (editBtn) {
                 const id = editBtn.getAttribute('data-id');
                 openAbastecimentoModal(id);
@@ -399,6 +407,67 @@
                 window.movixApp.validateKM(veiculoId, enteredKM, saveAction, isEdit, originalKM);
             });
         }
+
+    function openAbastecimentoDetailModal(id) {
+        const ab = supplies.find(x => x.id === id);
+        if (!ab) return;
+
+        const v = vehicles.find(item => item.id === ab.veiculoId);
+        const m = drivers.find(item => item.id === ab.motoristaId);
+
+        const modal = document.getElementById('global-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalBody = document.getElementById('modal-body-content');
+        const modalFooter = document.getElementById('modal-footer-actions');
+
+        modalTitle.innerText = `Detalhes do Abastecimento: ${ab.id}`;
+
+        modalBody.innerHTML = `
+            <div style="padding: 10px;">
+                <h4 style="font-family:var(--font-heading); color:var(--primary); margin-bottom:12px;"><i class="fa-solid fa-circle-info"></i> Informações do Abastecimento</h4>
+                <ul class="detail-sidebar-info-list" style="border:none; padding:0; font-size:0.85rem; display:flex; flex-direction:column; gap:10px;">
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Veículo</span><strong style="color:var(--primary);">${v ? `${v.placa} (${v.marca} ${v.modelo})` : 'Deletado'}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Motorista</span><strong>${m ? m.nome : 'Deletado'}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Data</span><strong>${ab.data.split('-').reverse().join('/')}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Combustível</span><strong>${ab.combustivel}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Volume Abastecido</span><strong>${ab.litros} Litros</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Valor por Litro</span><strong>R$ ${(parseFloat(ab.valorLitro) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 3 })}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Custo Total</span><strong style="font-size:1.05rem; color:var(--text-main);">R$ ${(parseFloat(ab.valorTotal) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Quilometragem (KM)</span><strong>${parseFloat(ab.kmAtual || 0).toLocaleString('pt-BR')} km</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Posto de Combustível</span><strong>${ab.posto || '-'}</strong></li>
+                </ul>
+
+                <h4 style="font-family:var(--font-heading); color:var(--primary); margin-top:20px; margin-bottom:12px;"><i class="fa-solid fa-chart-line"></i> Indicadores de Eficiência</h4>
+                <ul class="detail-sidebar-info-list" style="border:none; padding:0; font-size:0.85rem; display:flex; flex-direction:column; gap:10px;">
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Consumo Médio</span><strong class="text-success">${ab.kmL > 0 ? `${ab.kmL} km/L` : 'N/A'}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Custo por KM Rodado</span><strong>${ab.custoKM > 0 ? `R$ ${ab.custoKM.toFixed(2)}/km` : 'N/A'}</strong></li>
+                </ul>
+
+                ${ab.observacoes ? `
+                <div style="margin-top:20px;">
+                    <h5 style="font-weight:700; margin-bottom:6px; font-size:0.85rem;">Observações / Detalhes:</h5>
+                    <p style="font-size:0.8rem; line-height:1.5; color:var(--text-muted); background:var(--bg-surface-hover); padding:10px; border-radius:6px; border-left:3px solid var(--primary); white-space:pre-wrap;">${ab.observacoes}</p>
+                </div>` : ''}
+
+                ${ab.comprovante ? `
+                <div style="margin-top:20px; display:flex; gap:12px;">
+                    <a href="${ab.comprovante}" target="_blank" class="btn btn-secondary" style="font-size:0.8rem; text-decoration:none; display:inline-flex; align-items:center; gap:8px;">
+                        <i class="fa-solid fa-eye text-primary"></i> Visualizar Comprovante
+                    </a>
+                    <a href="${ab.comprovante}" download class="btn btn-secondary" style="font-size:0.8rem; text-decoration:none; display:inline-flex; align-items:center; gap:8px;">
+                        <i class="fa-solid fa-download"></i> Baixar Comprovante
+                    </a>
+                </div>` : ''}
+            </div>
+        `;
+
+        modalFooter.innerHTML = `
+            <button class="btn btn-secondary" id="btn-fechar-detalhe">Fechar</button>
+        `;
+
+        modal.classList.add('active');
+        document.getElementById('btn-fechar-detalhe').addEventListener('click', () => modal.classList.remove('active'));
+    }
 
         function confirmDeleteAbastecimento(id) {
             const modal = document.getElementById('global-modal');

@@ -195,6 +195,9 @@
                             </span>
                         </td>
                         <td style="text-align: center; display: flex; gap: 8px; justify-content: center; align-items:center; height:68px;">
+                            <button class="btn-icon-only btn-view" data-id="${m.id}" title="Visualizar Detalhes">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
                             ${!isVisualizador ? `
                                 <button class="btn-icon-only btn-edit" data-id="${m.id}" title="Editar">
                                     <i class="fa-solid fa-pen-to-square"></i>
@@ -204,7 +207,7 @@
                                         <i class="fa-solid fa-trash-can"></i>
                                     </button>
                                 ` : ''}
-                            ` : '<span style="color:var(--text-muted); font-size:0.8rem;">-</span>'}
+                            ` : ''}
                         </td>
                     </tr>
                 `;
@@ -267,9 +270,11 @@
         }
 
         document.getElementById('tbody-motoristas').addEventListener('click', (e) => {
+            const viewBtn = e.target.closest('.btn-view');
             const editBtn = e.target.closest('.btn-edit');
             const deleteBtn = e.target.closest('.btn-delete');
             
+            if (viewBtn) openMotoristaDetailModal(viewBtn.getAttribute('data-id'));
             if (editBtn) openMotoristaModal(editBtn.getAttribute('data-id'));
             if (deleteBtn) confirmDeleteMotorista(deleteBtn.getAttribute('data-id'));
         });
@@ -539,6 +544,71 @@
                 loader.stop();
             }
         });
+    }
+
+    function openMotoristaDetailModal(id) {
+        const m = window.movixStore.getMotorista(id);
+        if (!m) return;
+
+        const modal = document.getElementById('global-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalBody = document.getElementById('modal-body-content');
+        const modalFooter = document.getElementById('modal-footer-actions');
+
+        modalTitle.innerText = `Detalhes do Motorista: ${m.nome}`;
+
+        modalBody.innerHTML = `
+            <div style="padding: 10px;">
+                <div style="display:flex; align-items:center; gap:20px; margin-bottom:20px; background:var(--bg-surface-hover); padding:16px; border-radius:var(--border-radius-md); border:1px solid var(--border-light);">
+                    <img src="${m.foto || '/img/avatar-default.png'}" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:2px solid var(--primary); background:#ffffff;">
+                    <div>
+                        <h4 style="font-family:var(--font-heading); color:var(--text-main); font-size:1.1rem; font-weight:700; margin:0;">${m.nome}</h4>
+                        <span class="status-pill ${m.status === 'ativo' ? 'ativo' : 'inativo'}" style="margin-top:6px; display:inline-block;">
+                            ${m.status === 'ativo' ? 'Ativo' : 'Inativo'}
+                        </span>
+                    </div>
+                </div>
+
+                <h4 style="font-family:var(--font-heading); color:var(--primary); margin-bottom:12px;"><i class="fa-solid fa-circle-info"></i> Informações Pessoais</h4>
+                <ul class="detail-sidebar-info-list" style="border:none; padding:0; font-size:0.85rem; display:flex; flex-direction:column; gap:10px;">
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>CPF</span><strong>${m.cpf}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>RG</span><strong>${m.rg || '-'}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Telefone</span><strong>${m.telefone}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>E-mail</span><strong>${m.email || '-'}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Endereço</span><strong>${m.endereco || '-'}</strong></li>
+                </ul>
+
+                <h4 style="font-family:var(--font-heading); color:var(--primary); margin-top:20px; margin-bottom:12px;"><i class="fa-solid fa-id-card"></i> Detalhes da Habilitação (CNH)</h4>
+                <ul class="detail-sidebar-info-list" style="border:none; padding:0; font-size:0.85rem; display:flex; flex-direction:column; gap:10px;">
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Nº Registro CNH</span><strong>${m.cnh}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Categoria CNH</span><strong style="color:var(--primary);">${m.categoriaCNH}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Vencimento CNH</span><strong>${m.dataVencimentoCNH.split('-').reverse().join('/')}</strong></li>
+                </ul>
+
+                ${m.observacoes ? `
+                <div style="margin-top:20px;">
+                    <h5 style="font-weight:700; margin-bottom:6px; font-size:0.85rem;">Observações:</h5>
+                    <p style="font-size:0.8rem; line-height:1.5; color:var(--text-muted); background:var(--bg-surface-hover); padding:10px; border-radius:6px; border-left:3px solid var(--primary); white-space:pre-wrap;">${m.observacoes}</p>
+                </div>` : ''}
+
+                ${m.cnhAnexo ? `
+                <div style="margin-top:20px; display:flex; gap:12px;">
+                    <a href="${m.cnhAnexo}" target="_blank" class="btn btn-secondary" style="font-size:0.8rem; text-decoration:none; display:inline-flex; align-items:center; gap:8px;">
+                        <i class="fa-solid fa-eye text-primary"></i> Visualizar CNH Anexa
+                    </a>
+                    <a href="${m.cnhAnexo}" download class="btn btn-secondary" style="font-size:0.8rem; text-decoration:none; display:inline-flex; align-items:center; gap:8px;">
+                        <i class="fa-solid fa-download"></i> Baixar CNH Anexa
+                    </a>
+                </div>` : ''}
+            </div>
+        `;
+
+        modalFooter.innerHTML = `
+            <button class="btn btn-secondary" id="btn-fechar-detalhe">Fechar</button>
+        `;
+
+        modal.classList.add('active');
+        document.getElementById('btn-fechar-detalhe').addEventListener('click', () => modal.classList.remove('active'));
     }
 
     function confirmDeleteMotorista(id) {

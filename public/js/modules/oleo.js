@@ -55,7 +55,7 @@
                                     <th>Tipo Lubrificante</th>
                                     <th>Filtros Trocados</th>
                                     <th>Próxima Troca</th>
-                                    ${!isVisualizador ? '<th style="width: 100px; text-align: center;">Ações</th>' : ''}
+                                    <th style="width: 100px; text-align: center;">Ações</th>
                                 </tr>
                             </thead>
                             <tbody id="tbody-oleos">
@@ -126,7 +126,7 @@
 
             tbody.innerHTML = '';
             if (oleos.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="${isVisualizador ? 6 : 7}" style="text-align:center;">Nenhum registro de troca encontrado.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Nenhum registro de troca encontrado.</td></tr>`;
                 return;
             }
 
@@ -144,11 +144,13 @@
                 if (o.filtroCombustivel) filters.push('Comb.');
                 const filtersLabel = filters.length > 0 ? filters.join(' + ') : 'Nenhum';
 
-                let actionsHTML = '';
-                if (!isVisualizador) {
-                    actionsHTML = `
-                        <td style="text-align: center;">
-                            <div style="display:flex; gap:6px; justify-content:center; align-items:center;">
+                let actionsHTML = `
+                    <td style="text-align: center;">
+                        <div style="display:flex; gap:6px; justify-content:center; align-items:center;">
+                            <button class="btn-icon-only btn-view-oleo" data-id="${o.id}" title="Visualizar Detalhes">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                            ${!isVisualizador ? `
                                 <button class="btn-icon-only btn-edit-oleo" data-id="${o.id}" title="Editar Troca de Óleo">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
@@ -157,10 +159,10 @@
                                         <i class="fa-solid fa-trash-can"></i>
                                     </button>
                                 ` : ''}
-                            </div>
-                        </td>
-                    `;
-                }
+                            ` : ''}
+                        </div>
+                    </td>
+                `;
 
                 tbody.innerHTML += `
                     <tr>
@@ -190,9 +192,13 @@
         const tbodyTable = document.getElementById('tbody-oleos');
         if (tbodyTable) {
             tbodyTable.addEventListener('click', (e) => {
+                const viewBtn = e.target.closest('.btn-view-oleo');
                 const editBtn = e.target.closest('.btn-edit-oleo');
                 const deleteBtn = e.target.closest('.btn-delete-oleo');
-                if (editBtn) {
+                if (viewBtn) {
+                    const id = viewBtn.getAttribute('data-id');
+                    openOleoDetailModal(id);
+                } else if (editBtn) {
                     const id = editBtn.getAttribute('data-id');
                     openOleoModal(id);
                 } else if (deleteBtn) {
@@ -359,6 +365,60 @@
                 window.movixApp.validateKM(veiculoId, enteredKM, saveAction, isEdit, originalKM);
             });
         }
+
+    function openOleoDetailModal(id) {
+        const o = oleos.find(item => item.id === id);
+        if (!o) return;
+
+        const v = vehicles.find(item => item.id === o.veiculoId);
+
+        const modal = document.getElementById('global-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalBody = document.getElementById('modal-body-content');
+        const modalFooter = document.getElementById('modal-footer-actions');
+
+        modalTitle.innerText = `Detalhes da Troca de Óleo: ${id}`;
+
+        let filters = [];
+        if (o.filtroOleo) filters.push('Filtro de Óleo');
+        if (o.filtroAr) filters.push('Filtro de Ar');
+        if (o.filtroCombustivel) filters.push('Filtro de Combustível');
+        const filtersLabel = filters.length > 0 ? filters.join(', ') : 'Nenhum filtro trocado';
+
+        modalBody.innerHTML = `
+            <div style="padding: 10px;">
+                <h4 style="font-family:var(--font-heading); color:var(--primary); margin-bottom:12px;"><i class="fa-solid fa-circle-info"></i> Informações do Registro</h4>
+                <ul class="detail-sidebar-info-list" style="border:none; padding:0; font-size:0.85rem; display:flex; flex-direction:column; gap:10px;">
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Veículo</span><strong style="color:var(--primary);">${v ? `${v.placa} (${v.marca} ${v.modelo})` : 'Deletado'}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Data da Troca</span><strong>${o.dataTroca.split('-').reverse().join('/')}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>KM na Troca</span><strong>${parseFloat(o.kmTroca || 0).toLocaleString('pt-BR')} km</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Tipo do Óleo</span><strong>${o.tipoOleo || '-'}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Estabelecimento</span><strong>${o.estabelecimento || '-'}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Valor Pago</span><strong style="font-size:1rem; color:var(--text-main);">R$ ${(parseFloat(o.valor) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Filtros Substituídos</span><strong>${filtersLabel}</strong></li>
+                </ul>
+
+                <h4 style="font-family:var(--font-heading); color:var(--primary); margin-top:20px; margin-bottom:12px;"><i class="fa-solid fa-clock"></i> Próxima Manutenção Preventiva</h4>
+                <ul class="detail-sidebar-info-list" style="border:none; padding:0; font-size:0.85rem; display:flex; flex-direction:column; gap:10px;">
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>KM Próxima Troca</span><strong>${parseFloat(o.proximaTrocaKM || 0).toLocaleString('pt-BR')} km</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Data Limite Recomendada</span><strong>${o.proximaTrocaDias ? o.proximaTrocaDias.split('-').reverse().join('/') : 'Não definida'}</strong></li>
+                </ul>
+
+                ${o.observacoes ? `
+                <div style="margin-top:20px;">
+                    <h5 style="font-weight:700; margin-bottom:6px; font-size:0.85rem;">Observações / Detalhes:</h5>
+                    <p style="font-size:0.8rem; line-height:1.5; color:var(--text-muted); background:var(--bg-surface-hover); padding:10px; border-radius:6px; border-left:3px solid var(--primary); white-space:pre-wrap;">${o.observacoes}</p>
+                </div>` : ''}
+            </div>
+        `;
+
+        modalFooter.innerHTML = `
+            <button class="btn btn-secondary" id="btn-fechar-detalhe">Fechar</button>
+        `;
+
+        modal.classList.add('active');
+        document.getElementById('btn-fechar-detalhe').addEventListener('click', () => modal.classList.remove('active'));
+    }
 
         function confirmDeleteOleo(id) {
             const o = oleos.find(item => item.id === id);
