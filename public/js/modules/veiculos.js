@@ -444,7 +444,7 @@
                         <input type="number" class="form-control" name="valorMensalSeguro" step="0.01" min="0" value="${isEdit && vehicle.valorMensalSeguro ? vehicle.valorMensalSeguro : ''}" placeholder="Ex: 350.00">
                     </div>
                     <div class="form-group">
-                        <label>Dia de Vencimento do Boleto Mensal (1 a 31)</label>
+                        <label>Vencimento do Boleto</label>
                         <input type="number" class="form-control" name="vencimentoBoletoSeguro" min="1" max="31" value="${isEdit && vehicle.vencimentoBoletoSeguro ? (vehicle.vencimentoBoletoSeguro.includes('-') ? parseInt(vehicle.vencimentoBoletoSeguro.split('-')[2]) : vehicle.vencimentoBoletoSeguro) : ''}" placeholder="Ex: 10">
                     </div>
                     <div class="form-group">
