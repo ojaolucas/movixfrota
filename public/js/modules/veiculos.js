@@ -444,8 +444,8 @@
                         <input type="number" class="form-control" name="valorMensalSeguro" step="0.01" min="0" value="${isEdit && vehicle.valorMensalSeguro ? vehicle.valorMensalSeguro : ''}" placeholder="Ex: 350.00">
                     </div>
                     <div class="form-group">
-                        <label>Data de Vencimento do Boleto Mensal</label>
-                        <input type="date" class="form-control" name="vencimentoBoletoSeguro" value="${isEdit && vehicle.vencimentoBoletoSeguro ? vehicle.vencimentoBoletoSeguro : ''}">
+                        <label>Dia de Vencimento do Boleto Mensal (1 a 31)</label>
+                        <input type="number" class="form-control" name="vencimentoBoletoSeguro" min="1" max="31" value="${isEdit && vehicle.vencimentoBoletoSeguro ? (vehicle.vencimentoBoletoSeguro.includes('-') ? parseInt(vehicle.vencimentoBoletoSeguro.split('-')[2]) : vehicle.vencimentoBoletoSeguro) : ''}" placeholder="Ex: 10">
                     </div>
                     <div class="form-group">
                         <label>Início do Contrato</label>
@@ -1561,8 +1561,26 @@
                                         <ul class="detail-sidebar-info-list" style="border:none; padding:0; gap:12px; font-size:0.9rem;">
                                             <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Seguradora</span><strong>${vehicle.seguradora || '-'}</strong></li>
                                             <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Nº Apólice</span><strong>${vehicle.apolice || '-'}</strong></li>
+                                            <li class="detail-sidebar-info-item" style="padding:4px 0;">
+                                                <span>Próximo Boleto</span>
+                                                <strong>
+                                                    ${(() => {
+                                                        if (!vehicle.vencimentoBoletoSeguro) return '-';
+                                                        if (vehicle.vencimentoBoletoSeguro.includes('-')) {
+                                                            return vehicle.vencimentoBoletoSeguro.split('-').reverse().join('/');
+                                                        }
+                                                        const day = parseInt(vehicle.vencimentoBoletoSeguro) || 1;
+                                                        const today = new Date();
+                                                        let dueDate = new Date(today.getFullYear(), today.getMonth(), day);
+                                                        const rolloverLimit = new Date(dueDate.getTime() + 5 * 24 * 60 * 60 * 1000);
+                                                        if (today > rolloverLimit) {
+                                                            dueDate = new Date(today.getFullYear(), today.getMonth() + 1, day);
+                                                        }
+                                                        return `${String(dueDate.getDate()).padStart(2, '0')}/${String(dueDate.getMonth() + 1).padStart(2, '0')}/${dueDate.getFullYear()}`;
+                                                    })()}
+                                                </strong>
+                                            </li>
                                             <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Custo Mensal</span><strong>R$ ${(parseFloat(vehicle.valorMensalSeguro) || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong></li>
-                                            <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Próximo Boleto</span><strong>${vehicle.vencimentoBoletoSeguro ? vehicle.vencimentoBoletoSeguro.split('-').reverse().join('/') : '-'}</strong></li>
                                         </ul>
                                     </div>
 

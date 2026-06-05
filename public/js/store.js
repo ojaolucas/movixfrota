@@ -808,9 +808,23 @@ class MovixStore {
                 }
 
                 if (v.vencimentoBoletoSeguro) {
-                    const bolDate = new Date(v.vencimentoBoletoSeguro + 'T23:59:59');
+                    let bolDate;
+                    if (v.vencimentoBoletoSeguro.includes('-')) {
+                        bolDate = new Date(v.vencimentoBoletoSeguro + 'T23:59:59');
+                    } else {
+                        const day = parseInt(v.vencimentoBoletoSeguro) || 1;
+                        const currentYear = today.getFullYear();
+                        const currentMonth = today.getMonth();
+                        bolDate = new Date(currentYear, currentMonth, day, 23, 59, 59);
+                        const rolloverLimit = new Date(bolDate.getTime() + 5 * 24 * 60 * 60 * 1000);
+                        if (today > rolloverLimit) {
+                            bolDate = new Date(currentYear, currentMonth + 1, day, 23, 59, 59);
+                        }
+                    }
+
                     const diffTime = bolDate - today;
                     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    const formattedDueDate = `${String(bolDate.getDate()).padStart(2, '0')}/${String(bolDate.getMonth() + 1).padStart(2, '0')}/${bolDate.getFullYear()}`;
 
                     if (diffDays < 0) {
                         alerts.push({
@@ -819,7 +833,7 @@ class MovixStore {
                             prioridade: 'Alta',
                             status: 'Atrasado',
                             titulo: `Boleto de Seguro Atrasado: ${v.placa}`,
-                            desc: `Parcela mensal de R$ ${(parseFloat(v.valorMensalSeguro) || 0).toFixed(2)} venceu em ${v.vencimentoBoletoSeguro.split('-').reverse().join('/')}`,
+                            desc: `Parcela mensal de R$ ${(parseFloat(v.valorMensalSeguro) || 0).toFixed(2)} venceu em ${formattedDueDate}`,
                             link: 'veiculos',
                             targetId: v.id
                         });
@@ -830,7 +844,7 @@ class MovixStore {
                             prioridade: 'Média',
                             status: 'Atenção',
                             titulo: `Boleto de seguro a vencer: ${v.placa}`,
-                            desc: `Parcela mensal de R$ ${(parseFloat(v.valorMensalSeguro) || 0).toFixed(2)} venceu em ${diffDays} dias (${v.vencimentoBoletoSeguro.split('-').reverse().join('/')})`,
+                            desc: `Parcela mensal de R$ ${(parseFloat(v.valorMensalSeguro) || 0).toFixed(2)} vence em ${diffDays} dias (${formattedDueDate})`,
                             link: 'veiculos',
                             targetId: v.id
                         });
