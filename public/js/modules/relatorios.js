@@ -1062,7 +1062,7 @@
 
                     return {
                         id: o.id,
-                        dataTroca: o.dataTroca,
+                        _dataTroca: o.dataTroca,
                         dataFormatted: o.dataTroca.split('-').reverse().join('/'),
                         veiculo: v ? v.placa : 'Veículo',
                         kmTroca: `${(parseFloat(o.kmTroca) || 0).toLocaleString('pt-BR')} km`,
@@ -1865,7 +1865,7 @@
                             alvo: d.nome,
                             categoria: 'CNH',
                             descricao: `CNH do motorista ${d.nome} expirada ou próxima de expirar.`,
-                            dias: days <= 0 ? `Atrasada há ${Math.abs(days)} dias` : `Vence in ${days} dias`,
+                            dias: days <= 0 ? `Atrasada há ${Math.abs(days)} dias` : `Vence em ${days} dias`,
                             gravidade: isCritical ? 'Crítico' : 'Atenção',
                             _rawDays: days
                         });
@@ -1890,7 +1890,7 @@
                             alvo: v.placa,
                             categoria: 'Seguro',
                             descricao: `Contrato de seguro do veículo ${v.placa} (${v.seguradora || ''}) expira em breve.`,
-                            dias: days <= 0 ? `Vencido há ${Math.abs(days)} dias` : `Vence in ${days} dias`,
+                            dias: days <= 0 ? `Vencido há ${Math.abs(days)} dias` : `Vence em ${days} dias`,
                             gravidade: isCritical ? 'Crítico' : 'Atenção',
                             _rawDays: days
                         });
@@ -2097,6 +2097,7 @@
                             'km_os': '_rawTotal',
                             'data_saida': '_dataSaida',
                             'data_retorno': '_rawDataRetorno',
+                            'data_troca': '_dataTroca',
                             'km_rodado': '_rawTotal',
                             'tipo_implemento': 'tipoImplemento',
                             'pneus_ativos': 'qtdPneus',
