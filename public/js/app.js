@@ -628,7 +628,7 @@ class MovixApp {
         backdrop.style.left = '0';
         backdrop.style.width = '100vw';
         backdrop.style.height = '100vh';
-        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+        backdrop.style.backgroundColor = 'var(--bg-backdrop, rgba(0, 0, 0, 0.6))';
         backdrop.style.backdropFilter = 'blur(4px)';
         backdrop.style.zIndex = '99999';
         backdrop.style.display = 'flex';
@@ -637,7 +637,7 @@ class MovixApp {
         backdrop.style.animation = 'fadeIn 0.2s ease-out';
 
         const container = document.createElement('div');
-        container.style.background = 'var(--card-bg, #fff)';
+        container.style.background = 'var(--bg-surface, #fff)';
         container.style.border = '1px solid var(--border-color, #e2e8f0)';
         container.style.borderRadius = 'var(--border-radius-md, 12px)';
         container.style.padding = '24px';
@@ -658,7 +658,7 @@ class MovixApp {
             <p style="margin: 0; font-size: 0.95rem; line-height: 1.5; color: var(--text-muted, #64748b);">${message}</p>
             <div style="display: flex; gap: 12px; margin-top: 8px;">
                 <button id="confirm-btn-corrigir" class="btn btn-secondary" style="flex: 1; justify-content: center; font-weight: 700; height: 38px;">Corrigir</button>
-                <button id="confirm-btn-continuar" class="btn btn-primary" style="flex: 1; justify-content: center; font-weight: 700; height: 38px; background-color: var(--warning, #f59e0b); border-color: var(--warning, #f59e0b);">Continuar</button>
+                <button id="confirm-btn-continuar" class="btn btn-primary" style="flex: 1; justify-content: center; font-weight: 700; height: 38px; background-color: var(--warning, #f59e0b); border-color: var(--warning, #f59e0b); color: #fff;">Continuar</button>
             </div>
         `;
 
@@ -688,7 +688,7 @@ class MovixApp {
         backdrop.style.left = '0';
         backdrop.style.width = '100vw';
         backdrop.style.height = '100vh';
-        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+        backdrop.style.backgroundColor = 'var(--bg-backdrop, rgba(0, 0, 0, 0.6))';
         backdrop.style.backdropFilter = 'blur(4px)';
         backdrop.style.zIndex = '99999';
         backdrop.style.display = 'flex';
@@ -697,7 +697,7 @@ class MovixApp {
         backdrop.style.animation = 'fadeIn 0.2s ease-out';
 
         const container = document.createElement('div');
-        container.style.background = 'var(--card-bg, #fff)';
+        container.style.background = 'var(--bg-surface, #fff)';
         container.style.border = '1px solid var(--border-color, #e2e8f0)';
         container.style.borderRadius = 'var(--border-radius-md, 12px)';
         container.style.padding = '28px';
@@ -725,7 +725,7 @@ class MovixApp {
                 <h3 style="margin: 0; text-align: center; font-family: var(--font-heading); font-size: 1.3rem; font-weight: 800; color: var(--text-main, #0f172a);">Atenção!</h3>
                 <p style="margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--text-main, #0f172a); text-align: center;">O KM informado é menor que a última quilometragem registrada para este veículo.</p>
                 
-                <div style="background: var(--body-bg, #f8fafc); border: 1px solid var(--border-color, #e2e8f0); border-radius: 8px; padding: 12px 16px; margin: 4px 0; display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem;">
+                <div style="background: var(--bg-main, #f8fafc); border: 1px solid var(--border-color, #e2e8f0); border-radius: 8px; padding: 12px 16px; margin: 4px 0; display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem;">
                     <div><strong style="color: var(--text-main, #0f172a);">Último KM registrado:</strong> <span style="color: var(--danger, #ef4444); font-weight: 700;">${formatKM(baseKM)}</span></div>
                     <div><strong style="color: var(--text-main, #0f172a);">KM informado:</strong> <span style="color: var(--text-main, #0f172a); font-weight: 700;">${formatKM(enteredKM)}</span></div>
                 </div>
@@ -746,7 +746,7 @@ class MovixApp {
                     Foi identificada uma diferença de <span style="color: var(--warning, #f59e0b); font-weight: 700;">${formatKM(diff)}</span> em relação ao último registro.
                 </p>
                 
-                <div style="background: var(--body-bg, #f8fafc); border: 1px solid var(--border-color, #e2e8f0); border-radius: 8px; padding: 12px 16px; margin: 4px 0; display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem;">
+                <div style="background: var(--bg-main, #f8fafc); border: 1px solid var(--border-color, #e2e8f0); border-radius: 8px; padding: 12px 16px; margin: 4px 0; display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem;">
                     <div><strong style="color: var(--text-main, #0f172a);">Último KM registrado:</strong> <span style="color: var(--text-main, #0f172a); font-weight: 700;">${formatKM(baseKM)}</span></div>
                     <div><strong style="color: var(--text-main, #0f172a);">KM informado:</strong> <span style="color: var(--warning, #f59e0b); font-weight: 700;">${formatKM(enteredKM)}</span></div>
                 </div>
@@ -763,7 +763,7 @@ class MovixApp {
             
             <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px;">
                 <label for="validation-justificativa" style="font-size: 0.85rem; font-weight: 700; color: var(--text-main, #0f172a);">Motivo da divergência <span style="font-weight: 400; color: var(--text-muted);">(opcional)</span></label>
-                <textarea id="validation-justificativa" placeholder="Digite uma justificativa para este lançamento..." style="width: 100%; min-height: 70px; padding: 10px; border: 1px solid var(--border-color, #e2e8f0); border-radius: 6px; background: var(--input-bg, #fff); color: var(--text-main, #0f172a); font-family: inherit; font-size: 0.9rem; resize: vertical; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='var(--primary, #3b82f6)'" onblur="this.style.borderColor='var(--border-color, #e2e8f0)'"></textarea>
+                <textarea id="validation-justificativa" placeholder="Digite uma justificativa para este lançamento..." style="width: 100%; min-height: 70px; padding: 10px; border: 1px solid var(--border-color, #e2e8f0); border-radius: 6px; background: var(--bg-surface-hover, #f1f5f9); color: var(--text-main, #0f172a); font-family: inherit; font-size: 0.9rem; resize: vertical; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='var(--primary, #3b82f6)'" onblur="this.style.borderColor='var(--border-color, #e2e8f0)'"></textarea>
             </div>
             
             <div style="display: flex; gap: 12px; margin-top: 12px;">
