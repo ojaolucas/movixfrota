@@ -842,29 +842,69 @@
             maintChartInstance = null;
         }
 
-        // Helper to match dates to 6 months window
+        // Helper to match dates to 6 months window (robust, timezone-independent parsing)
         function getMonthYearData(dateStr) {
             if (!dateStr) return null;
-            const d = new Date(dateStr + 'T00:00:00');
-            return {
-                month: d.getMonth(), // 0-11
-                year: d.getFullYear()
-            };
+            const cleanDate = dateStr.split('T')[0].split(' ')[0];
+            if (cleanDate.includes('-')) {
+                const parts = cleanDate.split('-');
+                if (parts.length === 3) {
+                    const year = parseInt(parts[0], 10);
+                    const month = parseInt(parts[1], 10) - 1; // 0-11
+                    if (!isNaN(year) && !isNaN(month)) {
+                        return { month, year };
+                    }
+                }
+            }
+            if (cleanDate.includes('/')) {
+                const parts = cleanDate.split('/');
+                if (parts.length === 3) {
+                    const year = parseInt(parts[2], 10);
+                    const month = parseInt(parts[1], 10) - 1; // 0-11
+                    if (!isNaN(year) && !isNaN(month)) {
+                        return { month, year };
+                    }
+                }
+            }
+            const d = new Date(dateStr);
+            if (!isNaN(d.getTime())) {
+                return {
+                    month: d.getMonth(),
+                    year: d.getFullYear()
+                };
+            }
+            return null;
         }
 
-        const labels = ['Dez/25', 'Jan/26', 'Fev/26', 'Mar/26', 'Abr/26', 'Mai/26'];
+        // Dynamic last 6 months calculation ending in the current local month
+        const labels = [];
         const fuelMonthlyData = [0, 0, 0, 0, 0, 0];
         const maintMonthlyData = [0, 0, 0, 0, 0, 0];
+        const targetMonths = [];
+        
+        const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        const localNow = new Date();
+        
+        // Start 5 months ago, using safe date initialization on the 1st day to avoid setMonth overflows
+        const tempDate = new Date(localNow.getFullYear(), localNow.getMonth(), 1);
+        tempDate.setMonth(tempDate.getMonth() - 5);
+        
+        for (let i = 0; i < 6; i++) {
+            const m = tempDate.getMonth();
+            const y = tempDate.getFullYear();
+            const yy = String(y).slice(-2);
+            targetMonths.push({ month: m, year: y });
+            labels.push(`${monthNames[m]}/${yy}`);
+            tempDate.setMonth(tempDate.getMonth() + 1);
+        }
 
         // Sum real fuel refuels monthly values
         abastecimentos.forEach(a => {
             const dateInfo = getMonthYearData(a.data);
             if (dateInfo) {
-                if (dateInfo.year === 2025 && dateInfo.month === 11) fuelMonthlyData[0] += (a.valorTotal || 0);
-                else if (dateInfo.year === 2026) {
-                    if (dateInfo.month >= 0 && dateInfo.month <= 4) {
-                        fuelMonthlyData[dateInfo.month + 1] += (a.valorTotal || 0);
-                    }
+                const idx = targetMonths.findIndex(t => t.month === dateInfo.month && t.year === dateInfo.year);
+                if (idx !== -1) {
+                    fuelMonthlyData[idx] += (a.valorTotal || 0);
                 }
             }
         });
@@ -873,11 +913,9 @@
         manutencoes.forEach(m => {
             const dateInfo = getMonthYearData(m.data);
             if (dateInfo) {
-                if (dateInfo.year === 2025 && dateInfo.month === 11) maintMonthlyData[0] += (m.valor || 0);
-                else if (dateInfo.year === 2026) {
-                    if (dateInfo.month >= 0 && dateInfo.month <= 4) {
-                        maintMonthlyData[dateInfo.month + 1] += (m.valor || 0);
-                    }
+                const idx = targetMonths.findIndex(t => t.month === dateInfo.month && t.year === dateInfo.year);
+                if (idx !== -1) {
+                    maintMonthlyData[idx] += (m.valor || 0);
                 }
             }
         });
