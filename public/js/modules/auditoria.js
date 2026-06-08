@@ -57,7 +57,7 @@
                             <option value="Edição">Edição</option>
                             <option value="Exclusão">Exclusão</option>
                             <option value="Aprovação">Aprovação</option>
-                            <option value="Ação de Sessão">Sessão</option>
+                            <option value="Sessão">Sessão</option>
                         </select>
                     </div>
 
@@ -109,7 +109,15 @@
                 const matchSearch = l.usuario.toLowerCase().includes(searchVal) || 
                                     l.detalhes.toLowerCase().includes(searchVal) ||
                                     l.entidade.toLowerCase().includes(searchVal);
-                const matchAction = !actionVal || l.acao === actionVal;
+                
+                let matchAction = true;
+                if (actionVal) {
+                    if (actionVal === 'Sessão') {
+                        matchAction = (l.entidade === 'Sessão' || l.acao === 'Login' || l.acao === 'Logout');
+                    } else {
+                        matchAction = l.acao === actionVal;
+                    }
+                }
                 return matchSearch && matchAction;
             });
 
