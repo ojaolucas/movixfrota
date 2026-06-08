@@ -35,6 +35,56 @@
                 </button>
             </div>
 
+            <!-- FILTROS -->
+            <div class="filters-card" style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 16px;">
+                <div class="filters-row">
+                    <div class="filter-group">
+                        <label>Buscar Trajeto / Obs</label>
+                        <input type="text" class="filter-input" id="filter-busca-viagem" placeholder="Ex: Maceió, Batalha...">
+                    </div>
+                    <div class="filter-group">
+                        <label>Veículo</label>
+                        <select class="filter-input" id="filter-veiculo-viagem">
+                            <option value="">Todos os Veículos</option>
+                            ${vehicles.map(v => `<option value="${v.id}">${v.placa} - ${v.marca} ${v.modelo}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Motorista</label>
+                        <select class="filter-input" id="filter-motorista-viagem">
+                            <option value="">Todos os Motoristas</option>
+                            ${drivers.map(m => `<option value="${m.id}">${m.nome}</option>`).join('')}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="filters-row" style="border-top: 1px solid var(--border-color); padding-top: 12px; display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end;">
+                    <div class="filter-group" style="min-width: 200px; flex: 1;">
+                        <label>Período Temporal</label>
+                        <select class="filter-input" id="filter-periodo-viagem">
+                            <option value="tudo">Todo o histórico</option>
+                            <option value="hoje">Hoje</option>
+                            <option value="ontem">Ontem</option>
+                            <option value="7dias">Últimos 7 dias</option>
+                            <option value="30dias">Últimos 30 dias</option>
+                            <option value="este_mes">Este mês</option>
+                            <option value="mes_anterior">Mês anterior</option>
+                            <option value="personalizado">Personalizado...</option>
+                        </select>
+                    </div>
+                    <div id="custom-date-container-viagem" style="display: none; gap: 16px; flex-wrap: wrap; flex: 2; align-items: flex-end;">
+                        <div class="filter-group" style="min-width: 150px; flex: 1;">
+                            <label>Data Inicial</label>
+                            <input type="date" class="filter-input" id="filter-viagem-de">
+                        </div>
+                        <div class="filter-group" style="min-width: 150px; flex: 1;">
+                            <label>Data Final</label>
+                            <input type="date" class="filter-input" id="filter-viagem-ate">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- TABLE -->
             <div class="table-responsive">
                 <table class="smart-table" id="table-viagens">
@@ -67,11 +117,74 @@
             if (!tbody) return;
 
             const currentTrips = window.movixStore.getViagens();
+            
+            const queryVal = document.getElementById('filter-busca-viagem') ? document.getElementById('filter-busca-viagem').value.toLowerCase().trim() : '';
+            const veiculoVal = document.getElementById('filter-veiculo-viagem') ? document.getElementById('filter-veiculo-viagem').value : '';
+            const motoristaVal = document.getElementById('filter-motorista-viagem') ? document.getElementById('filter-motorista-viagem').value : '';
+            const periodVal = document.getElementById('filter-periodo-viagem') ? document.getElementById('filter-periodo-viagem').value : 'tudo';
+            const deVal = document.getElementById('filter-viagem-de') ? document.getElementById('filter-viagem-de').value : '';
+            const ateVal = document.getElementById('filter-viagem-ate') ? document.getElementById('filter-viagem-ate').value : '';
+
             const filteredData = currentTrips.filter(t => {
+                // 1. Status/Tab Filter
                 if (activeTabStatus === 'Em andamento') {
-                    return t.status && t.status.toLowerCase() === 'em andamento';
+                    if (!t.status || t.status.toLowerCase() !== 'em andamento') return false;
+                } else {
+                    if (t.status !== activeTabStatus) return false;
                 }
-                return t.status === activeTabStatus;
+
+                // 2. Search Text Query (origem, destino, observacoes)
+                if (queryVal) {
+                    const matchOrigem = t.origem && t.origem.toLowerCase().includes(queryVal);
+                    const matchDestino = t.destino && t.destino.toLowerCase().includes(queryVal);
+                    const matchObs = t.observacoes && t.observacoes.toLowerCase().includes(queryVal);
+                    if (!matchOrigem && !matchDestino && !matchObs) return false;
+                }
+
+                // 3. Vehicle Filter
+                if (veiculoVal && t.veiculoId !== veiculoVal) return false;
+
+                // 4. Driver Filter
+                if (motoristaVal && t.motoristaId !== motoristaVal) return false;
+
+                // 5. Period Filter
+                if (periodVal !== 'tudo') {
+                    const tripDateStr = t.dataSaida; // YYYY-MM-DD
+                    const localNow = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
+                    const todayStr = localNow.toISOString().split('T')[0];
+
+                    if (periodVal === 'hoje') {
+                        if (tripDateStr !== todayStr) return false;
+                    } else if (periodVal === 'ontem') {
+                        const yesterday = new Date(localNow);
+                        yesterday.setDate(yesterday.getDate() - 1);
+                        const yesterdayStr = yesterday.toISOString().split('T')[0];
+                        if (tripDateStr !== yesterdayStr) return false;
+                    } else if (periodVal === '7dias') {
+                        const limit = new Date(localNow);
+                        limit.setDate(limit.getDate() - 7);
+                        const limitStr = limit.toISOString().split('T')[0];
+                        if (tripDateStr < limitStr || tripDateStr > todayStr) return false;
+                    } else if (periodVal === '30dias') {
+                        const limit = new Date(localNow);
+                        limit.setDate(limit.getDate() - 30);
+                        const limitStr = limit.toISOString().split('T')[0];
+                        if (tripDateStr < limitStr || tripDateStr > todayStr) return false;
+                    } else if (periodVal === 'este_mes') {
+                        const yearMonth = todayStr.substring(0, 7); // "YYYY-MM"
+                        if (!tripDateStr.startsWith(yearMonth)) return false;
+                    } else if (periodVal === 'mes_anterior') {
+                        const prevMonthDate = new Date(localNow);
+                        prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
+                        const prevYearMonth = prevMonthDate.toISOString().split('T')[0].substring(0, 7);
+                        if (!tripDateStr.startsWith(prevYearMonth)) return false;
+                    } else if (periodVal === 'personalizado') {
+                        if (deVal && tripDateStr < deVal) return false;
+                        if (ateVal && tripDateStr > ateVal) return false;
+                    }
+                }
+
+                return true;
             });
 
             const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
@@ -194,6 +307,35 @@
                 activeTabStatus = 'Realizada';
                 tabRealizadas.classList.add('active');
                 tabEmAndamento.classList.remove('active');
+                currentPage = 1;
+                updateTable();
+            });
+        }
+
+        // Setup Filter Event Listeners and Period Toggle
+        const filterBusca = document.getElementById('filter-busca-viagem');
+        const filterVeiculo = document.getElementById('filter-veiculo-viagem');
+        const filterMotorista = document.getElementById('filter-motorista-viagem');
+        const filterPeriodo = document.getElementById('filter-periodo-viagem');
+        const customDateContainer = document.getElementById('custom-date-container-viagem');
+        const filterDe = document.getElementById('filter-viagem-de');
+        const filterAte = document.getElementById('filter-viagem-ate');
+
+        if (filterBusca) filterBusca.addEventListener('input', () => { currentPage = 1; updateTable(); });
+        if (filterVeiculo) filterVeiculo.addEventListener('change', () => { currentPage = 1; updateTable(); });
+        if (filterMotorista) filterMotorista.addEventListener('change', () => { currentPage = 1; updateTable(); });
+        if (filterDe) filterDe.addEventListener('change', () => { currentPage = 1; updateTable(); });
+        if (filterAte) filterAte.addEventListener('change', () => { currentPage = 1; updateTable(); });
+
+        if (filterPeriodo && customDateContainer) {
+            filterPeriodo.addEventListener('change', () => {
+                if (filterPeriodo.value === 'personalizado') {
+                    customDateContainer.style.display = 'flex';
+                } else {
+                    customDateContainer.style.display = 'none';
+                    if (filterDe) filterDe.value = '';
+                    if (filterAte) filterAte.value = '';
+                }
                 currentPage = 1;
                 updateTable();
             });
