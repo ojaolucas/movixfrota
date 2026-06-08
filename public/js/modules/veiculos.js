@@ -382,7 +382,7 @@
                 </div>
                 <div class="form-group">
                     <label>Data de Aquisição</label>
-                    <input type="date" class="form-control" name="dataAquisicao" value="${isEdit && vehicle.dataAquisicao ? vehicle.dataAquisicao : new Date().toISOString().split('T')[0]}">
+                    <input type="date" class="form-control" name="dataAquisicao" value="${isEdit && vehicle.dataAquisicao ? vehicle.dataAquisicao : new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]}">
                 </div>
                 <div class="form-group">
                     <label>Situação <span class="required">*</span></label>

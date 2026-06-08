@@ -325,7 +325,7 @@
                 <form id="form-viagem" class="form-grid">
                     <div class="form-group">
                         <label>Data de Saída <span class="required">*</span></label>
-                        <input type="date" class="form-control" name="dataSaida" required value="${isEdit ? t.dataSaida : new Date().toISOString().split('T')[0]}">
+                        <input type="date" class="form-control" name="dataSaida" required value="${isEdit ? t.dataSaida : new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]}">
                     </div>
 
                     <div class="form-group">
@@ -514,7 +514,7 @@
 
                     <div class="form-group">
                         <label>Data de Retorno <span class="required">*</span></label>
-                        <input type="date" class="form-control" name="dataRetorno" required value="${new Date().toISOString().split('T')[0]}">
+                        <input type="date" class="form-control" name="dataRetorno" required value="${new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]}">
                     </div>
 
                     <div class="form-group">

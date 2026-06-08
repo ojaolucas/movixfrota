@@ -224,7 +224,7 @@
                 <form id="form-oleo" class="form-grid">
                     <div class="form-group">
                         <label>Data da Troca <span class="required">*</span></label>
-                        <input type="date" class="form-control" name="dataTroca" required value="${isEdit ? o.dataTroca : new Date().toISOString().split('T')[0]}">
+                        <input type="date" class="form-control" name="dataTroca" required value="${isEdit ? o.dataTroca : new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]}">
                     </div>
 
                     <div class="form-group">
