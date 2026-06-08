@@ -36,31 +36,28 @@
             </div>
 
             <!-- FILTROS -->
-            <div class="filters-card" style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 16px;">
-                <div class="filters-row">
-                    <div class="filter-group">
-                        <label>Buscar Trajeto / Obs</label>
-                        <input type="text" class="filter-input" id="filter-busca-viagem" placeholder="Ex: Maceió, Batalha...">
+            <div class="filters-card" style="margin-bottom: 20px;">
+                <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; width: 100%;">
+                    <div class="filter-group" style="flex: 2; min-width: 200px;">
+                        <label>Busca Geral</label>
+                        <input type="text" class="filter-input" id="filter-busca-viagem" placeholder="Busca por placa, motorista, rota ou obs...">
                     </div>
-                    <div class="filter-group">
+                    <div class="filter-group" style="flex: 1; min-width: 130px;">
                         <label>Veículo</label>
                         <select class="filter-input" id="filter-veiculo-viagem">
-                            <option value="">Todos os Veículos</option>
+                            <option value="">Todos</option>
                             ${vehicles.map(v => `<option value="${v.id}">${v.placa} - ${v.marca} ${v.modelo}</option>`).join('')}
                         </select>
                     </div>
-                    <div class="filter-group">
+                    <div class="filter-group" style="flex: 1; min-width: 130px;">
                         <label>Motorista</label>
                         <select class="filter-input" id="filter-motorista-viagem">
-                            <option value="">Todos os Motoristas</option>
+                            <option value="">Todos</option>
                             ${drivers.map(m => `<option value="${m.id}">${m.nome}</option>`).join('')}
                         </select>
                     </div>
-                </div>
-                
-                <div class="filters-row" style="border-top: 1px solid var(--border-color); padding-top: 12px; display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end;">
-                    <div class="filter-group" style="min-width: 200px; flex: 1;">
-                        <label>Período Temporal</label>
+                    <div class="filter-group" style="flex: 1; min-width: 130px;">
+                        <label>Período</label>
                         <select class="filter-input" id="filter-periodo-viagem">
                             <option value="tudo">Todo o histórico</option>
                             <option value="hoje">Hoje</option>
@@ -72,13 +69,13 @@
                             <option value="personalizado">Personalizado...</option>
                         </select>
                     </div>
-                    <div id="custom-date-container-viagem" style="display: none; gap: 16px; flex-wrap: wrap; flex: 2; align-items: flex-end;">
-                        <div class="filter-group" style="min-width: 150px; flex: 1;">
-                            <label>Data Inicial</label>
+                    <div id="custom-date-container-viagem" style="display: none; gap: 16px; align-items: flex-end;">
+                        <div class="filter-group" style="width: 140px;">
+                            <label>De</label>
                             <input type="date" class="filter-input" id="filter-viagem-de">
                         </div>
-                        <div class="filter-group" style="min-width: 150px; flex: 1;">
-                            <label>Data Final</label>
+                        <div class="filter-group" style="width: 140px;">
+                            <label>Até</label>
                             <input type="date" class="filter-input" id="filter-viagem-ate">
                         </div>
                     </div>
@@ -133,12 +130,18 @@
                     if (t.status !== activeTabStatus) return false;
                 }
 
-                // 2. Search Text Query (origem, destino, observacoes)
+                // 2. Busca Geral Query (placa, motorista, origem, destino, observacoes)
                 if (queryVal) {
+                    const v = vehicles.find(item => item.id === t.veiculoId);
+                    const m = drivers.find(item => item.id === t.motoristaId);
+
+                    const matchPlaca = v && v.placa && v.placa.toLowerCase().includes(queryVal);
+                    const matchMotorista = m && m.nome && m.nome.toLowerCase().includes(queryVal);
                     const matchOrigem = t.origem && t.origem.toLowerCase().includes(queryVal);
                     const matchDestino = t.destino && t.destino.toLowerCase().includes(queryVal);
                     const matchObs = t.observacoes && t.observacoes.toLowerCase().includes(queryVal);
-                    if (!matchOrigem && !matchDestino && !matchObs) return false;
+
+                    if (!matchPlaca && !matchMotorista && !matchOrigem && !matchDestino && !matchObs) return false;
                 }
 
                 // 3. Vehicle Filter
