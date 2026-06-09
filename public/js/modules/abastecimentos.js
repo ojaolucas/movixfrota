@@ -254,12 +254,12 @@
 
                     <div class="form-group">
                         <label>Valor Pago Total (R$) <span class="required">*</span></label>
-                        <input type="number" class="form-control" name="valorTotal" id="ab-total-input" required placeholder="Calculado automaticamente ou manual" step="0.01" min="0" value="${isEdit ? ab.valorTotal : ''}">
+                        <input type="text" class="form-control" name="valorTotal" id="ab-total-input" required placeholder="Calculado automaticamente ou manual" value="${isEdit && ab.valorTotal ? window.movixApp.formatCurrency(ab.valorTotal) : ''}">
                     </div>
 
                     <div class="form-group">
                         <label>Valor por Litro (R$) <span class="required">*</span></label>
-                        <input type="number" class="form-control" name="valorLitro" id="ab-litro-input" required placeholder="Ex: 6.20" step="0.001" min="0" value="${isEdit ? ab.valorLitro : ''}">
+                        <input type="text" class="form-control" name="valorLitro" id="ab-litro-input" required placeholder="Ex: 6.20" value="${isEdit && ab.valorLitro ? window.movixApp.formatCurrency(ab.valorLitro) : ''}">
                     </div>
 
                     <div class="form-group">
@@ -321,24 +321,24 @@
             function autoCalculate() {
                 const active = document.activeElement;
                 const litros = parseFloat(litrosInput.value) || 0;
-                const total = parseFloat(totalInput.value) || 0;
-                const litro = parseFloat(litroInput.value) || 0;
+                const total = window.movixApp.cleanCurrency(totalInput.value);
+                const litro = window.movixApp.cleanCurrency(litroInput.value);
 
                 if (active === litrosInput) {
                     if (litro > 0) {
-                        totalInput.value = (litros * litro).toFixed(2);
+                        totalInput.value = window.movixApp.formatCurrency(litros * litro);
                     } else if (total > 0 && litros > 0) {
-                        litroInput.value = (total / litros).toFixed(3);
+                        litroInput.value = window.movixApp.formatCurrency(total / litros);
                     }
                 } else if (active === litroInput) {
                     if (litros > 0) {
-                        totalInput.value = (litros * litro).toFixed(2);
+                        totalInput.value = window.movixApp.formatCurrency(litros * litro);
                     } else if (total > 0 && litro > 0) {
                         litrosInput.value = (total / litro).toFixed(2);
                     }
                 } else if (active === totalInput) {
                     if (litros > 0) {
-                        litroInput.value = (total / litros).toFixed(3);
+                        litroInput.value = window.movixApp.formatCurrency(total / litros);
                     } else if (litro > 0) {
                         litrosInput.value = (total / litro).toFixed(2);
                     }
@@ -358,9 +358,9 @@
                 const form = document.getElementById('form-abastecimento');
                 
                 const litros = parseFloat(litrosInput.value) || 0;
-                const litro = parseFloat(litroInput.value) || 0;
-                if (!totalInput.value && litros > 0 && litro > 0) {
-                    totalInput.value = (litros * litro).toFixed(2);
+                const litro = window.movixApp.cleanCurrency(litroInput.value);
+                if (!window.movixApp.cleanCurrency(totalInput.value) && litros > 0 && litro > 0) {
+                    totalInput.value = window.movixApp.formatCurrency(litros * litro);
                 }
 
                 if (!form.checkValidity()) {

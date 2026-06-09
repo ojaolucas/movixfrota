@@ -297,7 +297,7 @@
 
                     <div class="form-group">
                         <label>Custo total estimado (R$) <span class="required">*</span></label>
-                        <input type="number" class="form-control" name="valor" required placeholder="Ex: 850.00" step="0.01" min="0" value="${isEdit ? m.valor : ''}">
+                        <input type="text" class="form-control" name="valor" required placeholder="Ex: R$ 850,00" value="${isEdit && m.valor ? window.movixApp.formatCurrency(m.valor) : ''}">
                     </div>
 
                     <div class="form-group">

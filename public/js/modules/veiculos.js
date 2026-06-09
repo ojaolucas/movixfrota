@@ -441,7 +441,7 @@
                     </div>
                     <div class="form-group">
                         <label>Valor Mensal do Seguro (R$)</label>
-                        <input type="number" class="form-control" name="valorMensalSeguro" step="0.01" min="0" value="${isEdit && vehicle.valorMensalSeguro ? vehicle.valorMensalSeguro : ''}" placeholder="Ex: 350.00">
+                        <input type="text" class="form-control" name="valorMensalSeguro" value="${isEdit && vehicle.valorMensalSeguro ? window.movixApp.formatCurrency(vehicle.valorMensalSeguro) : ''}" placeholder="Ex: R$ 350,00">
                     </div>
                     <div class="form-group">
                         <label>Vencimento do Boleto</label>
@@ -527,7 +527,7 @@
                     </div>
                     <div class="form-group">
                         <label>Valor Mensal do Serviço (R$)</label>
-                        <input type="number" class="form-control" name="valorMensalRastreador" step="0.01" min="0" value="${isEdit && vehicle.valorMensalRastreador ? vehicle.valorMensalRastreador : ''}" placeholder="Ex: 120.00">
+                        <input type="text" class="form-control" name="valorMensalRastreador" value="${isEdit && vehicle.valorMensalRastreador ? window.movixApp.formatCurrency(vehicle.valorMensalRastreador) : ''}" placeholder="Ex: R$ 120,00">
                     </div>
                     <div class="form-group">
                         <label>Início do Contrato</label>

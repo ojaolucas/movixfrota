@@ -513,7 +513,7 @@
 
                     <div class="form-group">
                         <label>Custos da Viagem (R$)</label>
-                        <input type="number" class="form-control" name="custos" placeholder="Ex: 150.00" step="0.01" min="0" value="${isEdit ? (t.custos || '') : ''}">
+                        <input type="text" class="form-control" name="custos" placeholder="Ex: R$ 150,00" value="${isEdit && t.custos ? window.movixApp.formatCurrency(t.custos) : ''}">
                     </div>
 
                     ${isEdit && t.status === 'Realizada' ? `
@@ -674,7 +674,7 @@
 
                     <div class="form-group">
                         <label>Custos Operacionais da Viagem (R$)</label>
-                        <input type="number" class="form-control" name="custos" placeholder="Ex: 150.00" step="0.01" min="0" value="${t.custos || ''}">
+                        <input type="text" class="form-control" name="custos" placeholder="Ex: R$ 150,00" value="${t.custos ? window.movixApp.formatCurrency(t.custos) : ''}">
                     </div>
 
                     <div class="form-group full-width">

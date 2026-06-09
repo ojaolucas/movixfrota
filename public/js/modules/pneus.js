@@ -313,7 +313,7 @@
                     </div>
                     <div class="form-group">
                         <label>Custo Unitário (R$)</label>
-                        <input type="number" class="form-control" name="custo" placeholder="Ex: 2400.00" min="0" step="0.01" value="${isEdit ? p.custo : ''}">
+                        <input type="text" class="form-control" name="custo" placeholder="Ex: R$ 2.400,00" value="${isEdit && p.custo ? window.movixApp.formatCurrency(p.custo) : ''}">
                     </div>
                     <div class="form-group">
                         <label>Data de Instalação <span class="required">*</span></label>

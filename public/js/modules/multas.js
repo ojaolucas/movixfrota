@@ -397,7 +397,7 @@
 
                     <div class="form-group">
                         <label>Valor da Multa (R$) <span class="required">*</span></label>
-                        <input type="number" class="form-control" name="valor" required placeholder="Ex: 195.23" min="0" step="0.01" value="${isEdit ? multa.valor : ''}">
+                        <input type="text" class="form-control" name="valor" required placeholder="Ex: R$ 195,23" value="${isEdit && multa.valor ? window.movixApp.formatCurrency(multa.valor) : ''}">
                     </div>
 
                     <div class="form-group">

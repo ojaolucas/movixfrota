@@ -12,6 +12,7 @@ class MovixApp {
         this.setupGlobalSearch();
         this.setupModalControls();
         this.setupLoginHandler();
+        this.setupCurrencyMasks();
         
         // Connect Session Change Callback
         window.movixStore.onSessionChange = (loggedIn) => this.handleSessionState(loggedIn);
@@ -858,6 +859,112 @@ class MovixApp {
                 button.innerHTML = originalHTML;
             }
         };
+    }
+
+    // --- CURRENCY UTILITIES AND MASKS ---
+    formatCurrency(val) {
+        if (val === null || val === undefined || val === '') return '';
+        
+        let numericString = '';
+        if (typeof val === 'number') {
+            numericString = val.toFixed(2).replace(/\D/g, '');
+        } else {
+            numericString = val.toString().replace(/\D/g, '');
+        }
+        
+        if (!numericString) return '';
+        
+        if (/^0+$/.test(numericString)) {
+            return 'R$ 0,00';
+        }
+        
+        numericString = numericString.replace(/^0+/, '');
+        while (numericString.length < 3) {
+            numericString = '0' + numericString;
+        }
+        
+        const cents = numericString.slice(-2);
+        const integerPart = numericString.slice(0, -2);
+        const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        
+        return `R$ ${formattedInteger},${cents}`;
+    }
+
+    cleanCurrency(val) {
+        if (val === null || val === undefined || val === '') return 0;
+        if (typeof val === 'number') return val;
+        
+        let cleaned = val.toString().trim();
+        cleaned = cleaned.replace(/^R\$\s*/i, '');
+        cleaned = cleaned.replace(/\./g, '');
+        cleaned = cleaned.replace(',', '.');
+        
+        const num = parseFloat(cleaned);
+        return isNaN(num) ? 0 : num;
+    }
+
+    parsePastedValue(text) {
+        if (!text) return null;
+        let cleaned = text.trim().replace(/^R\$\s*/i, '');
+        
+        if (cleaned.includes(',')) {
+            cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+        } else {
+            const parts = cleaned.split('.');
+            if (parts.length === 2) {
+                if (parts[1].length === 3 && parts[0].length <= 3) {
+                    cleaned = cleaned.replace(/\./g, '');
+                }
+            } else if (parts.length > 2) {
+                cleaned = cleaned.replace(/\./g, '');
+            }
+        }
+        
+        const num = parseFloat(cleaned);
+        return isNaN(num) ? null : num;
+    }
+
+    setupCurrencyMasks() {
+        const isFinancialInput = (target) => {
+            return target.tagName === 'INPUT' && (
+                target.name === 'valor' ||
+                target.name === 'custo' ||
+                target.name === 'custos' ||
+                target.name === 'valorMensalSeguro' ||
+                target.name === 'valorMensalRastreador' ||
+                target.name === 'valorTotal' ||
+                target.name === 'valorLitro'
+            );
+        };
+
+        document.addEventListener('input', (e) => {
+            const target = e.target;
+            if (isFinancialInput(target)) {
+                const val = target.value;
+                if (val === 'R$ 0,0' || val === 'R$ 0,' || val === 'R$ 0' || val === 'R$ ' || val === 'R') {
+                    target.value = '';
+                    target.dispatchEvent(new Event('input', { bubbles: true }));
+                    return;
+                }
+                const formatted = this.formatCurrency(val);
+                if (target.value !== formatted) {
+                    target.value = formatted;
+                }
+            }
+        });
+
+        document.addEventListener('paste', (e) => {
+            const target = e.target;
+            if (isFinancialInput(target)) {
+                e.preventDefault();
+                const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                const parsed = this.parsePastedValue(pastedText);
+                if (parsed !== null) {
+                    target.value = this.formatCurrency(parsed);
+                    target.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }
+        });
     }
 }
 

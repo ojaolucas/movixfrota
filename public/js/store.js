@@ -160,6 +160,35 @@ class MovixStore {
         return this.activeUser;
     }
 
+    cleanPayload(data) {
+        if (!data || typeof data !== 'object') return data;
+        const clean = { ...data };
+        const currencyFields = [
+            'valor',
+            'custo',
+            'custos',
+            'valorMensalSeguro',
+            'valorMensalRastreador',
+            'valorTotal',
+            'valorLitro'
+        ];
+        currencyFields.forEach(field => {
+            if (field in clean) {
+                if (typeof clean[field] === 'string') {
+                    const val = clean[field].trim();
+                    if (val === '') {
+                        clean[field] = null;
+                    } else {
+                        let cleaned = val.replace(/^R\$\s*/i, '').replace(/\./g, '').replace(',', '.');
+                        const num = parseFloat(cleaned);
+                        clean[field] = isNaN(num) ? 0 : num;
+                    }
+                }
+            }
+        });
+        return clean;
+    }
+
     // --- CRUD HELPER METHODS CONNECTING TO API ---
 
     // Vehicles
@@ -170,7 +199,7 @@ class MovixStore {
         const res = await fetch('/api/veiculos', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(veiculo)
+            body: JSON.stringify(this.cleanPayload(veiculo))
         });
         if (!res.ok) throw new Error('Erro ao salvar veículo no servidor.');
         const newV = await res.json();
@@ -183,7 +212,7 @@ class MovixStore {
         const res = await fetch(`/api/veiculos/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
+            body: JSON.stringify(this.cleanPayload(data))
         });
         if (!res.ok) throw new Error('Erro ao atualizar veículo no servidor.');
         const updatedV = await res.json();
@@ -292,7 +321,7 @@ class MovixStore {
         const res = await fetch('/api/abastecimentos', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(ab)
+            body: JSON.stringify(this.cleanPayload(ab))
         });
         if (!res.ok) throw new Error('Erro ao salvar abastecimento no servidor.');
         const newAb = await res.json();
@@ -305,7 +334,7 @@ class MovixStore {
         const res = await fetch(`/api/abastecimentos/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
+            body: JSON.stringify(this.cleanPayload(data))
         });
         if (!res.ok) throw new Error('Erro ao atualizar abastecimento no servidor.');
         const updatedAb = await res.json();
@@ -352,7 +381,7 @@ class MovixStore {
         const res = await fetch('/api/manutencoes', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(m)
+            body: JSON.stringify(this.cleanPayload(m))
         });
         if (!res.ok) throw new Error('Erro ao salvar ordem de serviço.');
         const newM = await res.json();
@@ -365,7 +394,7 @@ class MovixStore {
         const res = await fetch(`/api/manutencoes/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
+            body: JSON.stringify(this.cleanPayload(data))
         });
         if (!res.ok) throw new Error('Erro ao atualizar ordem de serviço.');
         const updatedM = await res.json();
@@ -390,7 +419,7 @@ class MovixStore {
         const res = await fetch('/api/pneus', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(p)
+            body: JSON.stringify(this.cleanPayload(p))
         });
         if (!res.ok) throw new Error('Erro ao salvar pneu no servidor.');
         const newP = await res.json();
@@ -403,7 +432,7 @@ class MovixStore {
         const res = await fetch(`/api/pneus/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
+            body: JSON.stringify(this.cleanPayload(data))
         });
         if (!res.ok) throw new Error('Erro ao atualizar pneu.');
         const updatedP = await res.json();
@@ -428,7 +457,7 @@ class MovixStore {
         const res = await fetch('/api/oleos', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(o)
+            body: JSON.stringify(this.cleanPayload(o))
         });
         if (!res.ok) throw new Error('Erro ao salvar registro de troca de óleo.');
         const newO = await res.json();
@@ -441,7 +470,7 @@ class MovixStore {
         const res = await fetch(`/api/oleos/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
+            body: JSON.stringify(this.cleanPayload(data))
         });
         if (!res.ok) throw new Error('Erro ao atualizar registro de troca de óleo.');
         const updatedO = await res.json();
@@ -466,7 +495,7 @@ class MovixStore {
         const res = await fetch('/api/viagens', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(v)
+            body: JSON.stringify(this.cleanPayload(v))
         });
         if (!res.ok) throw new Error('Erro ao salvar viagem.');
         const newVia = await res.json();
@@ -479,7 +508,7 @@ class MovixStore {
         const res = await fetch(`/api/viagens/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
+            body: JSON.stringify(this.cleanPayload(data))
         });
         if (!res.ok) throw new Error('Erro ao finalizar viagem.');
         const updatedVia = await res.json();
@@ -508,7 +537,7 @@ class MovixStore {
         const res = await fetch('/api/multas', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(multa)
+            body: JSON.stringify(this.cleanPayload(multa))
         });
         if (!res.ok) throw new Error('Erro ao registrar multa.');
         const newMulta = await res.json();
@@ -522,7 +551,7 @@ class MovixStore {
         const res = await fetch(`/api/multas/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
+            body: JSON.stringify(this.cleanPayload(data))
         });
         if (!res.ok) throw new Error('Erro ao atualizar dados da multa.');
         const updatedMulta = await res.json();
