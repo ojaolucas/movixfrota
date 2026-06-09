@@ -306,8 +306,8 @@
                 const lastKM = opt.getAttribute('data-km');
                 const fuelType = opt.getAttribute('data-fuel');
                 
-                kmHint.innerText = `O odômetro deve ser maior que o KM atual registrado: ${parseFloat(lastKM).toLocaleString('pt-BR')} km`;
-                kmInput.setAttribute('min', lastKM);
+                kmHint.innerText = `KM atual do veículo: ${parseFloat(lastKM).toLocaleString('pt-BR')} km. Lançamentos com KM menor serão validados como retroativos.`;
+                kmInput.removeAttribute('min');
                 kmInput.value = parseInt(lastKM) + 100;
 
                 if (fuelType === 'Diesel') fuelSel.value = 'Diesel';

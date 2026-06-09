@@ -628,6 +628,71 @@ app.put('/api/perfil', requireAuth, async (req, res) => {
 
 
 // ─── ABASTECIMENTOS ───────────────────────────────────────
+
+// Função auxiliar para recalcular as médias de consumo (km/L) e custo/km cronologicamente
+async function recalculateVehicleRefuelings(veiculoId) {
+    try {
+        const absRes = await db.query('SELECT * FROM abastecimentos WHERE "veiculoId" = $1 ORDER BY data ASC, "kmAtual" ASC', [veiculoId]);
+        const abastecimentos = absRes.rows;
+
+        const veicRes = await db.query('SELECT "historicoKM", "kmAtual" FROM veiculos WHERE id = $1', [veiculoId]);
+        const veic = veicRes.rows[0];
+        if (!veic) return;
+
+        let maxKM = 0;
+
+        for (let i = 0; i < abastecimentos.length; i++) {
+            const currentAbs = abastecimentos[i];
+            const kmAtual = parseFloat(currentAbs.kmAtual) || 0;
+            const litros = parseFloat(currentAbs.litros) || 0;
+            const valorTotal = parseFloat(currentAbs.valorTotal) || 0;
+            const valorLitro = parseFloat(currentAbs.valorLitro) || (litros > 0 ? (valorTotal / litros) : 0);
+
+            if (kmAtual > maxKM) {
+                maxKM = kmAtual;
+            }
+
+            // Encontrar o abastecimento anterior cronologicamente com KM menor
+            let kmAnterior = 0;
+            for (let j = i - 1; j >= 0; j--) {
+                if (parseFloat(abastecimentos[j].kmAtual) < kmAtual) {
+                    kmAnterior = parseFloat(abastecimentos[j].kmAtual);
+                    break;
+                }
+            }
+
+            // Tentar pegar do odômetro inicial do veículo se não houver anterior
+            if (kmAnterior === 0 && veic.historicoKM && veic.historicoKM.length > 0) {
+                const initKM = parseFloat(veic.historicoKM[0].km) || 0;
+                if (initKM < kmAtual) {
+                    kmAnterior = initKM;
+                }
+            }
+
+            const kmRodado = kmAtual - kmAnterior;
+            const kmL = (kmAnterior > 0 && kmRodado > 0 && litros > 0) ? parseFloat((kmRodado / litros).toFixed(2)) : 0;
+            const custoKM = kmL > 0 ? parseFloat((valorLitro / kmL).toFixed(2)) : 0;
+
+            await db.query(`
+                UPDATE abastecimentos 
+                SET "kmL" = $1, "custoKM" = $2, "valorLitro" = $3
+                WHERE id = $4
+            `, [kmL, custoKM, valorLitro, currentAbs.id]);
+        }
+
+        // Se o maior KM dos abastecimentos for maior do que o atual do veículo, atualizamos
+        if (maxKM > (parseFloat(veic.kmAtual) || 0)) {
+            let historico = veic.historicoKM || [];
+            if (!historico.some(h => parseFloat(h.km) === maxKM)) {
+                historico.push({ data: new Date().toISOString().split('T')[0], km: maxKM });
+            }
+            await db.query('UPDATE veiculos SET "kmAtual" = $1, "historicoKM" = $2 WHERE id = $3', [maxKM, JSON.stringify(historico), veiculoId]);
+        }
+    } catch (err) {
+        console.error(`Erro ao recalcular abastecimentos para o veículo ${veiculoId}:`, err);
+    }
+}
+
 app.get('/api/abastecimentos', requireAuth, async (req, res) => {
     try {
         const result = await db.query('SELECT * FROM abastecimentos ORDER BY data DESC');
@@ -647,35 +712,31 @@ app.post('/api/abastecimentos', requireAuth, async (req, res) => {
         const kmAtual = parseFloat(ab.kmAtual) || 0;
         const valorLitro = parseFloat(ab.valorLitro) || (litros > 0 ? (valorTotal / litros) : 0);
 
-        let kmL = 0;
-        let custoKM = 0;
-
         const veicRes = await db.query('SELECT "kmAtual", placa, "historicoKM" FROM veiculos WHERE id = $1', [ab.veiculoId]);
         const veic = veicRes.rows[0];
 
         if (veic) {
-            const kmAnterior = parseFloat(veic.kmAtual) || 0;
-            const kmRodado = kmAtual - kmAnterior;
-            kmL = (kmRodado > 0 && litros > 0) ? parseFloat((kmRodado / litros).toFixed(2)) : 0;
-            custoKM = kmL > 0 ? parseFloat((valorLitro / kmL).toFixed(2)) : 0;
-
-            if (kmAtual > kmAnterior) {
+            const currentVeicKM = parseFloat(veic.kmAtual) || 0;
+            if (kmAtual > currentVeicKM) {
                 let historicoKM = veic.historicoKM || [];
-                historicoKM.push({ data: new Date().toISOString().split('T')[0], km: kmAtual });
+                historicoKM.push({ data: ab.data, km: kmAtual });
                 await db.query('UPDATE veiculos SET "kmAtual" = $1, "historicoKM" = $2 WHERE id = $3', [kmAtual, JSON.stringify(historicoKM), ab.veiculoId]);
             }
         }
 
-        const result = await db.query(`
+        await db.query(`
             INSERT INTO abastecimentos (id, "veiculoId", "motoristaId", data, combustivel, litros, "valorLitro", "valorTotal", "kmAtual", posto, comprovante, observacoes, "kmL", "custoKM")
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-            RETURNING *
         `, [
-            id, ab.veiculoId, ab.motoristaId, ab.data, ab.combustivel, litros, valorLitro, valorTotal, kmAtual, ab.posto, ab.comprovante, ab.observacoes, kmL, custoKM
+            id, ab.veiculoId, ab.motoristaId, ab.data, ab.combustivel, litros, valorLitro, valorTotal, kmAtual, ab.posto, ab.comprovante, ab.observacoes, 0, 0
         ]);
 
+        // Recalcular médias após o insert
+        await recalculateVehicleRefuelings(ab.veiculoId);
+
+        const updatedRes = await db.query('SELECT * FROM abastecimentos WHERE id = $1', [id]);
         await addLog(req.session.nome, req.session.perfil, 'Cadastro', 'Abastecimento', `Registrou abastecimento R$ ${valorTotal.toFixed(2)} - ${veic ? veic.placa : ''}`);
-        res.json(result.rows[0]);
+        res.json(updatedRes.rows[0]);
     } catch (err) {
         console.error("Erro ao cadastrar abastecimento:", err);
         res.status(500).json({ error: 'Erro interno do servidor.' });
@@ -696,48 +757,43 @@ app.put('/api/abastecimentos/:id', requireAuth, async (req, res) => {
         const kmAtual = parseFloat(ab.kmAtual) || 0;
         const valorLitro = parseFloat(ab.valorLitro) || (litros > 0 ? (valorTotal / litros) : 0);
 
-        let kmL = 0;
-        let custoKM = 0;
-
-        const veicRes = await db.query('SELECT "kmAtual", placa, "historicoKM" FROM veiculos WHERE id = $1', [ab.veiculoId]);
+        const veicRes = await db.query('SELECT "kmAtual", placa, "historicoKM" FROM veiculos WHERE id = $1', [ab.veiculoId || original.veiculoId]);
         const veic = veicRes.rows[0];
 
         if (veic) {
-            // Obter todos os outros abastecimentos deste veículo para ordenar por data/KM e estimar o anterior
-            const veicAbsRes = await db.query('SELECT "kmAtual", data FROM abastecimentos WHERE "veiculoId" = $1 AND id <> $2 ORDER BY data ASC, "kmAtual" ASC', [ab.veiculoId, req.params.id]);
-            const veicAbs = veicAbsRes.rows;
-
-            let kmAnterior = 0;
-            const targetDate = new Date(ab.data);
-            for (let i = veicAbs.length - 1; i >= 0; i--) {
-                if (new Date(veicAbs[i].data) <= targetDate && parseFloat(veicAbs[i].kmAtual) < kmAtual) {
-                    kmAnterior = parseFloat(veicAbs[i].kmAtual);
-                    break;
-                }
-            }
-
-            const kmRodado = kmAtual - kmAnterior;
-            kmL = (kmRodado > 0 && litros > 0) ? parseFloat((kmRodado / litros).toFixed(2)) : 0;
-            custoKM = kmL > 0 ? parseFloat((valorLitro / kmL).toFixed(2)) : 0;
-
-            if (kmAtual > parseFloat(veic.kmAtual)) {
+            const currentVeicKM = parseFloat(veic.kmAtual) || 0;
+            if (kmAtual > currentVeicKM) {
                 let historicoKM = veic.historicoKM || [];
                 historicoKM.push({ data: ab.data, km: kmAtual });
-                await db.query('UPDATE veiculos SET "kmAtual" = $1, "historicoKM" = $2 WHERE id = $3', [kmAtual, JSON.stringify(historicoKM), ab.veiculoId]);
+                await db.query('UPDATE veiculos SET "kmAtual" = $1, "historicoKM" = $2 WHERE id = $3', [kmAtual, JSON.stringify(historicoKM), ab.veiculoId || original.veiculoId]);
             }
         }
 
-        const result = await db.query(`
+        await db.query(`
             UPDATE abastecimentos SET
-                "veiculoId" = $1, "motoristaId" = $2, data = $3, combustivel = $4, litros = $5, "valorLitro" = $6, "valorTotal" = $7, "kmAtual" = $8, posto = $9, comprovante = $10, observacoes = $11, "kmL" = $12, "custoKM" = $13
-            WHERE id = $14
-            RETURNING *
+                "veiculoId" = $1, "motoristaId" = $2, data = $3, combustivel = $4, litros = $5, "valorLitro" = $6, "valorTotal" = $7, "kmAtual" = $8, posto = $9, comprovante = $10, observacoes = $11
+            WHERE id = $12
         `, [
-            ab.veiculoId, ab.motoristaId, ab.data, ab.combustivel, litros, valorLitro, valorTotal, kmAtual, ab.posto, ab.comprovante, ab.observacoes, kmL, custoKM, req.params.id
+            ab.veiculoId || original.veiculoId,
+            ab.motoristaId || original.motoristaId,
+            ab.data || original.data,
+            ab.combustivel || original.combustivel,
+            litros,
+            valorLitro,
+            valorTotal,
+            kmAtual,
+            ab.posto || original.posto,
+            ab.comprovante || original.comprovante,
+            ab.observacoes || original.observacoes,
+            req.params.id
         ]);
 
+        // Recalcular médias após o update
+        await recalculateVehicleRefuelings(ab.veiculoId || original.veiculoId);
+
+        const updatedRes = await db.query('SELECT * FROM abastecimentos WHERE id = $1', [req.params.id]);
         await addLog(req.session.nome, req.session.perfil, 'Edição', 'Abastecimento', `Editou abastecimento R$ ${valorTotal.toFixed(2)} - ${veic ? veic.placa : ''}`);
-        res.json(result.rows[0]);
+        res.json(updatedRes.rows[0]);
     } catch (err) {
         console.error("Erro ao atualizar abastecimento:", err);
         res.status(500).json({ error: 'Erro interno do servidor.' });
@@ -746,11 +802,19 @@ app.put('/api/abastecimentos/:id', requireAuth, async (req, res) => {
 
 app.delete('/api/abastecimentos/:id', requireAuth, requireAdmin, async (req, res) => {
     try {
-        const result = await db.query('DELETE FROM abastecimentos WHERE id = $1 RETURNING data', [req.params.id]);
-        if (result.rowCount === 0) {
+        const originalRes = await db.query('SELECT "veiculoId", data FROM abastecimentos WHERE id = $1', [req.params.id]);
+        if (originalRes.rowCount === 0) {
             return res.status(404).json({ error: 'Abastecimento não encontrado.' });
         }
-        await addLog(req.session.nome, req.session.perfil, 'Exclusão', 'Abastecimento', `Removeu abastecimento do dia ${result.rows[0].data}`);
+        const veiculoId = originalRes.rows[0].veiculoId;
+        const dataStr = originalRes.rows[0].data;
+
+        await db.query('DELETE FROM abastecimentos WHERE id = $1', [req.params.id]);
+
+        // Recalcular médias após a remoção
+        await recalculateVehicleRefuelings(veiculoId);
+
+        await addLog(req.session.nome, req.session.perfil, 'Exclusão', 'Abastecimento', `Removeu abastecimento do dia ${dataStr}`);
         res.json({ success: true });
     } catch (err) {
         console.error("Erro ao excluir abastecimento:", err);
