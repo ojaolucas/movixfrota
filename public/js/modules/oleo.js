@@ -250,11 +250,6 @@
                         <input type="text" class="form-control" name="tipoOleo" required placeholder="Ex: Shell Rimula 15W40" value="${isEdit ? o.tipoOleo : ''}">
                     </div>
 
-                    <div class="form-group full-width">
-                        <label>Observações</label>
-                        <textarea class="form-control" name="observacoes" placeholder="Ex: Detalhes técnicos da troca, marca do lubrificante ou filtros utilizados..." rows="2">${isEdit && o.observacoes ? o.observacoes : ''}</textarea>
-                    </div>
-
                     <div class="form-group">
                         <label>Próxima Troca por KM (Previsão) <span class="required">*</span></label>
                         <input type="number" class="form-control" name="proximaTrocaKM" id="oil-next-km" required placeholder="Ex: 155000" min="0" value="${isEdit ? o.proximaTrocaKM : ''}">
@@ -263,6 +258,11 @@
                     <div class="form-group">
                         <label>Próxima Troca por Data (Previsão) <span class="required">*</span></label>
                         <input type="date" class="form-control" name="proximaTrocaDias" required value="${isEdit ? o.proximaTrocaDias : ''}">
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Observações</label>
+                        <textarea class="form-control" name="observacoes" placeholder="Ex: Detalhes técnicos da troca, marca do lubrificante ou filtros utilizados..." rows="2">${isEdit && o.observacoes ? o.observacoes : ''}</textarea>
                     </div>
 
                     <!-- Filters checklist -->
