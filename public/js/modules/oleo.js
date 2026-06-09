@@ -250,9 +250,9 @@
                         <input type="text" class="form-control" name="tipoOleo" required placeholder="Ex: Shell Rimula 15W40" value="${isEdit ? o.tipoOleo : ''}">
                     </div>
 
-                    <div class="form-group">
-                        <label>Valor Total (R$) <span class="required">*</span></label>
-                        <input type="number" class="form-control" name="valor" required placeholder="Ex: 480.00" step="0.01" min="0" value="${isEdit ? o.valor : ''}">
+                    <div class="form-group full-width">
+                        <label>Observações</label>
+                        <textarea class="form-control" name="observacoes" placeholder="Ex: Detalhes técnicos da troca, marca do lubrificante ou filtros utilizados..." rows="2">${isEdit && o.observacoes ? o.observacoes : ''}</textarea>
                     </div>
 
                     <div class="form-group">
@@ -331,6 +331,7 @@
                         data[key] = value;
                     }
                 });
+                data.valor = 0;
 
                 const veiculoId = isEdit ? o.veiculoId : veicSel.value;
                 const enteredKM = parseFloat(kmInput.value) || 0;
@@ -394,7 +395,6 @@
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>KM na Troca</span><strong>${parseFloat(o.kmTroca || 0).toLocaleString('pt-BR')} km</strong></li>
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Tipo do Óleo</span><strong>${o.tipoOleo || '-'}</strong></li>
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Estabelecimento</span><strong>${o.estabelecimento || '-'}</strong></li>
-                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Valor Pago</span><strong style="font-size:1rem; color:var(--text-main);">R$ ${(parseFloat(o.valor) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></li>
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Filtros Substituídos</span><strong>${filtersLabel}</strong></li>
                 </ul>
 

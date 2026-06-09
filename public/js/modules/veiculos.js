@@ -1307,7 +1307,7 @@
                 date: o.dataTroca,
                 type: 'oleo',
                 title: 'Troca de Óleo Efetuada',
-                desc: `Óleo: ${o.tipoOleo}. Valor: R$ ${o.valor.toFixed(2)}. Troca efetuada com ${o.kmTroca} KM. Próxima troca em ${o.proximaTrocaKM} KM.`,
+                desc: `Óleo: ${o.tipoOleo}. Troca efetuada com ${o.kmTroca} KM. Próxima troca em ${o.proximaTrocaKM} KM.`,
                 icon: '<i class="fa-solid fa-oil-can" style="color:var(--warning)"></i>'
             });
         });
@@ -1360,8 +1360,7 @@
         // Financial totals specifically for this vehicle
         const totalFuelSpent = fuel.reduce((acc, a) => acc + a.valorTotal, 0);
         const totalMaintenanceSpent = maintenance.reduce((acc, m) => acc + m.valor, 0);
-        const totalOilSpent = oil.reduce((acc, o) => acc + o.valor, 0);
-        const combinedVehicleCost = totalFuelSpent + totalMaintenanceSpent + totalOilSpent;
+        const combinedVehicleCost = totalFuelSpent + totalMaintenanceSpent;
 
         // Render layout
         container.innerHTML = `
@@ -1512,7 +1511,6 @@
                                     <ul class="detail-sidebar-info-list" style="border:none; padding:0; font-size:0.9rem; gap:16px;">
                                         <li class="detail-sidebar-info-item"><span>Gasto Combustível</span><strong>R$ ${totalFuelSpent.toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong></li>
                                         <li class="detail-sidebar-info-item"><span>Gasto Oficina/Peças</span><strong>R$ ${totalMaintenanceSpent.toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong></li>
-                                        <li class="detail-sidebar-info-item"><span>Gasto Lubrificantes (Óleo)</span><strong>R$ ${totalOilSpent.toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong></li>
                                         <li class="detail-sidebar-info-item" style="border-top:2px solid var(--border-color); padding-top:16px; font-weight:700;"><span>Total de Custos de Vida</span><strong class="text-danger" style="font-size:1.15rem;">R$ ${combinedVehicleCost.toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong></li>
                                     </ul>
                                 </div>

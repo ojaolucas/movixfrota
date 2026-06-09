@@ -1086,7 +1086,7 @@ class MovixStore {
         let totalCombustivel = abastecimentos.reduce((acc, a) => acc + (parseFloat(a.valorTotal) || 0), 0);
         let totalManutencao = manutencoes.reduce((acc, m) => acc + (parseFloat(m.valor) || 0), 0);
         let totalPneus = pneus.reduce((acc, p) => acc + (parseFloat(p.custo) || 0), 0);
-        let totalLubrificantes = oleos.reduce((acc, o) => acc + (parseFloat(o.valor) || 0), 0);
+        let totalLubrificantes = 0;
 
         // Calculate dynamic Insurance Cost
         let totalSeguroMensal = 0;

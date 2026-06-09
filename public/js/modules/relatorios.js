@@ -1002,7 +1002,7 @@
                 const filterVeic = document.getElementById('filter-veiculo').value;
                 const filterStatus = document.getElementById('filter-status-oleo').value;
 
-                activeHeaders = ['Data Troca', 'Veículo', 'KM Troca', 'Lubrificante', 'Próxima Troca (KM)', 'Filtros Trocados', 'Estabelecimento', 'Custo Total'];
+                activeHeaders = ['Data Troca', 'Veículo', 'KM Troca', 'Lubrificante', 'Próxima Troca (KM)', 'Filtros Trocados', 'Estabelecimento'];
 
                 const filtered = oleos.filter(o => {
                     const v = vehicles.find(item => item.id === o.veiculoId);
@@ -1021,7 +1021,6 @@
                 });
 
                 const totalTrocas = filtered.length;
-                const totalCusto = filtered.reduce((acc, o) => acc + (parseFloat(o.valor) || 0), 0);
                 
                 // Calculate overdue oil changes
                 let overdueCount = 0;
@@ -1035,11 +1034,6 @@
                         <span class="reports-summary-title">Total de Trocas</span>
                         <span class="reports-summary-value">${totalTrocas} Trocas</span>
                         <span class="reports-summary-sub">Realizadas no período</span>
-                    </div>
-                    <div class="reports-summary-card" style="--card-accent-color: #ef4444;">
-                        <span class="reports-summary-title">Custo Acumulado</span>
-                        <span class="reports-summary-value">R$ ${totalCusto.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits:2})}</span>
-                        <span class="reports-summary-sub">Óleos e filtros inclusos</span>
                     </div>
                     <div class="reports-summary-card" style="--card-accent-color: #ef4444;">
                         <span class="reports-summary-title">Trocas Atrasadas</span>
@@ -1069,19 +1063,17 @@
                         tipoOleo: o.tipoOleo || '-',
                         proximaTrocaKM: `${(parseFloat(o.proximaTrocaKM) || 0).toLocaleString('pt-BR')} km`,
                         filtros: filtros.length > 0 ? filtros.join(', ') : 'Nenhum',
-                        estabelecimento: o.estabelecimento || '-',
-                        valor: `R$ ${(parseFloat(o.valor) || 0).toFixed(2)}`,
-                        _rawTotal: parseFloat(o.valor) || 0
+                        estabelecimento: o.estabelecimento || '-'
                     };
                 });
 
-                // Chart: Óleo por veículo
-                const oilCosts = {};
+                // Chart: Contagem de trocas por veículo
+                const oilCounts = {};
                 filtered.forEach(o => {
                     const p = vehicles.find(v=>v.id===o.veiculoId)?.placa || 'Outros';
-                    oilCosts[p] = (oilCosts[p] || 0) + (parseFloat(o.valor) || 0);
+                    oilCounts[p] = (oilCounts[p] || 0) + 1;
                 });
-                renderReportChart('bar', Object.keys(oilCosts), Object.values(oilCosts), 'Trocas por Veículo (R$)', '#0ea5e9', textMuted, borderColor);
+                renderReportChart('bar', Object.keys(oilCounts), Object.values(oilCounts), 'Quantidade de Trocas por Veículo', '#0ea5e9', textMuted, borderColor);
 
             // ─── 🚚 6. TRIPS REPORT ─────────────────────────────────
             } else if (reportType === 'trips_report') {
@@ -1626,7 +1618,7 @@
                 const filterVeic = document.getElementById('filter-veiculo').value;
                 const filterImp = document.getElementById('filter-implemento').value;
 
-                activeHeaders = ['Veículo (Placa)', 'Combustível', 'Manutenção', 'Multas', 'Pneus', 'Óleos', 'Seguros', 'Rastreamento', 'Custo Total'];
+                activeHeaders = ['Veículo (Placa)', 'Combustível', 'Manutenção', 'Multas', 'Pneus', 'Seguros', 'Rastreamento', 'Custo Total'];
 
                 const filtered = vehicles.filter(v => {
                     if (v.tipoUnidade === 'Implemento/Reboque') {
@@ -1635,14 +1627,13 @@
                     return !filterVeic || v.id === filterVeic;
                 });
 
-                let costComb = 0, costMaint = 0, costMulta = 0, costPneu = 0, costOleo = 0, costSeg = 0, costRast = 0;
+                let costComb = 0, costMaint = 0, costMulta = 0, costPneu = 0, costSeg = 0, costRast = 0;
 
                 const aggregatedData = filtered.map(v => {
                     const cComb = supplies.filter(a => a.veiculoId === v.id && checkPeriodRange(a.data, periodVal, dateStartVal, dateEndVal)).reduce((acc, a) => acc + a.valorTotal, 0);
                     const cMaint = maint.filter(m => m.veiculoId === v.id && checkPeriodRange(m.data, periodVal, dateStartVal, dateEndVal)).reduce((acc, m) => acc + (parseFloat(m.valor) || 0), 0);
                     const cMulta = multas.filter(m => m.veiculoId === v.id && checkPeriodRange(m.data, periodVal, dateStartVal, dateEndVal)).reduce((acc, m) => acc + (parseFloat(m.valor) || 0), 0);
                     const cPneu = pneus.filter(p => p.veiculoAtual === v.id && checkPeriodRange(p.dataInstalacao, periodVal, dateStartVal, dateEndVal)).reduce((acc, p) => acc + (parseFloat(p.custo) || 0), 0);
-                    const cOleo = oleos.filter(o => o.veiculoId === v.id && checkPeriodRange(o.dataTroca, periodVal, dateStartVal, dateEndVal)).reduce((acc, o) => acc + (parseFloat(o.valor) || 0), 0);
                     
                     const cSeg = v.possuiSeguro === 'Sim' ? (parseFloat(v.valorMensalSeguro) || 0) * 12 : 0;
                     const cRast = v.possuiRastreador === 'Sim' ? (parseFloat(v.valorMensalRastreador) || 0) * 12 : 0;
@@ -1651,11 +1642,10 @@
                     costMaint += cMaint;
                     costMulta += cMulta;
                     costPneu += cPneu;
-                    costOleo += cOleo;
                     costSeg += cSeg;
                     costRast += cRast;
 
-                    const total = cComb + cMaint + cMulta + cPneu + cOleo + cSeg + cRast;
+                    const total = cComb + cMaint + cMulta + cPneu + cSeg + cRast;
 
                     return {
                         id: v.id,
@@ -1664,7 +1654,6 @@
                         manutencao: `R$ ${cMaint.toFixed(2)}`,
                         multas: `R$ ${cMulta.toFixed(2)}`,
                         pneus: `R$ ${cPneu.toFixed(2)}`,
-                        oleos: `R$ ${cOleo.toFixed(2)}`,
                         seguros: `R$ ${cSeg.toFixed(2)}`,
                         rastreamento: `R$ ${cRast.toFixed(2)}`,
                         total: `R$ ${total.toFixed(2)}`,
@@ -1672,7 +1661,7 @@
                     };
                 });
 
-                const totalGeral = costComb + costMaint + costMulta + costPneu + costOleo + costSeg + costRast;
+                const totalGeral = costComb + costMaint + costMulta + costPneu + costSeg + costRast;
 
                 summaryContainer.innerHTML = `
                     <div class="reports-summary-card" style="--card-accent-color: #ef4444;">
@@ -1692,8 +1681,8 @@
                     </div>
                     <div class="reports-summary-card" style="--card-accent-color: #6b7280;">
                         <span class="reports-summary-title">Outros Custos</span>
-                        <span class="reports-summary-value">R$ ${(costMulta + costPneu + costOleo + costSeg + costRast).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits:2})}</span>
-                        <span class="reports-summary-sub">Multas, pneus, óleo, apólices</span>
+                        <span class="reports-summary-value">R$ ${(costMulta + costPneu + costSeg + costRast).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits:2})}</span>
+                        <span class="reports-summary-sub">Multas, pneus, seguros, rastreamento</span>
                     </div>
                 `;
 
@@ -1728,13 +1717,12 @@
                 const cSupplies = vehicleSupplies.reduce((acc, a) => acc + a.valorTotal, 0);
                 const cMaint = vehicleMaint.reduce((acc, m) => acc + (parseFloat(m.valor) || 0), 0);
                 const cMultas = vehicleMultas.reduce((acc, m) => acc + (parseFloat(m.valor) || 0), 0);
-                const cOleos = vehicleOleos.reduce((acc, o) => acc + (parseFloat(o.valor) || 0), 0);
                 const cPneus = vehiclePneus.reduce((acc, p) => acc + (parseFloat(p.custo) || 0), 0);
 
                 const cSeg = v.possuiSeguro === 'Sim' ? (parseFloat(v.valorMensalSeguro) || 0) * 12 : 0;
                 const cRast = v.possuiRastreador === 'Sim' ? (parseFloat(v.valorMensalRastreador) || 0) * 12 : 0;
 
-                const grandTotal = cSupplies + cMaint + cMultas + cOleos + cPneus + cSeg + cRast;
+                const grandTotal = cSupplies + cMaint + cMultas + cPneus + cSeg + cRast;
 
                 // KM rodado
                 const vehicleViagens = viagens.filter(vi => vi.veiculoId === v.id && checkPeriodRange(vi.dataSaida, periodVal, dateStartVal, dateEndVal));
@@ -1812,10 +1800,10 @@
                         dataFormatted: o.dataTroca.split('-').reverse().join('/'),
                         categoria: 'Troca de Óleo',
                         detalhe: `Lubrificante ${o.tipoOleo || ''} (${o.estabelecimento || ''})`,
-                        valor: `R$ ${(parseFloat(o.valor) || 0).toFixed(2)}`,
+                        valor: '-',
                         km: `${(parseFloat(o.kmTroca) || 0).toLocaleString('pt-BR')} km`,
                         _rawDate: o.dataTroca,
-                        _rawTotal: parseFloat(o.valor) || 0
+                        _rawTotal: 0
                     });
                 });
 
