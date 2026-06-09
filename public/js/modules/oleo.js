@@ -260,11 +260,6 @@
                         <input type="date" class="form-control" name="proximaTrocaDias" required value="${isEdit ? o.proximaTrocaDias : ''}">
                     </div>
 
-                    <div class="form-group full-width">
-                        <label>Observações</label>
-                        <textarea class="form-control" name="observacoes" placeholder="Ex: Detalhes técnicos da troca, marca do lubrificante ou filtros utilizados..." rows="2">${isEdit && o.observacoes ? o.observacoes : ''}</textarea>
-                    </div>
-
                     <!-- Filters checklist -->
                     <div class="form-group full-width" style="margin-top:6px;">
                         <label>Substituição de Filtros Realizada:</label>
@@ -279,6 +274,11 @@
                                 <input type="checkbox" name="filtroCombustivel" value="true" ${isEdit && o.filtroCombustivel ? 'checked' : ''} style="width:16px; height:16px;"> Filtro de Combustível
                             </label>
                         </div>
+                    </div>
+
+                    <div class="form-group full-width" style="margin-top:6px;">
+                        <label>Observações</label>
+                        <textarea class="form-control" name="observacoes" placeholder="Ex: Detalhes técnicos da troca, marca do lubrificante ou filtros utilizados..." rows="2">${isEdit && o.observacoes ? o.observacoes : ''}</textarea>
                     </div>
                 </form>
             `;
