@@ -8,6 +8,15 @@
         const activeUser = window.movixStore.getActiveUser();
         const isVisualizador = activeUser.perfil === 'Visualizador';
 
+        let state = window.movixApp.getListState('pneus');
+        if (!state) {
+            state = {
+                selectedVehicleId: vehicles.length > 0 ? vehicles[0].id : '',
+                scroll: 0
+            };
+            window.movixApp.saveListState('pneus', state);
+        }
+
         function getPositionsForVehicle(vehicle) {
             if (!vehicle) return [];
             const qtdEixos = parseInt(vehicle.qtdEixos) || 2;
@@ -81,7 +90,7 @@
                     <div style="display:flex; flex-direction:column; gap:12px;">
                         <label style="font-size: 0.8rem; font-weight: 600;">Selecione o Veículo para Carregar Mapa:</label>
                         <select class="filter-input" id="axle-vehicle-sel">
-                            ${vehicles.map(v => `<option value="${v.id}">${v.placa} - ${v.marca} ${v.modelo}</option>`).join('')}
+                            ${vehicles.map(v => `<option value="${v.id}" ${state.selectedVehicleId === v.id ? 'selected' : ''}>${v.placa} - ${v.marca} ${v.modelo}</option>`).join('')}
                         </select>
                     </div>
 
@@ -156,15 +165,24 @@
                     </tr>
                 `;
             });
+
+            // Restore scroll position
+            setTimeout(() => {
+                window.scrollTo(0, state.scroll || 0);
+            }, 0);
         }
 
         // Render visual tire axel layout on selecting a vehicle
         function renderAxleMap() {
             const container = document.getElementById('axles-visualizer-container');
-            const veicId = document.getElementById('axle-vehicle-sel').value;
-            const selectedVeh = vehicles.find(v => v.id === veicId);
+            const selectEl = document.getElementById('axle-vehicle-sel');
             if (!container) return;
 
+            const veicId = selectEl ? selectEl.value : state.selectedVehicleId;
+            state.selectedVehicleId = veicId;
+            window.movixApp.saveListState('pneus', state);
+
+            const selectedVeh = vehicles.find(v => v.id === veicId);
             if (!selectedVeh) {
                 container.innerHTML = '<div class="search-no-results">Selecione um veículo válido.</div>';
                 return;
@@ -256,7 +274,11 @@
         }
 
         // Action selector event listeners
-        document.getElementById('axle-vehicle-sel').addEventListener('change', renderAxleMap);
+        document.getElementById('axle-vehicle-sel').addEventListener('change', (e) => {
+            state.selectedVehicleId = e.target.value;
+            window.movixApp.saveListState('pneus', state);
+            renderAxleMap();
+        });
 
         // CRUD Add triggers
         if (document.getElementById('btn-novo-pneu')) {

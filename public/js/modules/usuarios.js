@@ -28,6 +28,21 @@
         const users = window.movixStore.state.usuarios;
         const activeUser = window.movixStore.getActiveUser();
         
+        let state = window.movixApp.getListState('usuarios');
+        if (!state) {
+            state = {
+                currentPage: 1,
+                currentSort: { column: 'nome', direction: 'asc' },
+                filters: {
+                    search: '',
+                    perfil: '',
+                    status: ''
+                },
+                scroll: 0
+            };
+            window.movixApp.saveListState('usuarios', state);
+        }
+        
         container.innerHTML = `
             <div class="page-header">
                 <div class="page-title-group">
@@ -46,24 +61,24 @@
                 <div class="filters-row">
                     <div class="filter-group">
                         <label>Buscar Nome / E-mail / CPF</label>
-                        <input type="text" class="filter-input" id="search-usuarios" placeholder="Buscar...">
+                        <input type="text" class="filter-input" id="search-usuarios" placeholder="Buscar..." value="${state.filters.search || ''}">
                     </div>
                     <div class="filter-group">
                         <label>Perfil ERP</label>
                         <select class="filter-input" id="filter-perfil">
                             <option value="">Todos</option>
-                            <option value="Administrador">Administrador</option>
-                            <option value="Gestor">Gestor</option>
-                            <option value="Operacional">Operacional</option>
-                            <option value="Visualizador">Visualizador</option>
+                            <option value="Administrador" ${state.filters.perfil === 'Administrador' ? 'selected' : ''}>Administrador</option>
+                            <option value="Gestor" ${state.filters.perfil === 'Gestor' ? 'selected' : ''}>Gestor</option>
+                            <option value="Operacional" ${state.filters.perfil === 'Operacional' ? 'selected' : ''}>Operacional</option>
+                            <option value="Visualizador" ${state.filters.perfil === 'Visualizador' ? 'selected' : ''}>Visualizador</option>
                         </select>
                     </div>
                     <div class="filter-group">
                         <label>Status</label>
                         <select class="filter-input" id="filter-status">
                             <option value="">Todos</option>
-                            <option value="ativo">Ativos</option>
-                            <option value="inativo">Inativos</option>
+                            <option value="ativo" ${state.filters.status === 'ativo' ? 'selected' : ''}>Ativos</option>
+                            <option value="inativo" ${state.filters.status === 'inativo' ? 'selected' : ''}>Inativos</option>
                         </select>
                     </div>
                 </div>
@@ -94,8 +109,8 @@
         `;
 
         let filteredData = [...users];
-        let currentSort = { column: 'nome', direction: 'asc' };
-        let currentPage = 1;
+        let currentSort = state.currentSort;
+        let currentPage = state.currentPage;
         const itemsPerPage = 6;
 
         function updateTable() {
@@ -105,6 +120,29 @@
             const searchVal = document.getElementById('search-usuarios').value.toLowerCase();
             const perfilVal = document.getElementById('filter-perfil').value;
             const statusVal = document.getElementById('filter-status').value;
+
+            // Save filter state
+            state.filters = {
+                search: document.getElementById('search-usuarios').value,
+                perfil: perfilVal,
+                status: statusVal
+            };
+            state.currentPage = currentPage;
+            state.currentSort = currentSort;
+            window.movixApp.saveListState('usuarios', state);
+
+            // Sync sort icons
+            document.querySelectorAll('#table-usuarios th.sortable').forEach(th => {
+                const icon = th.querySelector('i');
+                if (icon) {
+                    const col = th.getAttribute('data-sort');
+                    if (col === currentSort.column) {
+                        icon.className = currentSort.direction === 'asc' ? 'fa-solid fa-sort-up' : 'fa-solid fa-sort-down';
+                    } else {
+                        icon.className = 'fa-solid fa-sort';
+                    }
+                }
+            });
 
             filteredData = users.filter(u => {
                 const matchSearch = u.nome.toLowerCase().includes(searchVal) || 
@@ -128,7 +166,11 @@
 
             // Pagination calculation
             const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
-            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage > totalPages) {
+                currentPage = totalPages;
+                state.currentPage = currentPage;
+                window.movixApp.saveListState('usuarios', state);
+            }
             
             const startIdx = (currentPage - 1) * itemsPerPage;
             const paginatedItems = filteredData.slice(startIdx, startIdx + itemsPerPage);
@@ -184,6 +226,11 @@
             pagHTML += `<button class="page-number-btn" id="next-page-u" ${currentPage === totalPages ? 'disabled' : ''}><i class="fa-solid fa-chevron-right"></i></button>`;
             pagHTML += `</div>`;
             document.getElementById('pagination-usuarios').innerHTML = pagHTML;
+
+            // Restore scroll position
+            setTimeout(() => {
+                window.scrollTo(0, state.scroll || 0);
+            }, 0);
         }
 
         // Event hooks
@@ -201,13 +248,6 @@
                     currentSort.column = column;
                     currentSort.direction = 'asc';
                 }
-                
-                document.querySelectorAll('#table-usuarios th.sortable i').forEach(icon => {
-                    icon.className = 'fa-solid fa-sort';
-                });
-                const curIcon = th.querySelector('i');
-                curIcon.className = currentSort.direction === 'asc' ? 'fa-solid fa-sort-up' : 'fa-solid fa-sort-down';
-                
                 updateTable();
             });
         });

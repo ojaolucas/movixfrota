@@ -39,6 +39,25 @@
         const activeUser = window.movixStore.getActiveUser();
         const isVisualizador = activeUser.perfil === 'Visualizador';
         
+        let state = window.movixApp.getListState('multas');
+        if (!state) {
+            state = {
+                currentPage: 1,
+                currentSort: { column: 'data', direction: 'desc' },
+                filters: {
+                    search: '',
+                    veiculoId: '',
+                    motoristaId: '',
+                    status: '',
+                    periodo: 'tudo',
+                    de: '',
+                    ate: ''
+                },
+                scroll: 0
+            };
+            window.movixApp.saveListState('multas', state);
+        }
+
         container.innerHTML = `
             <div class="page-header">
                 <div class="page-title-group">
@@ -59,30 +78,30 @@
                 <div class="filters-row">
                     <div class="filter-group">
                         <label>Buscar Descrição / Tipo</label>
-                        <input type="text" class="filter-input" id="search-multas" placeholder="Ex: Velocidade, Sinal...">
+                        <input type="text" class="filter-input" id="search-multas" placeholder="Ex: Velocidade, Sinal..." value="${state.filters.search || ''}">
                     </div>
                     <div class="filter-group">
                         <label>Veículo</label>
                         <select class="filter-input" id="filter-veiculo-multa">
                             <option value="">Todos</option>
-                            ${vehicles.map(v => `<option value="${v.id}">${v.placa} - ${v.marca} ${v.modelo}</option>`).join('')}
+                            ${vehicles.map(v => `<option value="${v.id}" ${state.filters.veiculoId === v.id ? 'selected' : ''}>${v.placa} - ${v.marca} ${v.modelo}</option>`).join('')}
                         </select>
                     </div>
                     <div class="filter-group">
                         <label>Motorista</label>
                         <select class="filter-input" id="filter-motorista-multa">
                             <option value="">Todos</option>
-                            <option value="sem_motorista">Sem motorista responsável</option>
-                            ${drivers.map(d => `<option value="${d.id}">${d.nome}</option>`).join('')}
+                            <option value="sem_motorista" ${state.filters.motoristaId === 'sem_motorista' ? 'selected' : ''}>Sem motorista responsável</option>
+                            ${drivers.map(d => `<option value="${d.id}" ${state.filters.motoristaId === d.id ? 'selected' : ''}>${d.nome}</option>`).join('')}
                         </select>
                     </div>
                     <div class="filter-group">
                         <label>Status</label>
                         <select class="filter-input" id="filter-status-multa">
                             <option value="">Todos</option>
-                            <option value="Pago">Pago</option>
-                            <option value="Não Pago">Não Pago</option>
-                            <option value="Recorrendo">Recorrendo (Autuada)</option>
+                            <option value="Pago" ${state.filters.status === 'Pago' ? 'selected' : ''}>Pago</option>
+                            <option value="Não Pago" ${state.filters.status === 'Não Pago' ? 'selected' : ''}>Não Pago</option>
+                            <option value="Recorrendo" ${state.filters.status === 'Recorrendo' ? 'selected' : ''}>Recorrendo (Autuada)</option>
                         </select>
                     </div>
                 </div>
@@ -92,18 +111,18 @@
                     <div class="filter-group" style="max-width: 220px;">
                         <label>Período Temporal</label>
                         <select class="filter-input" id="filter-periodo-multa">
-                            <option value="tudo">Todo o histórico</option>
-                            <option value="personalizado">Personalizado (Por data)</option>
+                            <option value="tudo" ${state.filters.periodo === 'tudo' ? 'selected' : ''}>Todo o histórico</option>
+                            <option value="personalizado" ${state.filters.periodo === 'personalizado' ? 'selected' : ''}>Personalizado (Por data)</option>
                         </select>
                     </div>
-                    <div id="custom-date-container" style="display: none; gap: 16px; align-items: flex-end; flex-grow: 1;">
+                    <div id="custom-date-container" style="display: ${state.filters.periodo === 'personalizado' ? 'flex' : 'none'}; gap: 16px; align-items: flex-end; flex-grow: 1;">
                         <div class="filter-group" style="max-width: 180px;">
                             <label>De</label>
-                            <input type="date" class="filter-input" id="filter-data-de">
+                            <input type="date" class="filter-input" id="filter-data-de" value="${state.filters.de || ''}">
                         </div>
                         <div class="filter-group" style="max-width: 180px;">
                             <label>Até</label>
-                            <input type="date" class="filter-input" id="filter-data-ate">
+                            <input type="date" class="filter-input" id="filter-data-ate" value="${state.filters.ate || ''}">
                         </div>
                     </div>
                 </div>
@@ -135,8 +154,8 @@
         `;
 
         let filteredData = [...multas];
-        let currentSort = { column: 'data', direction: 'desc' };
-        let currentPage = 1;
+        let currentSort = state.currentSort;
+        let currentPage = state.currentPage;
         const itemsPerPage = 8;
 
         const dateContainer = document.getElementById('custom-date-container');
@@ -166,6 +185,33 @@
             const statusVal = document.getElementById('filter-status-multa').value;
             const dataDeVal = document.getElementById('filter-data-de').value;
             const dataAteVal = document.getElementById('filter-data-ate').value;
+
+            // Save filter state
+            state.filters = {
+                search: document.getElementById('search-multas').value,
+                veiculoId: veiculoVal,
+                motoristaId: motoristaVal,
+                status: statusVal,
+                periodo: periodSel.value,
+                de: dataDeVal,
+                ate: dataAteVal
+            };
+            state.currentPage = currentPage;
+            state.currentSort = currentSort;
+            window.movixApp.saveListState('multas', state);
+
+            // Sync sort icons
+            document.querySelectorAll('#table-multas th.sortable').forEach(th => {
+                const icon = th.querySelector('i');
+                if (icon) {
+                    const col = th.getAttribute('data-sort');
+                    if (col === currentSort.column) {
+                        icon.className = currentSort.direction === 'asc' ? 'fa-solid fa-sort-up' : 'fa-solid fa-sort-down';
+                    } else {
+                        icon.className = 'fa-solid fa-sort';
+                    }
+                }
+            });
 
             filteredData = multas.filter(m => {
                 const matchSearch = (m.descricao || '').toLowerCase().includes(searchVal) ||
@@ -218,7 +264,11 @@
 
             // Pagination calculation
             const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
-            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage > totalPages) {
+                currentPage = totalPages;
+                state.currentPage = currentPage;
+                window.movixApp.saveListState('multas', state);
+            }
             
             const startIdx = (currentPage - 1) * itemsPerPage;
             const paginatedItems = filteredData.slice(startIdx, startIdx + itemsPerPage);
@@ -286,6 +336,11 @@
             pagHTML += `<button class="page-number-btn" id="next-page" ${currentPage === totalPages ? 'disabled' : ''}><i class="fa-solid fa-chevron-right"></i></button>`;
             pagHTML += `</div>`;
             document.getElementById('pagination-multas').innerHTML = pagHTML;
+
+            // Restore scroll position
+            setTimeout(() => {
+                window.scrollTo(0, state.scroll || 0);
+            }, 0);
         }
 
         // Attach filter listeners

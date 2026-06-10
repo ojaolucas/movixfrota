@@ -8,6 +8,22 @@
         const activeUser = window.movixStore.getActiveUser();
         const isVisualizador = activeUser.perfil === 'Visualizador';
         
+        let state = window.movixApp.getListState('motoristas');
+        if (!state) {
+            state = {
+                currentPage: 1,
+                currentSort: { column: 'nome', direction: 'asc' },
+                filters: {
+                    search: '',
+                    cnhCat: '',
+                    cnhStatus: '',
+                    motStatus: ''
+                },
+                scroll: 0
+            };
+            window.movixApp.saveListState('motoristas', state);
+        }
+        
         container.innerHTML = `
             <div class="page-header">
                 <div class="page-title-group">
@@ -28,33 +44,33 @@
                 <div class="filters-row">
                     <div class="filter-group">
                         <label>Buscar Nome / CNH / E-mail</label>
-                        <input type="text" class="filter-input" id="search-motoristas" placeholder="Buscar...">
+                        <input type="text" class="filter-input" id="search-motoristas" placeholder="Buscar..." value="${state.filters.search || ''}">
                     </div>
                     <div class="filter-group">
                         <label>Categoria CNH</label>
                         <select class="filter-input" id="filter-cnh-cat">
                             <option value="">Todas</option>
-                            <option value="B">B</option>
-                            <option value="C">C</option>
-                            <option value="D">D</option>
-                            <option value="E">E</option>
+                            <option value="B" ${state.filters.cnhCat === 'B' ? 'selected' : ''}>B</option>
+                            <option value="C" ${state.filters.cnhCat === 'C' ? 'selected' : ''}>C</option>
+                            <option value="D" ${state.filters.cnhCat === 'D' ? 'selected' : ''}>D</option>
+                            <option value="E" ${state.filters.cnhCat === 'E' ? 'selected' : ''}>E</option>
                         </select>
                     </div>
                     <div class="filter-group">
                         <label>Situação da CNH</label>
                         <select class="filter-input" id="filter-cnh-status">
                             <option value="">Todas</option>
-                            <option value="regular">Regular</option>
-                            <option value="vencida">Vencida</option>
-                            <option value="a_vencer">A Vencer (10 dias)</option>
+                            <option value="regular" ${state.filters.cnhStatus === 'regular' ? 'selected' : ''}>Regular</option>
+                            <option value="vencida" ${state.filters.cnhStatus === 'vencida' ? 'selected' : ''}>Vencida</option>
+                            <option value="a_vencer" ${state.filters.cnhStatus === 'a_vencer' ? 'selected' : ''}>A Vencer (10 dias)</option>
                         </select>
                     </div>
                     <div class="filter-group">
                         <label>Status Operacional</label>
                         <select class="filter-input" id="filter-mot-status">
                             <option value="">Todos</option>
-                            <option value="ativo">Ativo</option>
-                            <option value="inativo">Inativo</option>
+                            <option value="ativo" ${state.filters.motStatus === 'ativo' ? 'selected' : ''}>Ativo</option>
+                            <option value="inativo" ${state.filters.motStatus === 'inativo' ? 'selected' : ''}>Inativo</option>
                         </select>
                     </div>
                 </div>
@@ -84,8 +100,8 @@
         `;
 
         let filteredData = [...drivers];
-        let currentSort = { column: 'nome', direction: 'asc' };
-        let currentPage = 1;
+        let currentSort = state.currentSort;
+        let currentPage = state.currentPage;
         const itemsPerPage = 6;
 
         function updateTable() {
@@ -96,6 +112,30 @@
             const catVal = document.getElementById('filter-cnh-cat').value;
             const cnhStatusVal = document.getElementById('filter-cnh-status').value;
             const motStatusVal = document.getElementById('filter-mot-status').value;
+
+            // Save filter state
+            state.filters = {
+                search: document.getElementById('search-motoristas').value,
+                cnhCat: catVal,
+                cnhStatus: cnhStatusVal,
+                motStatus: motStatusVal
+            };
+            state.currentPage = currentPage;
+            state.currentSort = currentSort;
+            window.movixApp.saveListState('motoristas', state);
+
+            // Sync sort icons
+            document.querySelectorAll('#table-motoristas th.sortable').forEach(th => {
+                const icon = th.querySelector('i');
+                if (icon) {
+                    const col = th.getAttribute('data-sort');
+                    if (col === currentSort.column) {
+                        icon.className = currentSort.direction === 'asc' ? 'fa-solid fa-sort-up' : 'fa-solid fa-sort-down';
+                    } else {
+                        icon.className = 'fa-solid fa-sort';
+                    }
+                }
+            });
 
             const today = new Date();
             const tenDaysFromNow = new Date();
@@ -132,7 +172,11 @@
 
             // Pagination
             const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
-            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage > totalPages) {
+                currentPage = totalPages;
+                state.currentPage = currentPage;
+                window.movixApp.saveListState('motoristas', state);
+            }
             const startIdx = (currentPage - 1) * itemsPerPage;
             const paginatedItems = filteredData.slice(startIdx, startIdx + itemsPerPage);
 
@@ -223,6 +267,11 @@
             pagHTML += `<button class="page-number-btn" id="next-page" ${currentPage === totalPages ? 'disabled' : ''}><i class="fa-solid fa-chevron-right"></i></button>`;
             pagHTML += `</div>`;
             document.getElementById('pagination-motoristas').innerHTML = pagHTML;
+
+            // Restore scroll position
+            setTimeout(() => {
+                window.scrollTo(0, state.scroll || 0);
+            }, 0);
         }
 
         // Hook filters

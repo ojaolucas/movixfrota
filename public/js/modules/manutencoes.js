@@ -8,6 +8,21 @@
         const activeUser = window.movixStore.getActiveUser();
         const isVisualizador = activeUser.perfil === 'Visualizador';
         
+        let state = window.movixApp.getListState('manutencoes');
+        if (!state) {
+            state = {
+                currentPage: 1,
+                filters: {
+                    veiculoId: '',
+                    tipo: '',
+                    categoria: '',
+                    status: ''
+                },
+                scroll: 0
+            };
+            window.movixApp.saveListState('manutencoes', state);
+        }
+
         container.innerHTML = `
             <div class="page-header">
                 <div class="page-title-group">
@@ -57,37 +72,37 @@
                         <label>Placa Veículo</label>
                         <select class="filter-input" id="filter-veiculo-manut">
                             <option value="">Todos</option>
-                            ${vehicles.map(v => `<option value="${v.id}">${v.placa}</option>`).join('')}
+                            ${vehicles.map(v => `<option value="${v.id}" ${state.filters.veiculoId === v.id ? 'selected' : ''}>${v.placa}</option>`).join('')}
                         </select>
                     </div>
                     <div class="filter-group">
                         <label>Tipo</label>
                         <select class="filter-input" id="filter-tipo-manut">
                             <option value="">Todos</option>
-                            <option value="Preventiva">Preventiva</option>
-                            <option value="Corretiva">Corretiva</option>
+                            <option value="Preventiva" ${state.filters.tipo === 'Preventiva' ? 'selected' : ''}>Preventiva</option>
+                            <option value="Corretiva" ${state.filters.tipo === 'Corretiva' ? 'selected' : ''}>Corretiva</option>
                         </select>
                     </div>
                     <div class="filter-group">
                         <label>Categoria</label>
                         <select class="filter-input" id="filter-cat-manut">
                             <option value="">Todas</option>
-                            <option value="Mecânica">Mecânica</option>
-                            <option value="Elétrica">Elétrica</option>
-                            <option value="Pneus">Pneus</option>
-                            <option value="Lubrificantes">Lubrificantes</option>
-                            <option value="Suspensão">Suspensão</option>
-                            <option value="Freios">Freios</option>
+                            <option value="Mecânica" ${state.filters.categoria === 'Mecânica' ? 'selected' : ''}>Mecânica</option>
+                            <option value="Elétrica" ${state.filters.categoria === 'Elétrica' ? 'selected' : ''}>Elétrica</option>
+                            <option value="Pneus" ${state.filters.categoria === 'Pneus' ? 'selected' : ''}>Pneus</option>
+                            <option value="Lubrificantes" ${state.filters.categoria === 'Lubrificantes' ? 'selected' : ''}>Lubrificantes</option>
+                            <option value="Suspensão" ${state.filters.categoria === 'Suspensão' ? 'selected' : ''}>Suspensão</option>
+                            <option value="Freios" ${state.filters.categoria === 'Freios' ? 'selected' : ''}>Freios</option>
                         </select>
                     </div>
                     <div class="filter-group">
                         <label>Situação da O.S.</label>
                         <select class="filter-input" id="filter-status-manut">
                             <option value="">Todas</option>
-                            <option value="Programada">Programada</option>
-                            <option value="Em andamento">Em andamento</option>
-                            <option value="Realizada">Realizada</option>
-                            <option value="Atrasada">Atrasada</option>
+                            <option value="Programada" ${state.filters.status === 'Programada' ? 'selected' : ''}>Programada</option>
+                            <option value="Em andamento" ${state.filters.status === 'Em andamento' ? 'selected' : ''}>Em andamento</option>
+                            <option value="Realizada" ${state.filters.status === 'Realizada' ? 'selected' : ''}>Realizada</option>
+                            <option value="Atrasada" ${state.filters.status === 'Atrasada' ? 'selected' : ''}>Atrasada</option>
                         </select>
                     </div>
                 </div>
@@ -117,7 +132,7 @@
         `;
 
         let filteredData = [...maintenances];
-        let currentPage = 1;
+        let currentPage = state.currentPage;
         const itemsPerPage = 6;
 
         function updateMetrics() {
@@ -140,6 +155,16 @@
             const catVal = document.getElementById('filter-cat-manut').value;
             const statusVal = document.getElementById('filter-status-manut').value;
 
+            // Save filter state
+            state.filters = {
+                veiculoId: veiculoVal,
+                tipo: tipoVal,
+                categoria: catVal,
+                status: statusVal
+            };
+            state.currentPage = currentPage;
+            window.movixApp.saveListState('manutencoes', state);
+
             filteredData = maintenances.filter(m => {
                 const matchVeiculo = !veiculoVal || m.veiculoId === veiculoVal;
                 const matchTipo = !tipoVal || m.tipo === tipoVal;
@@ -152,7 +177,11 @@
             updateMetrics();
 
             const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
-            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage > totalPages) {
+                currentPage = totalPages;
+                state.currentPage = currentPage;
+                window.movixApp.saveListState('manutencoes', state);
+            }
             const startIdx = (currentPage - 1) * itemsPerPage;
             const paginatedItems = filteredData.slice(startIdx, startIdx + itemsPerPage);
 
@@ -215,6 +244,11 @@
             pagHTML += `<button class="page-number-btn" id="next-page" ${currentPage === totalPages ? 'disabled' : ''}><i class="fa-solid fa-chevron-right"></i></button>`;
             pagHTML += `</div>`;
             document.getElementById('pagination-manutencoes').innerHTML = pagHTML;
+
+            // Restore scroll position
+            setTimeout(() => {
+                window.scrollTo(0, state.scroll || 0);
+            }, 0);
         }
 
         // Filters events hooks

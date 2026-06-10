@@ -10,6 +10,20 @@
         const isVisualizador = activeUser.perfil === 'Visualizador';
         const isOperacional = activeUser.perfil === 'Operacional';
 
+        let state = window.movixApp.getListState('abastecimentos');
+        if (!state) {
+            state = {
+                currentPage: 1,
+                filters: {
+                    veiculoId: '',
+                    motoristaId: '',
+                    combustivel: ''
+                },
+                scroll: 0
+            };
+            window.movixApp.saveListState('abastecimentos', state);
+        }
+
         container.innerHTML = `
             <div class="page-header">
                 <div class="page-title-group">
@@ -32,25 +46,25 @@
                         <label>Buscar Veículo (Placa)</label>
                         <select class="filter-input" id="filter-veiculo">
                             <option value="">Todos</option>
-                            ${vehicles.map(v => `<option value="${v.id}">${v.placa} - ${v.marca} ${v.modelo}</option>`).join('')}
+                            ${vehicles.map(v => `<option value="${v.id}" ${state.filters.veiculoId === v.id ? 'selected' : ''}>${v.placa} - ${v.marca} ${v.modelo}</option>`).join('')}
                         </select>
                     </div>
                     <div class="filter-group">
                         <label>Filtrar Motorista</label>
                         <select class="filter-input" id="filter-motorista">
                             <option value="">Todos</option>
-                            ${drivers.map(m => `<option value="${m.id}">${m.nome}</option>`).join('')}
+                            ${drivers.map(m => `<option value="${m.id}" ${state.filters.motoristaId === m.id ? 'selected' : ''}>${m.nome}</option>`).join('')}
                         </select>
                     </div>
                     <div class="filter-group">
                         <label>Tipo de Combustível</label>
                         <select class="filter-input" id="filter-fuel-type">
                             <option value="">Todos</option>
-                            <option value="Diesel">Diesel</option>
-                            <option value="Diesel S10">Diesel S10</option>
-                            <option value="Gasolina">Gasolina</option>
-                            <option value="Etanol">Etanol</option>
-                            <option value="GNV">GNV</option>
+                            <option value="Diesel" ${state.filters.combustivel === 'Diesel' ? 'selected' : ''}>Diesel</option>
+                            <option value="Diesel S10" ${state.filters.combustivel === 'Diesel S10' ? 'selected' : ''}>Diesel S10</option>
+                            <option value="Gasolina" ${state.filters.combustivel === 'Gasolina' ? 'selected' : ''}>Gasolina</option>
+                            <option value="Etanol" ${state.filters.combustivel === 'Etanol' ? 'selected' : ''}>Etanol</option>
+                            <option value="GNV" ${state.filters.combustivel === 'GNV' ? 'selected' : ''}>GNV</option>
                         </select>
                     </div>
                 </div>
@@ -81,7 +95,7 @@
         `;
 
         let filteredData = [...supplies];
-        let currentPage = 1;
+        let currentPage = state.currentPage;
         const itemsPerPage = 8;
 
         function updateTable() {
@@ -92,6 +106,15 @@
             const motoristaVal = document.getElementById('filter-motorista').value;
             const fuelVal = document.getElementById('filter-fuel-type').value;
 
+            // Save filter state
+            state.filters = {
+                veiculoId: veiculoVal,
+                motoristaId: motoristaVal,
+                combustivel: fuelVal
+            };
+            state.currentPage = currentPage;
+            window.movixApp.saveListState('abastecimentos', state);
+
             filteredData = supplies.filter(a => {
                 const matchVeiculo = !veiculoVal || a.veiculoId === veiculoVal;
                 const matchMotorista = !motoristaVal || a.motoristaId === motoristaVal;
@@ -100,7 +123,11 @@
             });
 
             const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
-            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage > totalPages) {
+                currentPage = totalPages;
+                state.currentPage = currentPage;
+                window.movixApp.saveListState('abastecimentos', state);
+            }
             const startIdx = (currentPage - 1) * itemsPerPage;
             const paginatedItems = filteredData.slice(startIdx, startIdx + itemsPerPage);
 
@@ -167,6 +194,11 @@
             pagHTML += `<button class="page-number-btn" id="next-page" ${currentPage === totalPages ? 'disabled' : ''}><i class="fa-solid fa-chevron-right"></i></button>`;
             pagHTML += `</div>`;
             document.getElementById('pagination-abastecimentos').innerHTML = pagHTML;
+
+            // Restore scroll position
+            setTimeout(() => {
+                window.scrollTo(0, state.scroll || 0);
+            }, 0);
         }
 
         // Filters events hooks

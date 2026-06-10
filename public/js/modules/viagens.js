@@ -10,6 +10,26 @@
         const activeUser = window.movixStore.getActiveUser();
         const isVisualizador = activeUser.perfil === 'Visualizador';
 
+        let state = window.movixApp.getListState('viagens');
+        if (!state) {
+            state = {
+                currentPage: 1,
+                activeTabStatus: 'Em andamento',
+                filters: {
+                    busca: '',
+                    veiculoId: '',
+                    motoristaId: '',
+                    periodo: 'tudo',
+                    de: '',
+                    ate: ''
+                },
+                scroll: 0
+            };
+            window.movixApp.saveListState('viagens', state);
+        }
+
+        activeTabStatus = state.activeTabStatus;
+
         container.innerHTML = `
             <div class="page-header">
                 <div class="page-title-group">
@@ -40,43 +60,43 @@
                 <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; width: 100%;">
                     <div class="filter-group" style="flex: 2; min-width: 200px;">
                         <label>Busca Geral</label>
-                        <input type="text" class="filter-input" id="filter-busca-viagem" placeholder="Busca por placa, motorista, rota ou obs...">
+                        <input type="text" class="filter-input" id="filter-busca-viagem" placeholder="Busca por placa, motorista, rota ou obs..." value="${state.filters.busca || ''}">
                     </div>
                     <div class="filter-group" style="flex: 1; min-width: 130px;">
                         <label>Veículo</label>
                         <select class="filter-input" id="filter-veiculo-viagem">
                             <option value="">Todos</option>
-                            ${vehicles.map(v => `<option value="${v.id}">${v.placa} - ${v.marca} ${v.modelo}</option>`).join('')}
+                            ${vehicles.map(v => `<option value="${v.id}" ${state.filters.veiculoId === v.id ? 'selected' : ''}>${v.placa} - ${v.marca} ${v.modelo}</option>`).join('')}
                         </select>
                     </div>
                     <div class="filter-group" style="flex: 1; min-width: 130px;">
                         <label>Motorista</label>
                         <select class="filter-input" id="filter-motorista-viagem">
                             <option value="">Todos</option>
-                            ${drivers.map(m => `<option value="${m.id}">${m.nome}</option>`).join('')}
+                            ${drivers.map(m => `<option value="${m.id}" ${state.filters.motoristaId === m.id ? 'selected' : ''}>${m.nome}</option>`).join('')}
                         </select>
                     </div>
                     <div class="filter-group" style="flex: 1; min-width: 130px;">
                         <label>Período</label>
                         <select class="filter-input" id="filter-periodo-viagem">
-                            <option value="tudo">Todo o histórico</option>
-                            <option value="hoje">Hoje</option>
-                            <option value="ontem">Ontem</option>
-                            <option value="7dias">Últimos 7 dias</option>
-                            <option value="30dias">Últimos 30 dias</option>
-                            <option value="este_mes">Este mês</option>
-                            <option value="mes_anterior">Mês anterior</option>
-                            <option value="personalizado">Personalizado...</option>
+                            <option value="tudo" ${state.filters.periodo === 'tudo' ? 'selected' : ''}>Todo o histórico</option>
+                            <option value="hoje" ${state.filters.periodo === 'hoje' ? 'selected' : ''}>Hoje</option>
+                            <option value="ontem" ${state.filters.periodo === 'ontem' ? 'selected' : ''}>Ontem</option>
+                            <option value="7dias" ${state.filters.periodo === '7dias' ? 'selected' : ''}>Últimos 7 dias</option>
+                            <option value="30dias" ${state.filters.periodo === '30dias' ? 'selected' : ''}>Últimos 30 dias</option>
+                            <option value="este_mes" ${state.filters.periodo === 'este_mes' ? 'selected' : ''}>Este mês</option>
+                            <option value="mes_anterior" ${state.filters.periodo === 'mes_anterior' ? 'selected' : ''}>Mês anterior</option>
+                            <option value="personalizado" ${state.filters.periodo === 'personalizado' ? 'selected' : ''}>Personalizado...</option>
                         </select>
                     </div>
-                    <div id="custom-date-container-viagem" style="display: none; gap: 16px; align-items: flex-end;">
+                    <div id="custom-date-container-viagem" style="display: ${state.filters.periodo === 'personalizado' ? 'flex' : 'none'}; gap: 16px; align-items: flex-end;">
                         <div class="filter-group" style="width: 140px;">
                             <label>De</label>
-                            <input type="date" class="filter-input" id="filter-viagem-de">
+                            <input type="date" class="filter-input" id="filter-viagem-de" value="${state.filters.de || ''}">
                         </div>
                         <div class="filter-group" style="width: 140px;">
                             <label>Até</label>
-                            <input type="date" class="filter-input" id="filter-viagem-ate">
+                            <input type="date" class="filter-input" id="filter-viagem-ate" value="${state.filters.ate || ''}">
                         </div>
                     </div>
                 </div>
@@ -106,7 +126,7 @@
             </div>
         `;
 
-        let currentPage = 1;
+        let currentPage = state.currentPage;
         const itemsPerPage = 8;
 
         function updateTable() {
@@ -121,6 +141,19 @@
             const periodVal = document.getElementById('filter-periodo-viagem') ? document.getElementById('filter-periodo-viagem').value : 'tudo';
             const deVal = document.getElementById('filter-viagem-de') ? document.getElementById('filter-viagem-de').value : '';
             const ateVal = document.getElementById('filter-viagem-ate') ? document.getElementById('filter-viagem-ate').value : '';
+
+            // Save filter state
+            state.filters = {
+                busca: document.getElementById('filter-busca-viagem') ? document.getElementById('filter-busca-viagem').value : '',
+                veiculoId: veiculoVal,
+                motoristaId: motoristaVal,
+                periodo: periodVal,
+                de: deVal,
+                ate: ateVal
+            };
+            state.currentPage = currentPage;
+            state.activeTabStatus = activeTabStatus;
+            window.movixApp.saveListState('viagens', state);
 
             const filteredData = currentTrips.filter(t => {
                 // 1. Status/Tab Filter
@@ -279,6 +312,11 @@
             pagHTML += `<button class="page-number-btn" id="next-page" ${currentPage === totalPages ? 'disabled' : ''}><i class="fa-solid fa-chevron-right"></i></button>`;
             pagHTML += `</div>`;
             document.getElementById('pagination-viagens').innerHTML = pagHTML;
+
+            // Restore scroll position
+            setTimeout(() => {
+                window.scrollTo(0, state.scroll || 0);
+            }, 0);
         }
 
         // Pagination Triggers
@@ -299,18 +337,24 @@
             tabEmAndamento.addEventListener('click', () => {
                 if (activeTabStatus === 'Em andamento') return;
                 activeTabStatus = 'Em andamento';
+                state.activeTabStatus = 'Em andamento';
                 tabEmAndamento.classList.add('active');
                 tabRealizadas.classList.remove('active');
                 currentPage = 1;
+                state.currentPage = 1;
+                window.movixApp.saveListState('viagens', state);
                 updateTable();
             });
 
             tabRealizadas.addEventListener('click', () => {
                 if (activeTabStatus === 'Realizada') return;
                 activeTabStatus = 'Realizada';
+                state.activeTabStatus = 'Realizada';
                 tabRealizadas.classList.add('active');
                 tabEmAndamento.classList.remove('active');
                 currentPage = 1;
+                state.currentPage = 1;
+                window.movixApp.saveListState('viagens', state);
                 updateTable();
             });
         }

@@ -2,6 +2,7 @@
 
 class MovixApp {
     constructor() {
+        this.listStates = {};
         this.init();
     }
 
@@ -13,6 +14,7 @@ class MovixApp {
         this.setupModalControls();
         this.setupLoginHandler();
         this.setupCurrencyMasks();
+        this.setupScrollTracking();
         
         // Connect Session Change Callback
         window.movixStore.onSessionChange = (loggedIn) => this.handleSessionState(loggedIn);
@@ -962,6 +964,31 @@ class MovixApp {
                 if (parsed !== null) {
                     target.value = this.formatCurrency(parsed);
                     target.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }
+        });
+    }
+
+    getListState(moduleName) {
+        if (!this.listStates) this.listStates = {};
+        return this.listStates[moduleName] || null;
+    }
+
+    saveListState(moduleName, state) {
+        if (!this.listStates) this.listStates = {};
+        this.listStates[moduleName] = {
+            ...(this.listStates[moduleName] || {}),
+            ...state
+        };
+    }
+
+    setupScrollTracking() {
+        window.addEventListener('scroll', () => {
+            if (window.movixRouter && window.movixRouter.currentRoute) {
+                const route = window.movixRouter.currentRoute;
+                const state = this.getListState(route);
+                if (state) {
+                    state.scroll = window.scrollY;
                 }
             }
         });

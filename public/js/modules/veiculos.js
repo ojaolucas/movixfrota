@@ -16,6 +16,22 @@
         const activeUser = window.movixStore.getActiveUser();
         const isVisualizador = activeUser.perfil === 'Visualizador';
         
+        let state = window.movixApp.getListState('veiculos');
+        if (!state) {
+            state = {
+                currentPage: 1,
+                currentSort: { column: 'placa', direction: 'asc' },
+                filters: {
+                    search: '',
+                    tipo: '',
+                    combustivel: '',
+                    status: ''
+                },
+                scroll: 0
+            };
+            window.movixApp.saveListState('veiculos', state);
+        }
+
         // Setup base layout
         container.innerHTML = `
             <div class="page-header">
@@ -37,38 +53,38 @@
                 <div class="filters-row">
                     <div class="filter-group">
                         <label>Buscar Placa / Modelo</label>
-                        <input type="text" class="filter-input" id="search-veiculos" placeholder="Buscar...">
+                        <input type="text" class="filter-input" id="search-veiculos" placeholder="Buscar..." value="${state.filters.search || ''}">
                     </div>
                     <div class="filter-group">
                         <label>Tipo de Veículo</label>
                         <select class="filter-input" id="filter-tipo">
                             <option value="">Todos</option>
-                            <option value="Caminhão">Caminhão</option>
-                            <option value="Van/Furgão">Van/Furgão</option>
-                            <option value="Utilitário">Utilitário</option>
-                            <option value="Passeio">Passeio</option>
-                            <option value="Picape">Picape</option>
+                            <option value="Caminhão" ${state.filters.tipo === 'Caminhão' ? 'selected' : ''}>Caminhão</option>
+                            <option value="Van/Furgão" ${state.filters.tipo === 'Van/Furgão' ? 'selected' : ''}>Van/Furgão</option>
+                            <option value="Utilitário" ${state.filters.tipo === 'Utilitário' ? 'selected' : ''}>Utilitário</option>
+                            <option value="Passeio" ${state.filters.tipo === 'Passeio' ? 'selected' : ''}>Passeio</option>
+                            <option value="Picape" ${state.filters.tipo === 'Picape' ? 'selected' : ''}>Picape</option>
                         </select>
                     </div>
                     <div class="filter-group">
                         <label>Combustível</label>
                         <select class="filter-input" id="filter-combustivel">
                             <option value="">Todos</option>
-                            <option value="Diesel">Diesel</option>
-                            <option value="Diesel S10">Diesel S10</option>
-                            <option value="Flex">Flex</option>
-                            <option value="Gasolina">Gasolina</option>
-                            <option value="Etanol">Etanol</option>
-                            <option value="GNV">GNV</option>
+                            <option value="Diesel" ${state.filters.combustivel === 'Diesel' ? 'selected' : ''}>Diesel</option>
+                            <option value="Diesel S10" ${state.filters.combustivel === 'Diesel S10' ? 'selected' : ''}>Diesel S10</option>
+                            <option value="Flex" ${state.filters.combustivel === 'Flex' ? 'selected' : ''}>Flex</option>
+                            <option value="Gasolina" ${state.filters.combustivel === 'Gasolina' ? 'selected' : ''}>Gasolina</option>
+                            <option value="Etanol" ${state.filters.combustivel === 'Etanol' ? 'selected' : ''}>Etanol</option>
+                            <option value="GNV" ${state.filters.combustivel === 'GNV' ? 'selected' : ''}>GNV</option>
                         </select>
                     </div>
                     <div class="filter-group">
                         <label>Situação</label>
                         <select class="filter-input" id="filter-status">
                             <option value="">Todas</option>
-                            <option value="disponivel">Disponível</option>
-                            <option value="em_manutencao">Em Manutenção</option>
-                            <option value="inativo">Inativo</option>
+                            <option value="disponivel" ${state.filters.status === 'disponivel' ? 'selected' : ''}>Disponível</option>
+                            <option value="em_manutencao" ${state.filters.status === 'em_manutencao' ? 'selected' : ''}>Em Manutenção</option>
+                            <option value="inativo" ${state.filters.status === 'inativo' ? 'selected' : ''}>Inativo</option>
                         </select>
                     </div>
                 </div>
@@ -100,8 +116,8 @@
 
         // State variables for dynamic filtering/sorting/pagination
         let filteredData = [...vehicles];
-        let currentSort = { column: 'placa', direction: 'asc' };
-        let currentPage = 1;
+        let currentSort = state.currentSort;
+        let currentPage = state.currentPage;
         const itemsPerPage = 8;
 
         // Render functions inside listing scope
@@ -114,6 +130,30 @@
             const tipoVal = document.getElementById('filter-tipo').value;
             const combustivelVal = document.getElementById('filter-combustivel').value;
             const statusVal = document.getElementById('filter-status').value;
+
+            // Save filter state
+            state.filters = {
+                search: document.getElementById('search-veiculos').value,
+                tipo: tipoVal,
+                combustivel: combustivelVal,
+                status: statusVal
+            };
+            state.currentPage = currentPage;
+            state.currentSort = currentSort;
+            window.movixApp.saveListState('veiculos', state);
+
+            // Sync sort icons
+            document.querySelectorAll('#table-veiculos th.sortable').forEach(th => {
+                const icon = th.querySelector('i');
+                if (icon) {
+                    const col = th.getAttribute('data-sort');
+                    if (col === currentSort.column) {
+                        icon.className = currentSort.direction === 'asc' ? 'fa-solid fa-sort-up' : 'fa-solid fa-sort-down';
+                    } else {
+                        icon.className = 'fa-solid fa-sort';
+                    }
+                }
+            });
 
             filteredData = vehicles.filter(v => {
                 const matchSearch = v.placa.toLowerCase().includes(searchVal) || 
@@ -146,7 +186,11 @@
 
             // Pagination calculation
             const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
-            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage > totalPages) {
+                currentPage = totalPages;
+                state.currentPage = currentPage;
+                window.movixApp.saveListState('veiculos', state);
+            }
             
             const startIdx = (currentPage - 1) * itemsPerPage;
             const paginatedItems = filteredData.slice(startIdx, startIdx + itemsPerPage);
@@ -208,6 +252,11 @@
             pagHTML += `<button class="page-number-btn" id="next-page" ${currentPage === totalPages ? 'disabled' : ''}><i class="fa-solid fa-chevron-right"></i></button>`;
             pagHTML += `</div>`;
             document.getElementById('pagination-veiculos').innerHTML = pagHTML;
+
+            // Restore scroll position
+            setTimeout(() => {
+                window.scrollTo(0, state.scroll || 0);
+            }, 0);
         }
 
         // Event hooks

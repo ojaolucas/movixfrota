@@ -61,6 +61,12 @@ class MovixRouter {
         // Trigger renderer
         const render = this.routes[hash];
         if (render) {
+            if (this.currentRoute !== hash && window.movixApp) {
+                const state = window.movixApp.getListState(hash);
+                if (state) {
+                    state.scroll = 0;
+                }
+            }
             this.currentRoute = hash;
             
             // Clean view wrapper and execute render
