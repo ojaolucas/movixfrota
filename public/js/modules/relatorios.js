@@ -225,7 +225,7 @@
         let activeHeaders = [];
         let currentSort = { column: '', direction: 'asc' };
         let currentPage = 1;
-        const itemsPerPage = 10;
+        let itemsPerPage = 10;
 
         // Date helper
         function parseDate(dateStr) {
@@ -2305,7 +2305,18 @@
             style.id = 'print-orientation-style';
             style.innerHTML = `@page { size: landscape; margin: 10mm 8mm !important; }`;
             document.head.appendChild(style);
+
+            // Temporarily disable pagination to include all filtered items in the print DOM
+            const oldItemsPerPage = itemsPerPage;
+            itemsPerPage = 999999;
+            renderReportTable();
+
             window.print();
+
+            // Restore pagination to its original state
+            itemsPerPage = oldItemsPerPage;
+            renderReportTable();
+
             setTimeout(() => {
                 const el = document.getElementById('print-orientation-style');
                 if (el) el.remove();
