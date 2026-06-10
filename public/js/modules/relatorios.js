@@ -780,7 +780,7 @@
                 const filterDriver = document.getElementById('filter-motorista').value;
                 const filterStatus = document.getElementById('filter-situacao').value;
 
-                activeHeaders = ['Data', 'Veículo', 'Motorista', 'Código Infração', 'Descrição', 'Gravidade', 'Pontos', 'Valor', 'Status'];
+                activeHeaders = ['Data', 'Veículo', 'Motorista', 'Descrição', 'Valor', 'Status'];
 
                 const filtered = multas.filter(m => {
                     const matchVeic = !filterVeic || m.veiculoId === filterVeic;
@@ -834,10 +834,7 @@
                         dataFormatted: m.data.split('-').reverse().join('/'),
                         veiculo: v ? v.placa : 'Veículo',
                         motorista: d ? d.nome : 'Sem motorista',
-                        codigo: m.codigo || '-',
                         descricao: m.descricao,
-                        gravidade: m.gravidade || 'Média',
-                        pontos: `${m.pontos || 0} pts`,
                         valor: `R$ ${(parseFloat(m.valor) || 0).toFixed(2)}`,
                         status: m.status,
                         _rawTotal: parseFloat(m.valor) || 0
