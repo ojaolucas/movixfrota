@@ -15,6 +15,7 @@ class MovixApp {
         this.setupLoginHandler();
         this.setupCurrencyMasks();
         this.setupScrollTracking();
+        this.setupPrintThemeSwap();
         
         // Connect Session Change Callback
         window.movixStore.onSessionChange = (loggedIn) => this.handleSessionState(loggedIn);
@@ -990,6 +991,26 @@ class MovixApp {
                 if (state) {
                     state.scroll = window.scrollY;
                 }
+            }
+        });
+    }
+
+    setupPrintThemeSwap() {
+        let themeRestore = null;
+
+        window.addEventListener('beforeprint', () => {
+            if (document.body.classList.contains('theme-dark')) {
+                themeRestore = 'theme-dark';
+                document.body.classList.remove('theme-dark');
+                document.body.classList.add('theme-light');
+            }
+        });
+
+        window.addEventListener('afterprint', () => {
+            if (themeRestore) {
+                document.body.classList.remove('theme-light');
+                document.body.classList.add(themeRestore);
+                themeRestore = null;
             }
         });
     }
