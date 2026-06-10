@@ -256,7 +256,7 @@
                 <form id="form-abastecimento" class="form-grid">
                     <div class="form-group">
                         <label>Data <span class="required">*</span></label>
-                        <input type="date" class="form-control" name="data" required value="${isEdit ? ab.data : new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]}">
+                        <input type="date" class="form-control" name="data" required value="${isEdit ? ab.data : ''}">
                     </div>
                     
                     <div class="form-group">

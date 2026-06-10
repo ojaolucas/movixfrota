@@ -442,7 +442,7 @@
 
                     <div class="form-group">
                         <label>Data da Infração <span class="required">*</span></label>
-                        <input type="date" class="form-control" name="data" required value="${isEdit ? multa.data : new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]}">
+                        <input type="date" class="form-control" name="data" required value="${isEdit ? multa.data : ''}">
                     </div>
 
                     <div class="form-group">
