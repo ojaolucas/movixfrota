@@ -2304,7 +2304,20 @@
         // Binding Actions Buttons
         document.getElementById('btn-export-excel').addEventListener('click', triggerExcelExport);
         document.getElementById('btn-export-pdf').addEventListener('click', () => {
+            const style = document.createElement('style');
+            style.id = 'print-orientation-style';
+            // If the report table has more than 5 columns, default to Landscape to fit all columns on A4 paper
+            if (activeHeaders && activeHeaders.length > 5) {
+                style.innerHTML = `@page { size: landscape; margin: 10mm 8mm !important; }`;
+            } else {
+                style.innerHTML = `@page { size: portrait; margin: 10mm 8mm !important; }`;
+            }
+            document.head.appendChild(style);
             window.print();
+            setTimeout(() => {
+                const el = document.getElementById('print-orientation-style');
+                if (el) el.remove();
+            }, 500);
         });
 
         // Bootstrapping the Module

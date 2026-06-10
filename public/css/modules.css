@@ -780,35 +780,105 @@ textarea.form-control {
 
 /* Printable PDF stylesheet styles integration */
 @media print {
+    @page {
+        margin: 10mm 8mm 10mm 8mm !important;
+    }
+    
     body {
         background-color: #ffffff !important;
+        background: #ffffff !important;
         color: #000000 !important;
     }
-    .sidebar, .header, .page-actions, .filters-card, .table-pagination, .close-modal-btn, .modal-footer {
+    
+    .sidebar, .header, .page-actions, .filters-card, .table-pagination, .close-modal-btn, .modal-footer, .no-print {
         display: none !important;
     }
+    
     .app-container {
         margin-left: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
     }
+    
     .content-wrapper {
         padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
     }
+    
     .card {
         border: none !important;
         box-shadow: none !important;
         background: none !important;
         padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
     }
+    
+    .table-responsive {
+        border: none !important;
+        border-radius: 0 !important;
+        overflow: visible !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
     .smart-table {
-        font-size: 0.75rem !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        table-layout: auto !important;
+        border-collapse: collapse !important;
     }
+    
+    .smart-table th, .smart-table td {
+        white-space: normal !important;
+        word-break: break-word !important;
+        padding: 6px 8px !important;
+        font-size: 0.65rem !important;
+        line-height: 1.2 !important;
+        border-bottom: 1px solid #cbd5e1 !important;
+    }
+    
     .smart-table th {
         background-color: #f1f5f9 !important;
         color: #0f172a !important;
-        border-bottom: 2px solid #cbd5e1 !important;
+        font-weight: 700 !important;
+        border-bottom: 2px solid #94a3b8 !important;
     }
-    .smart-table td {
-        border-bottom: 1px solid #e2e8f0 !important;
+    
+    .smart-table th i {
+        display: none !important;
+    }
+    
+    /* Avoid breaking rows across pages if possible */
+    .smart-table tr {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    /* Detail sheet (Ficha de Vida Útil) printing layout adjustment */
+    .detail-sheet-grid {
+        display: block !important;
+        width: 100% !important;
+    }
+    
+    .detail-sheet-sidebar {
+        width: 100% !important;
+        margin-bottom: 20px !important;
+        box-sizing: border-box !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: none !important;
+    }
+    
+    .detail-sheet-content {
+        width: 100% !important;
+    }
+    
+    .detail-tab-menu {
+        display: none !important;
     }
 }
 
