@@ -262,6 +262,7 @@
                     <div class="form-group">
                         <label>Selecione o Veículo <span class="required">*</span></label>
                         <select class="form-control" name="veiculoId" id="ab-veiculo-sel" required ${isEdit ? 'disabled' : ''}>
+                            <option value="" disabled ${!isEdit ? 'selected' : ''}>Selecione um veículo</option>
                             ${vehicles.map(v => `<option value="${v.id}" data-km="${v.kmAtual}" data-fuel="${v.combustivel}" ${isEdit && ab.veiculoId === v.id ? 'selected' : ''}>${v.placa} - ${v.marca} ${v.modelo} (KM: ${v.kmAtual})</option>`).join('')}
                         </select>
                     </div>
@@ -269,6 +270,7 @@
                     <div class="form-group">
                         <label>Selecione o Motorista <span class="required">*</span></label>
                         <select class="form-control" name="motoristaId" required>
+                            <option value="" disabled ${!isEdit ? 'selected' : ''}>Selecione um motorista</option>
                             ${drivers.map(m => `<option value="${m.id}" ${isEdit && ab.motoristaId === m.id ? 'selected' : ''}>${m.nome}</option>`).join('')}
                         </select>
                     </div>
@@ -335,6 +337,11 @@
             function syncVehicle() {
                 if (isEdit) return;
                 const opt = veicSel.options[veicSel.selectedIndex];
+                if (!opt || opt.value === "") {
+                    kmHint.innerText = "";
+                    kmInput.value = "";
+                    return;
+                }
                 const lastKM = opt.getAttribute('data-km');
                 const fuelType = opt.getAttribute('data-fuel');
                 

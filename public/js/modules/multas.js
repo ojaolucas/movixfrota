@@ -422,6 +422,7 @@
                     <div class="form-group">
                         <label>Veículo Relacionado <span class="required">*</span></label>
                         <select class="form-control" name="veiculoId" required>
+                            <option value="" disabled ${!isEdit ? 'selected' : ''}>Selecione um veículo</option>
                             ${vehicles.map(v => `<option value="${v.id}" ${isEdit && multa.veiculoId === v.id ? 'selected' : ''}>${v.placa} - ${v.marca} ${v.modelo}</option>`).join('')}
                         </select>
                     </div>
@@ -429,7 +430,8 @@
                     <div class="form-group">
                         <label>Motorista Responsável</label>
                         <select class="form-control" name="motoristaId">
-                            <option value="">Sem motorista responsável (Apenas Veículo)</option>
+                            <option value="" disabled ${!isEdit ? 'selected' : ''}>Selecione um motorista</option>
+                            <option value="" ${isEdit && !multa.motoristaId ? 'selected' : ''}>Sem motorista responsável (Apenas Veículo)</option>
                             ${drivers.map(d => `<option value="${d.id}" ${isEdit && multa.motoristaId === d.id ? 'selected' : ''}>${d.nome}</option>`).join('')}
                         </select>
                     </div>

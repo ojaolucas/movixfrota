@@ -230,6 +230,7 @@
                     <div class="form-group">
                         <label>Selecione o Veículo <span class="required">*</span></label>
                         <select class="form-control" name="veiculoId" id="oil-veic-sel" required ${isEdit ? 'disabled' : ''}>
+                            <option value="" disabled ${!isEdit ? 'selected' : ''}>Selecione um veículo</option>
                             ${vehicles.map(v => `<option value="${v.id}" data-km="${v.kmAtual}" ${isEdit && o.veiculoId === v.id ? 'selected' : ''}>${v.placa} - ${v.marca} ${v.modelo} (KM: ${v.kmAtual})</option>`).join('')}
                         </select>
                         ${isEdit ? `<input type="hidden" name="veiculoId" value="${o.veiculoId}">` : ''}
@@ -296,6 +297,12 @@
 
             function syncKM() {
                 const opt = veicSel.options[veicSel.selectedIndex];
+                if (!opt || opt.value === "") {
+                    kmInput.value = "";
+                    kmInput.removeAttribute('min');
+                    nextKmInput.value = "";
+                    return;
+                }
                 const lastKM = opt.getAttribute('data-km');
                 kmInput.value = lastKM;
                 kmInput.setAttribute('min', lastKM);

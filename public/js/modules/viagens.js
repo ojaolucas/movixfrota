@@ -525,6 +525,7 @@
                     <div class="form-group">
                         <label>Selecione o Veículo <span class="required">*</span></label>
                         <select class="form-control" name="veiculoId" id="via-veic-sel" required>
+                            <option value="" disabled ${!isEdit ? 'selected' : ''}>Selecione um veículo</option>
                             ${isEdit 
                                 ? vehicles.map(v => `<option value="${v.id}" data-km="${v.kmAtual}" ${t.veiculoId === v.id ? 'selected' : ''}>${v.placa} - ${v.marca} ${v.modelo} (KM: ${v.kmAtual})</option>`).join('')
                                 : vehicles.filter(v => v.status === 'disponivel').map(v => `<option value="${v.id}" data-km="${v.kmAtual}">${v.placa} - ${v.marca} ${v.modelo} (KM: ${v.kmAtual})</option>`).join('')}
@@ -534,6 +535,7 @@
                     <div class="form-group">
                         <label>Selecione o Motorista Escalo <span class="required">*</span></label>
                         <select class="form-control" name="motoristaId" required>
+                            <option value="" disabled ${!isEdit ? 'selected' : ''}>Selecione um motorista</option>
                             ${isEdit
                                 ? drivers.map(m => `<option value="${m.id}" ${t.motoristaId === m.id ? 'selected' : ''}>${m.nome}</option>`).join('')
                                 : drivers.filter(m => m.status === 'ativo').map(m => `<option value="${m.id}">${m.nome}</option>`).join('')}
@@ -597,6 +599,11 @@
             function syncKM() {
                 if (veicSel.options.length > 0) {
                     const opt = veicSel.options[veicSel.selectedIndex];
+                    if (!opt || opt.value === "") {
+                        kmInput.value = "";
+                        kmInput.removeAttribute('min');
+                        return;
+                    }
                     if (!isEdit) {
                         kmInput.value = opt.getAttribute('data-km');
                         kmInput.setAttribute('min', opt.getAttribute('data-km'));

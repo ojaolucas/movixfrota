@@ -361,7 +361,8 @@
                     <div class="form-group">
                         <label>Instalar no Veículo</label>
                         <select class="form-control" name="veiculoAtual" id="pneu-veic-sel">
-                            <option value="">Apenas em Estoque (Sem veículo)</option>
+                            <option value="" disabled ${!isEdit ? 'selected' : ''}>Selecione um veículo</option>
+                            <option value="" ${isEdit && !p.veiculoAtual ? 'selected' : ''}>Apenas em Estoque (Sem veículo)</option>
                             ${vehicles.map(v => `<option value="${v.id}" data-km="${v.kmAtual || 0}" ${isEdit && p.veiculoAtual === v.id ? 'selected' : ''}>${v.placa} (Eixos: ${v.qtdEixos || 2})</option>`).join('')}
                         </select>
                     </div>
