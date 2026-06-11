@@ -622,6 +622,57 @@
             veicSel.addEventListener('change', syncKM);
             if (!isEdit) syncKM();
 
+            // Validation for vehicle and driver in use (only when creating a new trip)
+            if (!isEdit) {
+                veicSel.addEventListener('change', () => {
+                    const veiculoId = veicSel.value;
+                    if (!veiculoId) return;
+
+                    const activeTrips = window.movixStore.getViagens().filter(t => t.status && t.status.toLowerCase() === 'em andamento');
+                    const conflictTrip = activeTrips.find(t => t.veiculoId === veiculoId);
+
+                    if (conflictTrip) {
+                        const vehicle = vehicles.find(v => v.id === veiculoId);
+                        const placa = vehicle ? vehicle.placa : 'N/A';
+                        window.movixApp.showConfirmModal(
+                            `O veículo de placa ${placa} já está vinculado à viagem em andamento de ${conflictTrip.origem} para ${conflictTrip.destino}. Deseja utilizar este veículo mesmo assim?`,
+                            () => {
+                                // keep selection
+                            },
+                            () => {
+                                veicSel.value = "";
+                                syncKM();
+                            }
+                        );
+                    }
+                });
+
+                const driverSel = modalBody.querySelector('select[name="motoristaId"]');
+                if (driverSel) {
+                    driverSel.addEventListener('change', () => {
+                        const motoristaId = driverSel.value;
+                        if (!motoristaId) return;
+
+                        const activeTrips = window.movixStore.getViagens().filter(t => t.status && t.status.toLowerCase() === 'em andamento');
+                        const conflictTrip = activeTrips.find(t => t.motoristaId === motoristaId);
+
+                        if (conflictTrip) {
+                            const driver = drivers.find(d => d.id === motoristaId);
+                            const driverName = driver ? driver.nome : 'N/A';
+                            window.movixApp.showConfirmModal(
+                                `O motorista ${driverName} já está vinculado à viagem em andamento de ${conflictTrip.origem} para ${conflictTrip.destino}. Deseja escalar este motorista mesmo assim?`,
+                                () => {
+                                    // keep selection
+                                },
+                                () => {
+                                    driverSel.value = "";
+                                }
+                            );
+                        }
+                    });
+                }
+            }
+
             document.getElementById('btn-cancelar-modal').addEventListener('click', () => modal.classList.remove('active'));
 
             document.getElementById('btn-salvar-modal').addEventListener('click', async () => {
