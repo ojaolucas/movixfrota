@@ -62,9 +62,8 @@ class MovixRouter {
         const render = this.routes[hash];
         if (render) {
             if (this.currentRoute !== hash && window.movixApp) {
-                const state = window.movixApp.getListState(hash);
-                if (state) {
-                    state.scroll = 0;
+                if (window.movixApp.listStates) {
+                    delete window.movixApp.listStates[hash];
                 }
             }
             this.currentRoute = hash;
