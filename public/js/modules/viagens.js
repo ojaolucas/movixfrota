@@ -634,8 +634,10 @@
                     if (conflictTrip) {
                         const vehicle = vehicles.find(v => v.id === veiculoId);
                         const placa = vehicle ? vehicle.placa : 'N/A';
+                        const dateFormatted = conflictTrip.dataSaida.split('-').reverse().join('/');
+                        const timeFormatted = conflictTrip.horaSaida || 'N/A';
                         window.movixApp.showConfirmModal(
-                            `O veículo de placa ${placa} já está vinculado à viagem em andamento de ${conflictTrip.origem} para ${conflictTrip.destino}. Deseja utilizar este veículo mesmo assim?`,
+                            `O veículo de placa ${placa} já está vinculado à viagem em andamento de ${conflictTrip.origem} para ${conflictTrip.destino}, iniciada em ${dateFormatted} às ${timeFormatted}. Deseja utilizar este veículo mesmo assim?`,
                             () => {
                                 // keep selection
                             },
@@ -659,8 +661,10 @@
                         if (conflictTrip) {
                             const driver = drivers.find(d => d.id === motoristaId);
                             const driverName = driver ? driver.nome : 'N/A';
+                            const dateFormatted = conflictTrip.dataSaida.split('-').reverse().join('/');
+                            const timeFormatted = conflictTrip.horaSaida || 'N/A';
                             window.movixApp.showConfirmModal(
-                                `O motorista ${driverName} já está vinculado à viagem em andamento de ${conflictTrip.origem} para ${conflictTrip.destino}. Deseja escalar este motorista mesmo assim?`,
+                                `O motorista ${driverName} já está vinculado à viagem em andamento de ${conflictTrip.origem} para ${conflictTrip.destino}, iniciada em ${dateFormatted} às ${timeFormatted}. Deseja escalar este motorista mesmo assim?`,
                                 () => {
                                     // keep selection
                                 },

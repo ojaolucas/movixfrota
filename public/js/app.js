@@ -662,7 +662,7 @@ class MovixApp {
             <p style="margin: 0; font-size: 0.95rem; line-height: 1.5; color: var(--text-muted, #64748b);">${message}</p>
             <div style="display: flex; gap: 12px; margin-top: 8px;">
                 <button id="confirm-btn-corrigir" class="btn btn-secondary" style="flex: 1; justify-content: center; font-weight: 700; height: 38px;">Corrigir</button>
-                <button id="confirm-btn-continuar" class="btn btn-primary" style="flex: 1; justify-content: center; font-weight: 700; height: 38px; background-color: var(--warning, #f59e0b); border-color: var(--warning, #f59e0b); color: #fff;">Continuar</button>
+                <button id="confirm-btn-continuar" class="btn btn-primary" style="flex: 1; justify-content: center; font-weight: 700; height: 38px; color: #fff;">Continuar</button>
             </div>
         `;
 
