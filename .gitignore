@@ -12,3 +12,5 @@ yarn-error.log*
 .env.staging
 data/*.bak
 public/uploads/
+template-clean/
+
