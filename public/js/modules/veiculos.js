@@ -339,6 +339,7 @@
                 <div class="form-group full-width" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 8px;">
                     <label>Tipo de Veículo <span class="required">*</span></label>
                     <select class="form-control" name="tipo" id="veh-tipo" required>
+                        <option value="" disabled ${!isEdit ? 'selected' : ''}>Selecione...</option>
                         <option value="Moto" ${isEdit && vehicle.tipo === 'Moto' ? 'selected' : ''}>Moto</option>
                         <option value="Passeio" ${isEdit && vehicle.tipo === 'Passeio' ? 'selected' : ''}>Passeio</option>
                         <option value="Utilitário" ${isEdit && vehicle.tipo === 'Utilitário' ? 'selected' : ''}>Utilitário</option>
@@ -389,6 +390,18 @@
                     <label>Quantidade de Pneus (Calculado)</label>
                     <input type="number" class="form-control" name="qtdPneus" id="veh-qtdpneus" readonly value="${isEdit ? (vehicle.qtdPneus || 6) : 6}">
                 </div>
+                <div class="form-group" id="veh-tipo-implemento-group" style="display: none;">
+                    <label>Tipo do Implemento <span class="required">*</span></label>
+                    <select class="form-control" name="tipoImplemento" id="veh-tipo-implemento">
+                        <option value="" disabled ${!isEdit ? 'selected' : ''}>Selecione...</option>
+                        <option value="Carrocinha" ${isEdit && vehicle.tipoImplemento === 'Carrocinha' ? 'selected' : ''}>Carrocinha</option>
+                        <option value="Reboque" ${isEdit && vehicle.tipoImplemento === 'Reboque' ? 'selected' : ''}>Reboque</option>
+                        <option value="Carreta" ${isEdit && vehicle.tipoImplemento === 'Carreta' ? 'selected' : ''}>Carreta</option>
+                        <option value="Semirreboque" ${isEdit && vehicle.tipoImplemento === 'Semirreboque' ? 'selected' : ''}>Semirreboque</option>
+                        <option value="Trailer" ${isEdit && vehicle.tipoImplemento === 'Trailer' ? 'selected' : ''}>Trailer</option>
+                        <option value="Outro" ${isEdit && vehicle.tipoImplemento === 'Outro' ? 'selected' : ''}>Outro</option>
+                    </select>
+                </div>
 
                 <div class="form-group full-width" id="veh-eixos-config-wrapper" style="border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: var(--bg-surface-hover); margin-bottom: 12px; grid-column: span 2;">
                     <label style="font-weight: 700; color: var(--primary); margin-bottom: 8px; display: block;"><i class="fa-solid fa-gears"></i> Detalhamento de Rodagem dos Eixos</label>
@@ -419,17 +432,6 @@
 
                 <!-- TRAILER/IMPLEMENT FIELDS -->
                 <div id="trailer-fields-container" class="grid-1-1" style="grid-column: span 2; display: none;">
-                    <div class="form-group">
-                        <label>Tipo do Implemento <span class="required">*</span></label>
-                        <select class="form-control" name="tipoImplemento" id="veh-tipo-implemento">
-                            <option value="Carrocinha" ${isEdit && vehicle.tipoImplemento === 'Carrocinha' ? 'selected' : ''}>Carrocinha</option>
-                            <option value="Reboque" ${isEdit && vehicle.tipoImplemento === 'Reboque' ? 'selected' : ''}>Reboque</option>
-                            <option value="Carreta" ${isEdit && vehicle.tipoImplemento === 'Carreta' ? 'selected' : ''}>Carreta</option>
-                            <option value="Semirreboque" ${isEdit && vehicle.tipoImplemento === 'Semirreboque' ? 'selected' : ''}>Semirreboque</option>
-                            <option value="Trailer" ${isEdit && vehicle.tipoImplemento === 'Trailer' ? 'selected' : ''}>Trailer</option>
-                            <option value="Outro" ${isEdit && vehicle.tipoImplemento === 'Outro' ? 'selected' : ''}>Outro</option>
-                        </select>
-                    </div>
                     <div class="form-group full-width">
                         <label>Capacidade de Carga (kg) <span class="required">*</span></label>
                         <input type="number" class="form-control" name="capacidadeCarga" id="veh-capacidade" min="0" value="${isEdit ? vehicle.capacidadeCarga : ''}" placeholder="Ex: 15000">
@@ -914,6 +916,7 @@
         const vehKmAtual = document.getElementById('veh-kmatual');
 
         const vehTipoImplemento = document.getElementById('veh-tipo-implemento');
+        const vehTipoImplementoGroup = document.getElementById('veh-tipo-implemento-group');
         const vehQtdPneus = document.getElementById('veh-qtdpneus');
         const vehCapacidade = document.getElementById('veh-capacidade');
         const configRodagemGroup = document.getElementById('veh-config-rodagem-group');
@@ -1101,6 +1104,25 @@
 
         const handleTipoToggle = (isFirstLoad = false) => {
             const tipo = vehTipo.value;
+            
+            if (!tipo) {
+                tipoUnidadeSel.value = '';
+                motorizedContainer.style.display = 'none';
+                trailerContainer.style.display = 'none';
+                if (vehTipoImplementoGroup) vehTipoImplementoGroup.style.display = 'none';
+
+                vehCombustivel.removeAttribute('required');
+                vehKmAtual.removeAttribute('required');
+                vehTipoImplemento.removeAttribute('required');
+                vehQtdPneus.removeAttribute('required');
+                vehCapacidade.removeAttribute('required');
+
+                configRodagemGroup.style.display = 'none';
+                qtdEixosGroup.style.display = 'none';
+                eixosConfigWrapper.style.display = 'none';
+                return;
+            }
+
             const isTrailer = (tipo === 'Implemento' || tipo === 'Reboque');
 
             tipoUnidadeSel.value = isTrailer ? 'Implemento/Reboque' : 'Veículo Motorizado';
@@ -1115,6 +1137,8 @@
                 vehTipoImplemento.setAttribute('required', '');
                 vehQtdPneus.setAttribute('required', '');
                 vehCapacidade.setAttribute('required', '');
+
+                if (vehTipoImplementoGroup) vehTipoImplementoGroup.style.display = 'block';
             } else {
                 motorizedContainer.style.display = 'grid';
                 trailerContainer.style.display = 'none';
@@ -1125,6 +1149,8 @@
                 vehTipoImplemento.removeAttribute('required');
                 vehQtdPneus.removeAttribute('required');
                 vehCapacidade.removeAttribute('required');
+
+                if (vehTipoImplementoGroup) vehTipoImplementoGroup.style.display = 'none';
             }
 
             if (tipo === 'Moto') {
@@ -1199,7 +1225,7 @@
             qtdEixosInput.addEventListener('input', updateEixosUI);
         }
 
-        updateEixosUI();
+        handleTipoToggle(true);
 
         // Dynamic visibility logic for insurance
         const possuiSeguroSel = document.getElementById('veh-possui-seguro');
