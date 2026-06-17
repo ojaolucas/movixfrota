@@ -388,7 +388,7 @@
                 </div>
                 <div class="form-group">
                     <label>Quantidade de Pneus (Calculado)</label>
-                    <input type="number" class="form-control" name="qtdPneus" id="veh-qtdpneus" readonly value="${isEdit ? (vehicle.qtdPneus || '') : ''}">
+                    <input type="number" class="form-control" name="qtdPneus" id="veh-qtdpneus" readonly value="${isEdit ? (vehicle.qtdPneus || '') : ''}" placeholder="Automático">
                 </div>
                 <div class="form-group" id="veh-tipo-implemento-group" style="display: none;">
                     <label>Tipo do Implemento <span class="required">*</span></label>
@@ -412,7 +412,7 @@
                 <input type="hidden" name="configEixos" id="veh-config-eixos-json" value="${isEdit && vehicle.configEixos ? (typeof vehicle.configEixos === 'string' ? vehicle.configEixos : JSON.stringify(vehicle.configEixos)) : '[]'}">
 
                 <!-- MOTORIZED VEHICLE FIELDS -->
-                <div id="motorized-fields-container" class="grid-1-1" style="grid-column: span 2;">
+                <div id="motorized-fields-container" style="display: contents;">
                     <div class="form-group">
                         <label>Combustível <span class="required">*</span></label>
                         <select class="form-control" name="combustivel" id="veh-combustivel" required>
@@ -424,15 +424,15 @@
                             <option value="GNV" ${isEdit && vehicle.combustivel === 'GNV' ? 'selected' : ''}>GNV</option>
                         </select>
                     </div>
-                    <div class="form-group full-width">
+                    <div class="form-group">
                         <label>KM Atual <span class="required">*</span></label>
                         <input type="number" class="form-control" name="kmAtual" id="veh-kmatual" required value="${isEdit ? vehicle.kmAtual : ''}" placeholder="Odômetro" min="0">
                     </div>
                 </div>
 
                 <!-- TRAILER/IMPLEMENT FIELDS -->
-                <div id="trailer-fields-container" class="grid-1-1" style="grid-column: span 2; display: none;">
-                    <div class="form-group full-width">
+                <div id="trailer-fields-container" style="display: none;">
+                    <div class="form-group">
                         <label>Capacidade de Carga (kg) <span class="required">*</span></label>
                         <input type="number" class="form-control" name="capacidadeCarga" id="veh-capacidade" min="0" value="${isEdit ? vehicle.capacidadeCarga : ''}" placeholder="Ex: 15000">
                     </div>
@@ -1145,7 +1145,7 @@
 
             if (isTrailer) {
                 motorizedContainer.style.display = 'none';
-                trailerContainer.style.display = 'grid';
+                trailerContainer.style.display = 'contents';
 
                 vehCombustivel.removeAttribute('required');
                 vehKmAtual.removeAttribute('required');
@@ -1156,7 +1156,7 @@
 
                 if (vehTipoImplementoGroup) vehTipoImplementoGroup.style.display = 'block';
             } else {
-                motorizedContainer.style.display = 'grid';
+                motorizedContainer.style.display = 'contents';
                 trailerContainer.style.display = 'none';
 
                 vehCombustivel.setAttribute('required', '');
