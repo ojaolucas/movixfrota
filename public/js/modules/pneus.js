@@ -175,24 +175,6 @@
                             <strong style="font-size: 1.25rem; color: var(--text-main); font-family: var(--font-heading);">${recapadosCount} pneus</strong>
                         </div>
                     </div>
-                    <div class="card" style="padding: 16px; display: flex; align-items: center; gap: 14px; margin-bottom:0; box-shadow: var(--shadow-sm);">
-                        <div style="width: 48px; height: 48px; border-radius: 8px; background-color: #fffbeb; color: #d97706; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
-                            <i class="fa-solid fa-triangle-exclamation"></i>
-                        </div>
-                        <div>
-                            <span style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; display:block;">Próx. Troca (Frota)</span>
-                            <strong style="font-size: 1.25rem; color: var(--text-main); font-family: var(--font-heading);">${alertCount} pneus</strong>
-                        </div>
-                    </div>
-                    <div class="card" style="padding: 16px; display: flex; align-items: center; gap: 14px; margin-bottom:0; box-shadow: var(--shadow-sm);">
-                        <div style="width: 48px; height: 48px; border-radius: 8px; background-color: #fef2f2; color: #dc2626; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
-                            <i class="fa-solid fa-circle-xmark"></i>
-                        </div>
-                        <div>
-                            <span style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; display:block;">Vencidos (Frota)</span>
-                            <strong style="font-size: 1.25rem; color: var(--text-main); font-family: var(--font-heading);">${expiredCount} pneus</strong>
-                        </div>
-                    </div>
                 </div>
             `;
         }
