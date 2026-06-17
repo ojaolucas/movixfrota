@@ -61,7 +61,9 @@ class MovixStore {
                 ...v,
                 kmAtual: parseFloat(v.kmAtual) || 0,
                 valorMensalSeguro: parseFloat(v.valorMensalSeguro) || 0,
-                valorMensalRastreador: parseFloat(v.valorMensalRastreador) || 0
+                valorMensalRastreador: parseFloat(v.valorMensalRastreador) || 0,
+                configRodagem: v.configRodagem || 'Personalizado',
+                configEixos: typeof v.configEixos === 'string' ? JSON.parse(v.configEixos) : (v.configEixos || [])
             }));
             this.state.motoristas = motoristas || [];
             this.state.multas = (multas || []).map(mu => ({
@@ -89,7 +91,8 @@ class MovixStore {
                 ...p,
                 custo: parseFloat(p.custo) || 0,
                 vidaEstimada: parseFloat(p.vidaEstimada) || 0,
-                kmInicial: parseFloat(p.kmInicial) || 0
+                kmInicial: parseFloat(p.kmInicial) || 0,
+                recapado: !!p.recapado
             }));
             this.state.oleos = (oleos || []).map(o => ({
                 ...o,

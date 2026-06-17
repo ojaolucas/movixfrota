@@ -66,6 +66,10 @@ async function initDB() {
 
         // Migration logic for existing tables
         await query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS "rememberToken" VARCHAR(255)`);
+        await query(`ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS "configRodagem" VARCHAR(50) DEFAULT 'Personalizado'`);
+        await query(`ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS "configEixos" JSONB DEFAULT '[]'::jsonb`);
+        await query(`ALTER TABLE pneus ADD COLUMN IF NOT EXISTS "recapado" BOOLEAN DEFAULT FALSE`);
+        await query(`ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS "dataNascimento" VARCHAR(20)`);
 
         // 2. Veiculos Table
         await query(`
@@ -90,6 +94,8 @@ async function initDB() {
                 "tipoImplemento" VARCHAR(50),
                 "qtdPneus" VARCHAR(10),
                 "capacidadeCarga" VARCHAR(50),
+                "configRodagem" VARCHAR(50) DEFAULT 'Personalizado',
+                "configEixos" JSONB DEFAULT '[]'::jsonb,
                 "possuiSeguro" VARCHAR(10) DEFAULT 'Não',
                 "docVeiculoAnexo" TEXT,
                 seguradora VARCHAR(150),
@@ -159,6 +165,7 @@ async function initDB() {
                 endereco TEXT,
                 "cnhAnexo" TEXT,
                 "comprovanteResidenciaAnexo" TEXT,
+                "dataNascimento" VARCHAR(20),
                 observacoes TEXT,
                 historico JSONB DEFAULT '[]'::jsonb
             )
@@ -219,6 +226,7 @@ async function initDB() {
                 status VARCHAR(50) DEFAULT 'Regular',
                 "dataInstalacao" VARCHAR(20),
                 "comprovanteAnexo" TEXT,
+                recapado BOOLEAN DEFAULT FALSE,
                 anotacoes JSONB DEFAULT '[]'::jsonb,
                 historico JSONB DEFAULT '[]'::jsonb
             )

@@ -382,6 +382,10 @@
                     <input type="email" class="form-control" name="email" value="${isEdit && m.email ? m.email : ''}" placeholder="motorista@empresa.com.br">
                 </div>
                 <div class="form-group">
+                    <label>Data de Nascimento</label>
+                    <input type="date" class="form-control" name="dataNascimento" value="${isEdit && m.dataNascimento ? m.dataNascimento : ''}">
+                </div>
+                <div class="form-group">
                     <label>Nº Registro CNH <span class="required">*</span></label>
                     <input type="text" class="form-control" name="cnh" required value="${isEdit ? m.cnh : ''}" placeholder="Apenas números">
                 </div>
@@ -624,6 +628,7 @@
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>RG</span><strong>${m.rg || '-'}</strong></li>
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Telefone</span><strong>${m.telefone}</strong></li>
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>E-mail</span><strong>${m.email || '-'}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Data Nascimento</span><strong>${m.dataNascimento ? m.dataNascimento.split('-').reverse().join('/') : '-'}</strong></li>
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Endereço</span><strong>${m.endereco || '-'}</strong></li>
                 </ul>
 

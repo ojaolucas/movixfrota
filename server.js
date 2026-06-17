@@ -279,6 +279,15 @@ app.post('/api/veiculos', requireAuth, async (req, res) => {
         const kmVal = parseFloat(v.kmAtual) || 0;
         const historicoKM = [{ data: new Date().toISOString().split('T')[0], km: kmVal }];
         
+        let configEixos = v.configEixos;
+        if (typeof configEixos === 'string') {
+            try {
+                configEixos = JSON.parse(configEixos);
+            } catch (e) {
+                configEixos = [];
+            }
+        }
+
         const result = await db.query(`
             INSERT INTO veiculos (
                 id, marca, modelo, ano, cor, tipo, renavam, chassi, placa, combustivel, "kmAtual", "dataAquisicao", status, observacoes, "historicoKM", 
@@ -290,7 +299,7 @@ app.post('/api/veiculos', requireAuth, async (req, res) => {
                 "seloExtintor", "dataFabricacaoExtintor", "dataRecargaExtintor", "validadeExtintor", "proximaRecargaExtintor", "statusExtintor", 
                 "extintorCertificadoAnexo", "extintorComprovanteAnexo", "extintorLaudoAnexo", "extintorNotaFiscalAnexo", "observacoesExtintor", 
                 "possuiTacografo", "marcaTacografo", "modeloTacografo", "numSerieTacografo", "dataInstalacaoTacografo", "dataUltimaAfericaoTacografo", 
-                "validadeAfericaoTacografo", "empresaAfericaoTacografo", "anexoComprovanteTacografo", "observacoesTacografo"
+                "validadeAfericaoTacografo", "empresaAfericaoTacografo", "anexoComprovanteTacografo", "observacoesTacografo", "configRodagem", "configEixos"
             ) VALUES (
                 $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 
                 $16, $17, $18, $19, $20, $21, $22, $23, $24, 
@@ -301,7 +310,7 @@ app.post('/api/veiculos', requireAuth, async (req, res) => {
                 $49, $50, $51, $52, $53, $54, 
                 $55, $56, $57, $58, $59, 
                 $60, $61, $62, $63, $64, $65, 
-                $66, $67, $68, $69
+                $66, $67, $68, $69, $70, $71
             ) RETURNING *
         `, [
             id, v.marca, v.modelo, v.ano, v.cor, v.tipo, v.renavam, v.chassi, v.placa, v.combustivel, kmVal, v.dataAquisicao, v.status || 'disponivel', v.observacoes, JSON.stringify(historicoKM),
@@ -313,7 +322,7 @@ app.post('/api/veiculos', requireAuth, async (req, res) => {
             v.seloExtintor, v.dataFabricacaoExtintor, v.dataRecargaExtintor, v.validadeExtintor, v.proximaRecargaExtintor, v.statusExtintor,
             v.extintorCertificadoAnexo, v.extintorComprovanteAnexo, v.extintorLaudoAnexo, v.extintorNotaFiscalAnexo, v.observacoesExtintor,
             v.possuiTacografo || 'Não', v.marcaTacografo, v.modeloTacografo, v.numSerieTacografo, v.dataInstalacaoTacografo, v.dataUltimaAfericaoTacografo,
-            v.validadeAfericaoTacografo, v.empresaAfericaoTacografo, v.anexoComprovanteTacografo, v.observacoesTacografo
+            v.validadeAfericaoTacografo, v.empresaAfericaoTacografo, v.anexoComprovanteTacografo, v.observacoesTacografo, v.configRodagem || 'Personalizado', JSON.stringify(configEixos || [])
         ]);
 
         await addLog(req.session.nome, req.session.perfil, 'Cadastro', 'Veículo', `Cadastrou veículo ${v.marca} ${v.modelo} (${v.placa})`);
@@ -338,6 +347,15 @@ app.put('/api/veiculos/:id', requireAuth, async (req, res) => {
             historicoKM.push({ data: new Date().toISOString().split('T')[0], km: newKM });
         }
 
+        let configEixos = v.configEixos;
+        if (typeof configEixos === 'string') {
+            try {
+                configEixos = JSON.parse(configEixos);
+            } catch (e) {
+                configEixos = [];
+            }
+        }
+
         const result = await db.query(`
             UPDATE veiculos SET
                 marca = $1, modelo = $2, ano = $3, cor = $4, tipo = $5, renavam = $6, chassi = $7, placa = $8, combustivel = $9, "kmAtual" = $10, "dataAquisicao" = $11, status = $12, observacoes = $13, "historicoKM" = $14,
@@ -349,8 +367,9 @@ app.put('/api/veiculos/:id', requireAuth, async (req, res) => {
                 "seloExtintor" = $48, "dataFabricacaoExtintor" = $49, "dataRecargaExtintor" = $50, "validadeExtintor" = $51, "proximaRecargaExtintor" = $52, "statusExtintor" = $53,
                 "extintorCertificadoAnexo" = $54, "extintorComprovanteAnexo" = $55, "extintorLaudoAnexo" = $56, "extintorNotaFiscalAnexo" = $57, "observacoesExtintor" = $58,
                 "possuiTacografo" = $59, "marcaTacografo" = $60, "modeloTacografo" = $61, "numSerieTacografo" = $62, "dataInstalacaoTacografo" = $63, "dataUltimaAfericaoTacografo" = $64,
-                "validadeAfericaoTacografo" = $65, "empresaAfericaoTacografo" = $66, "anexoComprovanteTacografo" = $67, "observacoesTacografo" = $68
-            WHERE id = $69
+                "validadeAfericaoTacografo" = $65, "empresaAfericaoTacografo" = $66, "anexoComprovanteTacografo" = $67, "observacoesTacografo" = $68,
+                "configRodagem" = $69, "configEixos" = $70
+            WHERE id = $71
             RETURNING *
         `, [
             v.marca, v.modelo, v.ano, v.cor, v.tipo, v.renavam, v.chassi, v.placa, v.combustivel, newKM, v.dataAquisicao, v.status || 'disponivel', v.observacoes, JSON.stringify(historicoKM),
@@ -363,6 +382,7 @@ app.put('/api/veiculos/:id', requireAuth, async (req, res) => {
             v.extintorCertificadoAnexo, v.extintorComprovanteAnexo, v.extintorLaudoAnexo, v.extintorNotaFiscalAnexo, v.observacoesExtintor,
             v.possuiTacografo || 'Não', v.marcaTacografo, v.modeloTacografo, v.numSerieTacografo, v.dataInstalacaoTacografo, v.dataUltimaAfericaoTacografo,
             v.validadeAfericaoTacografo, v.empresaAfericaoTacografo, v.anexoComprovanteTacografo, v.observacoesTacografo,
+            v.configRodagem || 'Personalizado', JSON.stringify(configEixos || []),
             req.params.id
         ]);
 
@@ -407,11 +427,11 @@ app.post('/api/motoristas', requireAuth, async (req, res) => {
         const historico = m.historico || [];
 
         const result = await db.query(`
-            INSERT INTO motoristas (id, nome, cpf, rg, cnh, "categoriaCNH", "dataVencimentoCNH", status, foto, telefone, email, endereco, "cnhAnexo", "comprovanteResidenciaAnexo", observacoes, historico)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+            INSERT INTO motoristas (id, nome, cpf, rg, cnh, "categoriaCNH", "dataVencimentoCNH", status, foto, telefone, email, endereco, "cnhAnexo", "comprovanteResidenciaAnexo", observacoes, historico, "dataNascimento")
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
             RETURNING *
         `, [
-            id, m.nome, m.cpf, m.rg, m.cnh, m.categoriaCNH, m.dataVencimentoCNH, m.status || 'ativo', foto, m.telefone, m.email, m.endereco, m.cnhAnexo, m.comprovanteResidenciaAnexo, m.observacoes, JSON.stringify(historico)
+            id, m.nome, m.cpf, m.rg, m.cnh, m.categoriaCNH, m.dataVencimentoCNH, m.status || 'ativo', foto, m.telefone, m.email, m.endereco, m.cnhAnexo, m.comprovanteResidenciaAnexo, m.observacoes, JSON.stringify(historico), m.dataNascimento || null
         ]);
 
         await addLog(req.session.nome, req.session.perfil, 'Cadastro', 'Motorista', `Cadastrou motorista ${m.nome} (CNH: ${m.cnh})`);
@@ -435,11 +455,11 @@ app.put('/api/motoristas/:id', requireAuth, async (req, res) => {
 
         const result = await db.query(`
             UPDATE motoristas SET
-                nome = $1, cpf = $2, rg = $3, cnh = $4, "categoriaCNH" = $5, "dataVencimentoCNH" = $6, status = $7, foto = $8, telefone = $9, email = $10, endereco = $11, "cnhAnexo" = $12, "comprovanteResidenciaAnexo" = $13, observacoes = $14, historico = $15
-            WHERE id = $16
+                nome = $1, cpf = $2, rg = $3, cnh = $4, "categoriaCNH" = $5, "dataVencimentoCNH" = $6, status = $7, foto = $8, telefone = $9, email = $10, endereco = $11, "cnhAnexo" = $12, "comprovanteResidenciaAnexo" = $13, observacoes = $14, historico = $15, "dataNascimento" = $16
+            WHERE id = $17
             RETURNING *
         `, [
-            m.nome, m.cpf, m.rg, m.cnh, m.categoriaCNH, m.dataVencimentoCNH, m.status || 'ativo', foto, m.telefone, m.email, m.endereco, m.cnhAnexo, m.comprovanteResidenciaAnexo, m.observacoes, JSON.stringify(historico), req.params.id
+            m.nome, m.cpf, m.rg, m.cnh, m.categoriaCNH, m.dataVencimentoCNH, m.status || 'ativo', foto, m.telefone, m.email, m.endereco, m.cnhAnexo, m.comprovanteResidenciaAnexo, m.observacoes, JSON.stringify(historico), m.dataNascimento || null, req.params.id
         ]);
 
         await addLog(req.session.nome, req.session.perfil, 'Edição', 'Motorista', `Editou motorista ${m.nome}`);
@@ -944,18 +964,20 @@ app.post('/api/pneus', requireAuth, async (req, res) => {
     try {
         const p = req.body;
         const id = 'PNE-' + uuidv4().substr(0, 8).toUpperCase();
+        const codigo = p.codigo || ('PNE-' + Math.random().toString(36).substr(2, 6).toUpperCase());
         const kmInicial = parseFloat(p.kmInicial) || 0;
         const vidaEstimada = parseFloat(p.vidaEstimada) || 70000;
         const custo = parseFloat(p.custo) || 0;
+        const recapado = p.recapado === 'true' || p.recapado === true;
         const anotacoes = p.anotacoes || [];
         const historico = p.historico || [];
 
         const result = await db.query(`
-            INSERT INTO pneus (id, codigo, marca, modelo, medida, custo, "vidaEstimada", "kmInicial", "veiculoAtual", posicao, status, "dataInstalacao", "comprovanteAnexo", anotacoes, historico)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+            INSERT INTO pneus (id, codigo, marca, modelo, medida, custo, "vidaEstimada", "kmInicial", "veiculoAtual", posicao, status, "dataInstalacao", "comprovanteAnexo", recapado, anotacoes, historico)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
             RETURNING *
         `, [
-            id, p.codigo, p.marca, p.modelo, p.medida, custo, vidaEstimada, kmInicial, p.veiculoAtual || null, p.posicao, p.status || 'Regular', p.dataInstalacao, p.comprovanteAnexo, JSON.stringify(anotacoes), JSON.stringify(historico)
+            id, codigo, p.marca, p.modelo, p.medida, custo, vidaEstimada, kmInicial, p.veiculoAtual || null, p.posicao, p.status || 'Regular', p.dataInstalacao, p.comprovanteAnexo, recapado, JSON.stringify(anotacoes), JSON.stringify(historico)
         ]);
 
         if (p.veiculoAtual && kmInicial > 0) {
@@ -990,13 +1012,14 @@ app.put('/api/pneus/:id', requireAuth, async (req, res) => {
         const kmInicial = parseFloat(p.kmInicial) || 0;
         const vidaEstimada = parseFloat(p.vidaEstimada) || 70000;
         const custo = parseFloat(p.custo) || 0;
+        const recapado = p.recapado === 'true' || p.recapado === true;
         const anotacoes = p.anotacoes || original.anotacoes || [];
         const historico = p.historico || original.historico || [];
 
         const result = await db.query(`
             UPDATE pneus SET
-                codigo = $1, marca = $2, modelo = $3, medida = $4, custo = $5, "vidaEstimada" = $6, "kmInicial" = $7, "veiculoAtual" = $8, posicao = $9, status = $10, "dataInstalacao" = $11, "comprovanteAnexo" = $12, anotacoes = $13, historico = $14
-            WHERE id = $15
+                codigo = $1, marca = $2, modelo = $3, medida = $4, custo = $5, "vidaEstimada" = $6, "kmInicial" = $7, "veiculoAtual" = $8, posicao = $9, status = $10, "dataInstalacao" = $11, "comprovanteAnexo" = $12, recapado = $13, anotacoes = $14, historico = $15
+            WHERE id = $16
             RETURNING *
         `, [
             p.codigo || original.codigo,
@@ -1011,6 +1034,7 @@ app.put('/api/pneus/:id', requireAuth, async (req, res) => {
             p.status || original.status || 'Regular',
             p.dataInstalacao || original.dataInstalacao,
             p.comprovanteAnexo || original.comprovanteAnexo,
+            recapado,
             JSON.stringify(anotacoes),
             JSON.stringify(historico),
             req.params.id

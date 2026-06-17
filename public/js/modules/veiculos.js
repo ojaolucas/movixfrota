@@ -365,9 +365,31 @@
                     <input type="text" class="form-control" name="placa" required placeholder="AAA-0000 / ABC1D23" value="${isEdit ? vehicle.placa : ''}" ${isEdit ? 'readonly' : ''}>
                 </div>
                 <div class="form-group">
-                    <label>Quantidade de Eixos <span class="required">*</span></label>
-                    <input type="number" class="form-control" name="qtdEixos" required min="1" max="10" value="${isEdit ? (vehicle.qtdEixos || 2) : 2}">
+                    <label>Configuração de Rodagem <span class="required">*</span></label>
+                    <select class="form-control" name="configRodagem" id="veh-config-rodagem" required>
+                        <option value="4x2" ${isEdit && vehicle.configRodagem === '4x2' ? 'selected' : (!isEdit ? 'selected' : '')}>4x2 (Toco)</option>
+                        <option value="6x2" ${isEdit && vehicle.configRodagem === '6x2' ? 'selected' : ''}>6x2 (Truck)</option>
+                        <option value="6x4" ${isEdit && vehicle.configRodagem === '6x4' ? 'selected' : ''}>6x4 (Traçado)</option>
+                        <option value="8x2" ${isEdit && vehicle.configRodagem === '8x2' ? 'selected' : ''}>8x2 (Bitruck)</option>
+                        <option value="Personalizado" ${isEdit && vehicle.configRodagem === 'Personalizado' ? 'selected' : ''}>Personalizado</option>
+                    </select>
                 </div>
+                <div class="form-group" id="veh-qtd-eixos-group" style="display: ${isEdit && vehicle.configRodagem === 'Personalizado' ? 'block' : 'none'};">
+                    <label>Quantidade de Eixos <span class="required">*</span></label>
+                    <input type="number" class="form-control" name="qtdEixos" id="veh-qtd-eixos" min="1" max="10" value="${isEdit ? (vehicle.qtdEixos || 2) : 2}">
+                </div>
+                <div class="form-group">
+                    <label>Quantidade de Pneus (Calculado)</label>
+                    <input type="number" class="form-control" name="qtdPneus" id="veh-qtdpneus" readonly value="${isEdit ? (vehicle.qtdPneus || 6) : 6}">
+                </div>
+
+                <div class="form-group full-width" id="veh-eixos-config-wrapper" style="border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: var(--bg-surface-hover); margin-bottom: 12px; grid-column: span 2;">
+                    <label style="font-weight: 700; color: var(--primary); margin-bottom: 8px; display: block;"><i class="fa-solid fa-gears"></i> Detalhamento de Rodagem dos Eixos</label>
+                    <div id="veh-eixos-config-list" style="display: flex; flex-direction: column; gap: 8px;">
+                        <!-- Injected dynamically -->
+                    </div>
+                </div>
+                <input type="hidden" name="configEixos" id="veh-config-eixos-json" value="${isEdit && vehicle.configEixos ? (typeof vehicle.configEixos === 'string' ? vehicle.configEixos : JSON.stringify(vehicle.configEixos)) : '[]'}">
 
                 <!-- MOTORIZED VEHICLE FIELDS -->
                 <div id="motorized-fields-container" class="grid-1-1" style="grid-column: span 2;">
@@ -410,10 +432,6 @@
                             <option value="Trailer" ${isEdit && vehicle.tipoImplemento === 'Trailer' ? 'selected' : ''}>Trailer</option>
                             <option value="Outro" ${isEdit && vehicle.tipoImplemento === 'Outro' ? 'selected' : ''}>Outro</option>
                         </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Quantidade de Pneus <span class="required">*</span></label>
-                        <input type="number" class="form-control" name="qtdPneus" id="veh-qtdpneus" min="1" value="${isEdit ? vehicle.qtdPneus : ''}" placeholder="Ex: 4, 6, 8, 12">
                     </div>
                     <div class="form-group full-width">
                         <label>Capacidade de Carga (kg) <span class="required">*</span></label>
@@ -932,6 +950,110 @@
             tipoUnidadeSel.addEventListener('change', handleTipoUnidadeToggle);
             handleTipoUnidadeToggle();
         }
+
+        // Setup Eixos dynamic config
+        const configRodagemSel = document.getElementById('veh-config-rodagem');
+        const qtdEixosInput = document.getElementById('veh-qtd-eixos');
+        const qtdEixosGroup = document.getElementById('veh-qtd-eixos-group');
+        const eixosConfigList = document.getElementById('veh-eixos-config-list');
+        const configEixosJsonInput = document.getElementById('veh-config-eixos-json');
+
+        let configEixos = [];
+        if (isEdit && vehicle.configEixos) {
+            configEixos = typeof vehicle.configEixos === 'string' ? JSON.parse(vehicle.configEixos) : vehicle.configEixos;
+        }
+
+        const calculateTotals = () => {
+            let totalPneus = 0;
+            const axleSelects = document.querySelectorAll('.axle-type-select');
+            const axlesData = [];
+            
+            axleSelects.forEach(sel => {
+                const eixo = parseInt(sel.getAttribute('data-eixo'));
+                const tipo = sel.value;
+                totalPneus += (tipo === 'Simples' ? 2 : 4);
+                axlesData.push({ eixo, tipo });
+            });
+
+            if (vehQtdPneus) {
+                vehQtdPneus.value = totalPneus;
+            }
+            if (configEixosJsonInput) {
+                configEixosJsonInput.value = JSON.stringify(axlesData);
+            }
+        };
+
+        const updateEixosUI = () => {
+            const rodagem = configRodagemSel.value;
+            let axles = [];
+
+            if (rodagem === '4x2') {
+                qtdEixosGroup.style.display = 'none';
+                qtdEixosInput.value = 2;
+                axles = [
+                    { eixo: 1, tipo: 'Simples' },
+                    { eixo: 2, tipo: 'Dupla' }
+                ];
+            } else if (rodagem === '6x2' || rodagem === '6x4') {
+                qtdEixosGroup.style.display = 'none';
+                qtdEixosInput.value = 3;
+                axles = [
+                    { eixo: 1, tipo: 'Simples' },
+                    { eixo: 2, tipo: 'Dupla' },
+                    { eixo: 3, tipo: 'Dupla' }
+                ];
+            } else if (rodagem === '8x2') {
+                qtdEixosGroup.style.display = 'none';
+                qtdEixosInput.value = 4;
+                axles = [
+                    { eixo: 1, tipo: 'Simples' },
+                    {
+                        eixo: 2, tipo: 'Simples'
+                    },
+                    { eixo: 3, tipo: 'Dupla' },
+                    { eixo: 4, tipo: 'Dupla' }
+                ];
+            } else {
+                // Personalizado
+                qtdEixosGroup.style.display = 'block';
+                const count = parseInt(qtdEixosInput.value) || 2;
+                
+                for (let i = 1; i <= count; i++) {
+                    const selectEl = document.getElementById(`veh-axle-type-${i}`);
+                    const existingTipo = selectEl ? selectEl.value : (configEixos[i-1] ? configEixos[i-1].tipo : (i === 1 ? 'Simples' : 'Dupla'));
+                    axles.push({ eixo: i, tipo: existingTipo });
+                }
+            }
+
+            eixosConfigList.innerHTML = axles.map(ax => {
+                const isPreset = rodagem !== 'Personalizado';
+                return `
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 6px;">
+                        <span style="font-weight: 600; font-size: 0.85rem;"><i class="fa-solid fa-truck-pickup text-muted"></i> Eixo ${ax.eixo}</span>
+                        <select class="form-control axle-type-select" id="veh-axle-type-${ax.eixo}" data-eixo="${ax.eixo}" style="width: 140px; height: 32px; padding: 0 8px; font-size: 0.8rem;" ${isPreset ? 'disabled' : ''}>
+                            <option value="Simples" ${ax.tipo === 'Simples' ? 'selected' : ''}>Simples (2 rodas)</option>
+                            <option value="Dupla" ${ax.tipo === 'Dupla' ? 'selected' : ''}>Dupla (4 rodas)</option>
+                        </select>
+                    </div>
+                `;
+            }).join('');
+
+            document.querySelectorAll('.axle-type-select').forEach(sel => {
+                sel.addEventListener('change', calculateTotals);
+            });
+
+            calculateTotals();
+        };
+
+        if (configRodagemSel) {
+            configRodagemSel.addEventListener('change', updateEixosUI);
+        }
+        if (qtdEixosInput) {
+            qtdEixosInput.addEventListener('input', updateEixosUI);
+        }
+
+        // Initialize axles UI
+        updateEixosUI();
 
         // Dynamic visibility logic for insurance
         const possuiSeguroSel = document.getElementById('veh-possui-seguro');
