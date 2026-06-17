@@ -20,6 +20,19 @@
         function getPositionsForVehicle(vehicle) {
             if (!vehicle) return [];
             
+            const tipo = vehicle.tipo || 'Passeio';
+            
+            if (tipo === 'Moto') {
+                return ['Dianteiro', 'Traseiro'];
+            }
+            
+            if (tipo === 'Passeio') {
+                return [
+                    'Dianteiro Esquerdo', 'Dianteiro Direito',
+                    'Traseiro Esquerdo', 'Traseiro Direito'
+                ];
+            }
+            
             let configEixos = vehicle.configEixos;
             if (typeof configEixos === 'string') {
                 try {
@@ -47,19 +60,18 @@
             }
 
             // Fallback for legacy vehicles
-            const qtdEixos = parseInt(vehicle.qtdEixos) || 2;
-            const isTrailer = vehicle.tipoUnidade === 'Implemento/Reboque';
-            const isMultiAxle = qtdEixos > 2;
+            if (tipo === 'Utilitário') {
+                return [
+                    'Dianteiro Esquerdo', 'Dianteiro Direito',
+                    'Traseiro Esquerdo', 'Traseiro Direito'
+                ];
+            }
 
+            const qtdEixos = parseInt(vehicle.qtdEixos) || 2;
             const positions = [];
-            if (!isTrailer && !isMultiAxle) {
-                positions.push('Dianteiro Esquerdo', 'Dianteiro Direito');
-                positions.push('Traseiro Esquerdo', 'Traseiro Direito');
-            } else {
-                for (let i = 1; i <= qtdEixos; i++) {
-                    positions.push(`Eixo ${i} Esquerdo`);
-                    positions.push(`Eixo ${i} Direito`);
-                }
+            for (let i = 1; i <= qtdEixos; i++) {
+                positions.push(`Eixo ${i} - Esquerdo`);
+                positions.push(`Eixo ${i} - Direito`);
             }
             return positions;
         }
@@ -452,24 +464,33 @@
                 });
             } else {
                 // Fallback rendering
-                const isTrailer = selectedVeh.tipoUnidade === 'Implemento/Reboque';
-                const isMultiAxle = qtdEixos > 2;
+                const tipo = selectedVeh.tipo || 'Passeio';
 
-                if (!isTrailer && !isMultiAxle) {
+                if (tipo === 'Moto') {
                     axlesHTML = `
-                        <!-- Eixo Dianteiro -->
-                        <div style="display:flex; justify-content:space-between; width:100%; align-items:center; position:relative; padding: 0 40px;">
-                            <div style="position:absolute; width:100%; height:4px; background-color:#334155; left:0; z-index:1;"></div>
+                        <!-- Moto Layout -->
+                        <div style="display:flex; flex-direction:column; align-items:center; gap:40px; position:relative; padding: 20px 0; width: 100%;">
+                            <div style="position:absolute; width:6px; height:100%; background-color:#475569; left:calc(50% - 3px); z-index:1;"></div>
+                            ${renderSingleTireCard(activeTires, 'Dianteiro', 'Dianteiro')}
+                            ${renderSingleTireCard(activeTires, 'Traseiro', 'Traseiro')}
+                        </div>
+                    `;
+                } else if (tipo === 'Passeio' || tipo === 'Utilitário') {
+                    axlesHTML = `
+                        <!-- Eixo Dianteiro Leve -->
+                        <div style="display:flex; justify-content:space-between; width:100%; align-items:center; position:relative; margin: 15px 0; padding: 0 40px;">
+                            <div style="width: calc(100% - 170px); height: 6px; background-color: #475569; position:absolute; left:85px; z-index: 1;"></div>
                             ${renderSingleTireCard(activeTires, 'Dianteiro Esquerdo', 'Diant. Esq.')}
                             ${renderSingleTireCard(activeTires, 'Dianteiro Direito', 'Diant. Dir.')}
                         </div>
+                        
+                        <div style="display: flex; justify-content: center; width: 100%; height: 50px; margin: -15px 0;">
+                            <div style="width: 8px; height: 100%; background-color: #475569;"></div>
+                        </div>
 
-                        <!-- Axle structural bridge -->
-                        <div style="width:8px; height:40px; background-color:#334155;"></div>
-
-                        <!-- Eixo Traseiro -->
-                        <div style="display:flex; justify-content:space-between; width:100%; align-items:center; position:relative; padding: 0 40px;">
-                            <div style="position:absolute; width:100%; height:4px; background-color:#334155; left:0; z-index:1;"></div>
+                        <!-- Eixo Traseiro Leve -->
+                        <div style="display:flex; justify-content:space-between; width:100%; align-items:center; position:relative; margin: 15px 0; padding: 0 40px;">
+                            <div style="width: calc(100% - 170px); height: 6px; background-color: #475569; position:absolute; left:85px; z-index: 1;"></div>
                             ${renderSingleTireCard(activeTires, 'Traseiro Esquerdo', 'Tras. Esq.')}
                             ${renderSingleTireCard(activeTires, 'Traseiro Direito', 'Tras. Dir.')}
                         </div>

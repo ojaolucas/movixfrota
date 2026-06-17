@@ -335,14 +335,21 @@
 
         modalBody.innerHTML = `
             <form id="form-veiculo" class="form-grid">
-                <!-- TIPO DA UNIDADE -->
+                <!-- TIPO DE VEÍCULO -->
                 <div class="form-group full-width" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 8px;">
-                    <label>Tipo da Unidade <span class="required">*</span></label>
-                    <select class="form-control" name="tipoUnidade" id="veh-tipo-unidade" required>
-                        <option value="Veículo Motorizado" ${isEdit && vehicle.tipoUnidade === 'Veículo Motorizado' ? 'selected' : (!isEdit ? 'selected' : '')}>Veículo Motorizado</option>
-                        <option value="Implemento/Reboque" ${isEdit && vehicle.tipoUnidade === 'Implemento/Reboque' ? 'selected' : ''}>Implemento/Reboque</option>
+                    <label>Tipo de Veículo <span class="required">*</span></label>
+                    <select class="form-control" name="tipo" id="veh-tipo" required>
+                        <option value="Moto" ${isEdit && vehicle.tipo === 'Moto' ? 'selected' : ''}>Moto</option>
+                        <option value="Passeio" ${isEdit && vehicle.tipo === 'Passeio' ? 'selected' : ''}>Passeio</option>
+                        <option value="Utilitário" ${isEdit && vehicle.tipo === 'Utilitário' ? 'selected' : ''}>Utilitário</option>
+                        <option value="Caminhão" ${isEdit && vehicle.tipo === 'Caminhão' ? 'selected' : ''}>Caminhão</option>
+                        <option value="Cavalo Mecânico" ${isEdit && vehicle.tipo === 'Cavalo Mecânico' ? 'selected' : ''}>Cavalo Mecânico</option>
+                        <option value="Implemento" ${isEdit && vehicle.tipo === 'Implemento' ? 'selected' : ''}>Implemento</option>
+                        <option value="Reboque" ${isEdit && vehicle.tipo === 'Reboque' ? 'selected' : ''}>Reboque</option>
+                        <option value="Personalizado" ${isEdit && vehicle.tipo === 'Personalizado' ? 'selected' : ''}>Personalizado</option>
                     </select>
                 </div>
+                <input type="hidden" name="tipoUnidade" id="veh-tipo-unidade" value="${isEdit ? (vehicle.tipoUnidade || 'Veículo Motorizado') : 'Veículo Motorizado'}">
 
                 <div class="form-group">
                     <label>Marca <span class="required">*</span></label>
@@ -364,13 +371,13 @@
                     <label>Placa <span class="required">*</span></label>
                     <input type="text" class="form-control" name="placa" required placeholder="AAA-0000 / ABC1D23" value="${isEdit ? vehicle.placa : ''}" ${isEdit ? 'readonly' : ''}>
                 </div>
-                <div class="form-group">
+                <div class="form-group" id="veh-config-rodagem-group">
                     <label>Configuração de Rodagem <span class="required">*</span></label>
                     <select class="form-control" name="configRodagem" id="veh-config-rodagem" required>
-                        <option value="4x2" ${isEdit && vehicle.configRodagem === '4x2' ? 'selected' : (!isEdit ? 'selected' : '')}>4x2 (Toco)</option>
-                        <option value="6x2" ${isEdit && vehicle.configRodagem === '6x2' ? 'selected' : ''}>6x2 (Truck)</option>
-                        <option value="6x4" ${isEdit && vehicle.configRodagem === '6x4' ? 'selected' : ''}>6x4 (Traçado)</option>
-                        <option value="8x2" ${isEdit && vehicle.configRodagem === '8x2' ? 'selected' : ''}>8x2 (Bitruck)</option>
+                        <option value="4x2" ${isEdit && vehicle.configRodagem === '4x2' ? 'selected' : (!isEdit ? 'selected' : '')}>Toco 4x2</option>
+                        <option value="6x2" ${isEdit && vehicle.configRodagem === '6x2' ? 'selected' : ''}>Truck 6x2</option>
+                        <option value="6x4" ${isEdit && vehicle.configRodagem === '6x4' ? 'selected' : ''}>Traçado 6x4</option>
+                        <option value="8x2" ${isEdit && vehicle.configRodagem === '8x2' ? 'selected' : ''}>Bitruck 8x2</option>
                         <option value="Personalizado" ${isEdit && vehicle.configRodagem === 'Personalizado' ? 'selected' : ''}>Personalizado</option>
                     </select>
                 </div>
@@ -393,16 +400,6 @@
 
                 <!-- MOTORIZED VEHICLE FIELDS -->
                 <div id="motorized-fields-container" class="grid-1-1" style="grid-column: span 2;">
-                    <div class="form-group">
-                        <label>Tipo de Veículo <span class="required">*</span></label>
-                        <select class="form-control" name="tipo" id="veh-tipo-motorizado" required>
-                            <option value="Caminhão" ${isEdit && vehicle.tipo === 'Caminhão' ? 'selected' : ''}>Caminhão</option>
-                            <option value="Van/Furgão" ${isEdit && vehicle.tipo === 'Van/Furgão' ? 'selected' : ''}>Van/Furgão</option>
-                            <option value="Utilitário" ${isEdit && vehicle.tipo === 'Utilitário' ? 'selected' : ''}>Utilitário</option>
-                            <option value="Passeio" ${isEdit && vehicle.tipo === 'Passeio' ? 'selected' : ''}>Passeio</option>
-                            <option value="Picape" ${isEdit && vehicle.tipo === 'Picape' ? 'selected' : ''}>Picape</option>
-                        </select>
-                    </div>
                     <div class="form-group">
                         <label>Combustível <span class="required">*</span></label>
                         <select class="form-control" name="combustivel" id="veh-combustivel" required>
@@ -912,47 +909,17 @@
         const motorizedContainer = document.getElementById('motorized-fields-container');
         const trailerContainer = document.getElementById('trailer-fields-container');
 
-        const vehTipoMotorizado = document.getElementById('veh-tipo-motorizado');
+        const vehTipo = document.getElementById('veh-tipo');
         const vehCombustivel = document.getElementById('veh-combustivel');
         const vehKmAtual = document.getElementById('veh-kmatual');
 
         const vehTipoImplemento = document.getElementById('veh-tipo-implemento');
         const vehQtdPneus = document.getElementById('veh-qtdpneus');
         const vehCapacidade = document.getElementById('veh-capacidade');
-
-        const handleTipoUnidadeToggle = () => {
-            if (tipoUnidadeSel.value === 'Implemento/Reboque') {
-                motorizedContainer.style.display = 'none';
-                trailerContainer.style.display = 'grid';
-
-                vehTipoMotorizado.removeAttribute('required');
-                vehCombustivel.removeAttribute('required');
-                vehKmAtual.removeAttribute('required');
-
-                vehTipoImplemento.setAttribute('required', '');
-                vehQtdPneus.setAttribute('required', '');
-                vehCapacidade.setAttribute('required', '');
-            } else {
-                motorizedContainer.style.display = 'grid';
-                trailerContainer.style.display = 'none';
-
-                vehTipoMotorizado.setAttribute('required', '');
-                vehCombustivel.setAttribute('required', '');
-                vehKmAtual.setAttribute('required', '');
-
-                vehTipoImplemento.removeAttribute('required');
-                vehQtdPneus.removeAttribute('required');
-                vehCapacidade.removeAttribute('required');
-            }
-        };
-
-        if (tipoUnidadeSel) {
-            tipoUnidadeSel.addEventListener('change', handleTipoUnidadeToggle);
-            handleTipoUnidadeToggle();
-        }
-
-        // Setup Eixos dynamic config
+        const configRodagemGroup = document.getElementById('veh-config-rodagem-group');
         const configRodagemSel = document.getElementById('veh-config-rodagem');
+        const eixosConfigWrapper = document.getElementById('veh-eixos-config-wrapper');
+
         const qtdEixosInput = document.getElementById('veh-qtd-eixos');
         const qtdEixosGroup = document.getElementById('veh-qtd-eixos-group');
         const eixosConfigList = document.getElementById('veh-eixos-config-list');
@@ -964,6 +931,17 @@
         }
 
         const calculateTotals = () => {
+            const tipo = vehTipo.value;
+            if (tipo === 'Moto') {
+                vehQtdPneus.value = 2;
+                if (configEixosJsonInput) configEixosJsonInput.value = '[]';
+                return;
+            } else if (tipo === 'Passeio') {
+                vehQtdPneus.value = 4;
+                if (configEixosJsonInput) configEixosJsonInput.value = '[]';
+                return;
+            }
+
             let totalPneus = 0;
             const axleSelects = document.querySelectorAll('.axle-type-select');
             const axlesData = [];
@@ -983,50 +961,8 @@
             }
         };
 
-        const updateEixosUI = () => {
-            const rodagem = configRodagemSel.value;
-            let axles = [];
-
-            if (rodagem === '4x2') {
-                qtdEixosGroup.style.display = 'none';
-                qtdEixosInput.value = 2;
-                axles = [
-                    { eixo: 1, tipo: 'Simples' },
-                    { eixo: 2, tipo: 'Dupla' }
-                ];
-            } else if (rodagem === '6x2' || rodagem === '6x4') {
-                qtdEixosGroup.style.display = 'none';
-                qtdEixosInput.value = 3;
-                axles = [
-                    { eixo: 1, tipo: 'Simples' },
-                    { eixo: 2, tipo: 'Dupla' },
-                    { eixo: 3, tipo: 'Dupla' }
-                ];
-            } else if (rodagem === '8x2') {
-                qtdEixosGroup.style.display = 'none';
-                qtdEixosInput.value = 4;
-                axles = [
-                    { eixo: 1, tipo: 'Simples' },
-                    {
-                        eixo: 2, tipo: 'Simples'
-                    },
-                    { eixo: 3, tipo: 'Dupla' },
-                    { eixo: 4, tipo: 'Dupla' }
-                ];
-            } else {
-                // Personalizado
-                qtdEixosGroup.style.display = 'block';
-                const count = parseInt(qtdEixosInput.value) || 2;
-                
-                for (let i = 1; i <= count; i++) {
-                    const selectEl = document.getElementById(`veh-axle-type-${i}`);
-                    const existingTipo = selectEl ? selectEl.value : (configEixos[i-1] ? configEixos[i-1].tipo : (i === 1 ? 'Simples' : 'Dupla'));
-                    axles.push({ eixo: i, tipo: existingTipo });
-                }
-            }
-
+        const renderEixosList = (axles, isPreset) => {
             eixosConfigList.innerHTML = axles.map(ax => {
-                const isPreset = rodagem !== 'Personalizado';
                 return `
                     <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 6px;">
                         <span style="font-weight: 600; font-size: 0.85rem;"><i class="fa-solid fa-truck-pickup text-muted"></i> Eixo ${ax.eixo}</span>
@@ -1045,14 +981,224 @@
             calculateTotals();
         };
 
+        const updateEixosUI = () => {
+            const tipo = vehTipo.value;
+            const rodagem = configRodagemSel.value;
+            let axles = [];
+
+            if (tipo === 'Moto') {
+                qtdEixosInput.value = 2;
+                vehQtdPneus.value = 2;
+                configEixosJsonInput.value = '[]';
+                return;
+            } else if (tipo === 'Passeio') {
+                qtdEixosInput.value = 2;
+                vehQtdPneus.value = 4;
+                configEixosJsonInput.value = '[]';
+                return;
+            }
+
+            const isTrailer = (tipo === 'Implemento' || tipo === 'Reboque');
+
+            if (isTrailer) {
+                const count = parseInt(qtdEixosInput.value) || 2;
+                for (let i = 1; i <= count; i++) {
+                    const selectEl = document.getElementById(`veh-axle-type-${i}`);
+                    const existingTipo = selectEl ? selectEl.value : (configEixos[i-1] ? configEixos[i-1].tipo : 'Dupla');
+                    axles.push({ eixo: i, tipo: existingTipo });
+                }
+                renderEixosList(axles, false);
+            } else {
+                if (tipo === 'Utilitário') {
+                    if (rodagem === 'Personalizado') {
+                        qtdEixosGroup.style.display = 'block';
+                        const count = parseInt(qtdEixosInput.value) || 2;
+                        for (let i = 1; i <= count; i++) {
+                            const selectEl = document.getElementById(`veh-axle-type-${i}`);
+                            const existingTipo = selectEl ? selectEl.value : (configEixos[i-1] ? configEixos[i-1].tipo : 'Simples');
+                            axles.push({ eixo: i, tipo: existingTipo });
+                        }
+                        renderEixosList(axles, false);
+                    } else {
+                        qtdEixosGroup.style.display = 'none';
+                        qtdEixosInput.value = 2;
+                        axles = [
+                            { eixo: 1, tipo: 'Simples' },
+                            { eixo: 2, tipo: 'Simples' }
+                        ];
+                        renderEixosList(axles, true);
+                    }
+                } else {
+                    if (rodagem === '4x2') {
+                        qtdEixosGroup.style.display = 'none';
+                        qtdEixosInput.value = 2;
+                        axles = [
+                            { eixo: 1, tipo: 'Simples' },
+                            { eixo: 2, tipo: 'Dupla' }
+                        ];
+                        renderEixosList(axles, true);
+                    } else if (rodagem === '6x2' || rodagem === '6x4') {
+                        qtdEixosGroup.style.display = 'none';
+                        qtdEixosInput.value = 3;
+                        axles = [
+                            { eixo: 1, tipo: 'Simples' },
+                            { eixo: 2, tipo: 'Dupla' },
+                            { eixo: 3, tipo: 'Dupla' }
+                        ];
+                        renderEixosList(axles, true);
+                    } else if (rodagem === '8x2') {
+                        qtdEixosGroup.style.display = 'none';
+                        qtdEixosInput.value = 4;
+                        axles = [
+                            { eixo: 1, tipo: 'Simples' },
+                            { eixo: 2, tipo: 'Simples' },
+                            { eixo: 3, tipo: 'Dupla' },
+                            { eixo: 4, tipo: 'Dupla' }
+                        ];
+                        renderEixosList(axles, true);
+                    } else {
+                        qtdEixosGroup.style.display = 'block';
+                        const count = parseInt(qtdEixosInput.value) || 2;
+                        for (let i = 1; i <= count; i++) {
+                            const selectEl = document.getElementById(`veh-axle-type-${i}`);
+                            const existingTipo = selectEl ? selectEl.value : (configEixos[i-1] ? configEixos[i-1].tipo : (i === 1 ? 'Simples' : 'Dupla'));
+                            axles.push({ eixo: i, tipo: existingTipo });
+                        }
+                        renderEixosList(axles, false);
+                    }
+                }
+            }
+        };
+
+        const applyImplementoSuggestion = () => {
+            const impType = vehTipoImplemento.value;
+            let suggestedEixos = 2;
+            let suggestedType = 'Dupla';
+
+            if (impType === 'Carrocinha') {
+                suggestedEixos = 1;
+                suggestedType = 'Simples';
+            } else if (impType === 'Reboque' || impType === 'Trailer') {
+                suggestedEixos = 2;
+                suggestedType = 'Simples';
+            } else if (impType === 'Carreta' || impType === 'Semirreboque') {
+                suggestedEixos = 3;
+                suggestedType = 'Dupla';
+            } else if (impType === 'Outro') {
+                return;
+            }
+
+            qtdEixosInput.value = suggestedEixos;
+
+            const axles = [];
+            for (let i = 1; i <= suggestedEixos; i++) {
+                axles.push({ eixo: i, tipo: suggestedType });
+            }
+
+            configEixos = axles;
+            renderEixosList(axles, false);
+        };
+
+        const handleTipoToggle = (isFirstLoad = false) => {
+            const tipo = vehTipo.value;
+            const isTrailer = (tipo === 'Implemento' || tipo === 'Reboque');
+
+            tipoUnidadeSel.value = isTrailer ? 'Implemento/Reboque' : 'Veículo Motorizado';
+
+            if (isTrailer) {
+                motorizedContainer.style.display = 'none';
+                trailerContainer.style.display = 'grid';
+
+                vehCombustivel.removeAttribute('required');
+                vehKmAtual.removeAttribute('required');
+
+                vehTipoImplemento.setAttribute('required', '');
+                vehQtdPneus.setAttribute('required', '');
+                vehCapacidade.setAttribute('required', '');
+            } else {
+                motorizedContainer.style.display = 'grid';
+                trailerContainer.style.display = 'none';
+
+                vehCombustivel.setAttribute('required', '');
+                vehKmAtual.setAttribute('required', '');
+
+                vehTipoImplemento.removeAttribute('required');
+                vehQtdPneus.removeAttribute('required');
+                vehCapacidade.removeAttribute('required');
+            }
+
+            if (tipo === 'Moto') {
+                configRodagemGroup.style.display = 'none';
+                qtdEixosGroup.style.display = 'none';
+                eixosConfigWrapper.style.display = 'none';
+
+                qtdEixosInput.value = 2;
+                vehQtdPneus.value = 2;
+                configEixosJsonInput.value = '[]';
+            } else if (tipo === 'Passeio') {
+                configRodagemGroup.style.display = 'none';
+                qtdEixosGroup.style.display = 'none';
+                eixosConfigWrapper.style.display = 'none';
+
+                qtdEixosInput.value = 2;
+                vehQtdPneus.value = 4;
+                configEixosJsonInput.value = '[]';
+            } else if (tipo === 'Utilitário') {
+                configRodagemGroup.style.display = 'block';
+                qtdEixosGroup.style.display = configRodagemSel.value === 'Personalizado' ? 'block' : 'none';
+                eixosConfigWrapper.style.display = 'block';
+                
+                if (!isEdit && !isFirstLoad) {
+                    configRodagemSel.value = 'Personalizado';
+                }
+                updateEixosUI();
+            } else if (tipo === 'Caminhão' || tipo === 'Cavalo Mecânico') {
+                configRodagemGroup.style.display = 'block';
+                qtdEixosGroup.style.display = configRodagemSel.value === 'Personalizado' ? 'block' : 'none';
+                eixosConfigWrapper.style.display = 'block';
+                
+                if (!isEdit && !isFirstLoad) {
+                    configRodagemSel.value = '4x2';
+                }
+                updateEixosUI();
+            } else if (tipo === 'Implemento' || tipo === 'Reboque') {
+                configRodagemGroup.style.display = 'none';
+                qtdEixosGroup.style.display = 'block';
+                eixosConfigWrapper.style.display = 'block';
+
+                if (!isFirstLoad) {
+                    applyImplementoSuggestion();
+                } else {
+                    updateEixosUI();
+                }
+            } else if (tipo === 'Personalizado') {
+                configRodagemGroup.style.display = 'block';
+                qtdEixosGroup.style.display = 'block';
+                eixosConfigWrapper.style.display = 'block';
+                
+                if (!isEdit && !isFirstLoad) {
+                    configRodagemSel.value = 'Personalizado';
+                }
+                updateEixosUI();
+            }
+        };
+
+        if (vehTipo) {
+            vehTipo.addEventListener('change', () => handleTipoToggle(false));
+        }
+        if (vehTipoImplemento) {
+            vehTipoImplemento.addEventListener('change', applyImplementoSuggestion);
+        }
         if (configRodagemSel) {
-            configRodagemSel.addEventListener('change', updateEixosUI);
+            configRodagemSel.addEventListener('change', () => {
+                qtdEixosGroup.style.display = configRodagemSel.value === 'Personalizado' ? 'block' : 'none';
+                updateEixosUI();
+            });
         }
         if (qtdEixosInput) {
             qtdEixosInput.addEventListener('input', updateEixosUI);
         }
 
-        // Initialize axles UI
         updateEixosUI();
 
         // Dynamic visibility logic for insurance
