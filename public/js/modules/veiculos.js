@@ -362,7 +362,7 @@
                 </div>
                 <div class="form-group">
                     <label>Ano <span class="required">*</span></label>
-                    <input type="number" class="form-control" name="ano" required min="1980" max="2030" value="${isEdit ? vehicle.ano : new Date().getFullYear()}">
+                    <input type="number" class="form-control" name="ano" required min="1980" max="2030" value="${isEdit ? vehicle.ano : ''}" placeholder="Ex: 2026">
                 </div>
                 <div class="form-group">
                     <label>Cor <span class="required">*</span></label>
@@ -388,7 +388,7 @@
                 </div>
                 <div class="form-group">
                     <label>Quantidade de Pneus (Calculado)</label>
-                    <input type="number" class="form-control" name="qtdPneus" id="veh-qtdpneus" readonly value="${isEdit ? (vehicle.qtdPneus || 6) : 6}">
+                    <input type="number" class="form-control" name="qtdPneus" id="veh-qtdpneus" readonly value="${isEdit ? (vehicle.qtdPneus || '') : ''}">
                 </div>
                 <div class="form-group" id="veh-tipo-implemento-group" style="display: none;">
                     <label>Tipo do Implemento <span class="required">*</span></label>
@@ -1075,6 +1075,19 @@
 
         const applyImplementoSuggestion = () => {
             const impType = vehTipoImplemento.value;
+            if (!impType) {
+                qtdEixosInput.value = '';
+                vehQtdPneus.value = '';
+                if (configEixosJsonInput) configEixosJsonInput.value = '[]';
+                eixosConfigList.innerHTML = '';
+                qtdEixosGroup.style.display = 'none';
+                eixosConfigWrapper.style.display = 'none';
+                return;
+            }
+
+            qtdEixosGroup.style.display = 'block';
+            eixosConfigWrapper.style.display = 'block';
+
             let suggestedEixos = 2;
             let suggestedType = 'Dupla';
 
@@ -1088,7 +1101,8 @@
                 suggestedEixos = 3;
                 suggestedType = 'Dupla';
             } else if (impType === 'Outro') {
-                return;
+                suggestedEixos = 2;
+                suggestedType = 'Dupla';
             }
 
             qtdEixosInput.value = suggestedEixos;
@@ -1116,6 +1130,8 @@
                 vehTipoImplemento.removeAttribute('required');
                 vehQtdPneus.removeAttribute('required');
                 vehCapacidade.removeAttribute('required');
+
+                if (vehQtdPneus) vehQtdPneus.value = '';
 
                 configRodagemGroup.style.display = 'none';
                 qtdEixosGroup.style.display = 'none';
@@ -1189,8 +1205,17 @@
                 updateEixosUI();
             } else if (tipo === 'Implemento' || tipo === 'Reboque') {
                 configRodagemGroup.style.display = 'none';
-                qtdEixosGroup.style.display = 'block';
-                eixosConfigWrapper.style.display = 'block';
+                
+                const impType = vehTipoImplemento.value;
+                if (!impType) {
+                    qtdEixosGroup.style.display = 'none';
+                    eixosConfigWrapper.style.display = 'none';
+                    qtdEixosInput.value = '';
+                    vehQtdPneus.value = '';
+                } else {
+                    qtdEixosGroup.style.display = 'block';
+                    eixosConfigWrapper.style.display = 'block';
+                }
 
                 if (!isFirstLoad) {
                     applyImplementoSuggestion();
