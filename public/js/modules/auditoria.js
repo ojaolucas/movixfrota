@@ -121,12 +121,12 @@
                 return matchSearch && matchAction;
             });
 
-            tbody.innerHTML = '';
             if (filteredLogs.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="5" class="search-no-results">Nenhum evento registrado</td></tr>`;
                 return;
             }
 
+            let html = '';
             filteredLogs.forEach(l => {
                 const date = new Date(l.data);
                 const timeStr = `${date.toLocaleDateString('pt-BR')} ${date.toLocaleTimeString('pt-BR')}`;
@@ -138,7 +138,7 @@
                 else if (l.acao === 'Exclusão') actionBadge = '<span class="status-pill vencido" style="font-size:0.7rem;">EXCLUSÃO</span>';
                 else actionBadge = `<span class="status-pill ok" style="font-size:0.7rem; background-color:var(--info-light); color:var(--info);">${l.acao.toUpperCase()}</span>`;
 
-                tbody.innerHTML += `
+                html += `
                     <tr>
                         <td style="font-size:0.8rem; color:var(--text-muted);">${timeStr}</td>
                         <td>
@@ -151,17 +151,18 @@
                     </tr>
                 `;
             });
+            tbody.innerHTML = html;
         }
 
         function renderUsers() {
             const container = document.getElementById('users-list-container');
             if (!container) return;
 
-            container.innerHTML = '';
+            let html = '';
             users.forEach(u => {
                 const isSelected = activeUser.id === u.id;
                 
-                container.innerHTML += `
+                html += `
                     <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-radius:8px; border:1px solid ${isSelected ? 'var(--primary)' : 'var(--border-color)'}; background-color:${isSelected ? 'var(--primary-light)' : 'var(--bg-surface-hover)'}; transition:all var(--transition-fast);">
                         <div style="display:flex; align-items:center; gap:10px;">
                             <img src="${u.foto || '/img/avatar-default.png'}" onerror="this.src='/img/avatar-default.png'" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:1px solid var(--border-color);">
@@ -174,6 +175,7 @@
                     </div>
                 `;
             });
+            container.innerHTML = html;
         }
 
         // Filters events hooks
