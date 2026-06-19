@@ -65,13 +65,17 @@ class MovixStore {
                 configRodagem: v.configRodagem || 'Personalizado',
                 configEixos: typeof v.configEixos === 'string' ? JSON.parse(v.configEixos) : (v.configEixos || [])
             }));
-            this.state.motoristas = motoristas || [];
+            this.state.motoristas = (motoristas || []).map(m => ({
+                ...m,
+                categoria: m.categoria || 'Motorista Efetivo'
+            }));
             this.state.multas = (multas || []).map(mu => ({
                 ...mu,
                 pontos: parseInt(mu.pontos) || 0,
                 valor: parseFloat(mu.valor) || 0,
                 associacaoTipo: mu.associacaoTipo || 'sem_motorista',
-                viagemId: mu.viagemId || null
+                viagemId: mu.viagemId || null,
+                motoristaCategoria: mu.motoristaCategoria || null
             }));
             this.state.abastecimentos = (abastecimentos || []).map(a => ({
                 ...a,
@@ -80,7 +84,8 @@ class MovixStore {
                 valorTotal: parseFloat(a.valorTotal) || 0,
                 kmAtual: parseFloat(a.kmAtual) || 0,
                 kmL: parseFloat(a.kmL) || 0,
-                custoKM: parseFloat(a.custoKM) || 0
+                custoKM: parseFloat(a.custoKM) || 0,
+                motoristaCategoria: a.motoristaCategoria || null
             }));
             this.state.manutencoes = (manutencoes || []).map(m => ({
                 ...m,
@@ -105,7 +110,8 @@ class MovixStore {
                 kmInicial: parseFloat(vi.kmInicial) || 0,
                 kmFinal: parseFloat(vi.kmFinal) || 0,
                 kmRodado: parseFloat(vi.kmRodado) || 0,
-                custos: parseFloat(vi.custos) || 0
+                custos: parseFloat(vi.custos) || 0,
+                motoristaCategoria: vi.motoristaCategoria || null
             }));
             this.state.logs = logs || [];
 
@@ -651,6 +657,7 @@ class MovixStore {
 
         // 1. CNH Expiration Alerts (Drivers)
         this.state.motoristas.forEach(m => {
+            if (m.categoria && m.categoria !== 'Motorista Efetivo') return;
             const expDate = new Date(m.dataVencimentoCNH);
             if (expDate < today) {
                 alerts.push({

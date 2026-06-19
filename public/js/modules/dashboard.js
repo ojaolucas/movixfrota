@@ -67,7 +67,7 @@
         // Active vehicles, motoristas, O.S. and multas
         const vAtivos = metrics.veiculosAtivosCount;
         const implCount = metrics.implementosCount;
-        const motCount = motoristas.length;
+        const motCount = motoristas.filter(m => !m.categoria || m.categoria === 'Motorista Efetivo').length;
         const emManutCount = metrics.veiculosEmManutencao;
         const multasRegCount = metrics.totalMultas;
 

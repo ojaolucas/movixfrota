@@ -305,7 +305,9 @@
                             </div>
                         </td>
                         <td style="font-weight: 700; text-align: right;">R$ ${(parseFloat(m.valor) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-                        <td>${d ? `<span style="font-weight:600;">${d.nome}</span>` : '<span style="color:var(--text-muted); font-style:italic;">Sem motorista</span>'}</td>
+                        <td>
+                            ${d ? `<span style="font-weight:600;">${d.nome}</span><span style="font-size:0.75rem; color:var(--text-muted); display:block; margin-top:2px;">(${m.motoristaCategoria || d.categoria || 'Motorista Efetivo'})</span>` : '<span style="color:var(--text-muted); font-style:italic;">Sem motorista</span>'}
+                        </td>
                         <td style="text-align: center;">${statusPill}</td>
                         <td style="text-align: center; display: flex; justify-content: center; gap: 8px;">
                             <button class="btn-icon-only btn-view" data-id="${m.id}" title="Visualizar Detalhes & Auditoria">
@@ -841,6 +843,7 @@
                             <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Veículo</span><strong style="color:var(--primary);">${v ? `${v.placa} (${v.marca} ${v.modelo})` : '-'}</strong></li>
                             <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Valor da Multa</span><strong style="font-size:1rem; color:var(--text-main);">R$ ${(parseFloat(m.valor) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></li>
                             <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Responsável</span><strong>${d ? d.nome : '<span style="color:var(--text-muted); font-style:italic;">Sem motorista</span>'}</strong></li>
+                            ${d ? `<li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Categoria do Condutor</span><strong>${m.motoristaCategoria || d.categoria || 'Motorista Efetivo'}</strong></li>` : ''}
                             <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Associação do Motorista</span>
                                 <strong>
                                     ${m.associacaoTipo === 'automatica' ? '<span class="status-pill ok" style="font-weight:700;"><i class="fa-solid fa-robot"></i> Associado automaticamente</span>' :

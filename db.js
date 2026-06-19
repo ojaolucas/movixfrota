@@ -159,6 +159,7 @@ async function initDB() {
                 "categoriaCNH" VARCHAR(10) NOT NULL,
                 "dataVencimentoCNH" VARCHAR(20) NOT NULL,
                 status VARCHAR(20) DEFAULT 'ativo',
+                categoria VARCHAR(50) DEFAULT 'Motorista Efetivo',
                 foto TEXT,
                 telefone VARCHAR(20),
                 email VARCHAR(255),
@@ -177,6 +178,7 @@ async function initDB() {
                 id VARCHAR(50) PRIMARY KEY,
                 "veiculoId" VARCHAR(50) REFERENCES veiculos(id) ON DELETE CASCADE,
                 "motoristaId" VARCHAR(50) REFERENCES motoristas(id) ON DELETE SET NULL,
+                "motoristaCategoria" VARCHAR(50) DEFAULT 'Motorista Efetivo',
                 data VARCHAR(20) NOT NULL,
                 combustivel VARCHAR(50) NOT NULL,
                 litros NUMERIC NOT NULL,
@@ -257,6 +259,7 @@ async function initDB() {
                 id VARCHAR(50) PRIMARY KEY,
                 "veiculoId" VARCHAR(50) REFERENCES veiculos(id) ON DELETE CASCADE,
                 "motoristaId" VARCHAR(50) REFERENCES motoristas(id) ON DELETE CASCADE,
+                "motoristaCategoria" VARCHAR(50) DEFAULT 'Motorista Efetivo',
                 "dataSaida" VARCHAR(20) NOT NULL,
                 "horaSaida" VARCHAR(20),
                 "dataRetorno" VARCHAR(20),
@@ -300,6 +303,12 @@ async function initDB() {
         // Migration Alters for Multas
         await query(`ALTER TABLE multas ADD COLUMN IF NOT EXISTS "associacaoTipo" VARCHAR(50) DEFAULT 'sem_motorista'`);
         await query(`ALTER TABLE multas ADD COLUMN IF NOT EXISTS "viagemId" VARCHAR(50) REFERENCES viagens(id) ON DELETE SET NULL`);
+        
+        // Migration Alters for Conductor Categories
+        await query(`ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS "categoria" VARCHAR(50) DEFAULT 'Motorista Efetivo'`);
+        await query(`ALTER TABLE viagens ADD COLUMN IF NOT EXISTS "motoristaCategoria" VARCHAR(50) DEFAULT 'Motorista Efetivo'`);
+        await query(`ALTER TABLE abastecimentos ADD COLUMN IF NOT EXISTS "motoristaCategoria" VARCHAR(50) DEFAULT 'Motorista Efetivo'`);
+        await query(`ALTER TABLE multas ADD COLUMN IF NOT EXISTS "motoristaCategoria" VARCHAR(50) DEFAULT 'Motorista Efetivo'`);
 
         // 10. Logs Table
         await query(`

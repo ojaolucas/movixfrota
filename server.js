@@ -425,16 +425,17 @@ app.post('/api/motoristas', requireAuth, async (req, res) => {
         const id = 'MOT-' + uuidv4().substr(0, 8).toUpperCase();
         const foto = m.foto || '/img/avatar-default.png';
         const historico = m.historico || [];
+        const categoria = m.categoria || 'Motorista Efetivo';
 
         const result = await db.query(`
-            INSERT INTO motoristas (id, nome, cpf, rg, cnh, "categoriaCNH", "dataVencimentoCNH", status, foto, telefone, email, endereco, "cnhAnexo", "comprovanteResidenciaAnexo", observacoes, historico, "dataNascimento")
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+            INSERT INTO motoristas (id, nome, cpf, rg, cnh, "categoriaCNH", "dataVencimentoCNH", status, foto, telefone, email, endereco, "cnhAnexo", "comprovanteResidenciaAnexo", observacoes, historico, "dataNascimento", categoria)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
             RETURNING *
         `, [
-            id, m.nome, m.cpf, m.rg, m.cnh, m.categoriaCNH, m.dataVencimentoCNH, m.status || 'ativo', foto, m.telefone, m.email, m.endereco, m.cnhAnexo, m.comprovanteResidenciaAnexo, m.observacoes, JSON.stringify(historico), m.dataNascimento || null
+            id, m.nome, m.cpf, m.rg, m.cnh, m.categoriaCNH, m.dataVencimentoCNH, m.status || 'ativo', foto, m.telefone, m.email, m.endereco, m.cnhAnexo, m.comprovanteResidenciaAnexo, m.observacoes, JSON.stringify(historico), m.dataNascimento || null, categoria
         ]);
 
-        await addLog(req.session.nome, req.session.perfil, 'Cadastro', 'Motorista', `Cadastrou motorista ${m.nome} (CNH: ${m.cnh})`);
+        await addLog(req.session.nome, req.session.perfil, 'Cadastro', 'Motorista', `Cadastrou condutor ${m.nome} (Categoria: ${categoria}, CNH: ${m.cnh})`);
         res.json(result.rows[0]);
     } catch (err) {
         console.error("Erro ao cadastrar motorista:", err);
@@ -452,17 +453,18 @@ app.put('/api/motoristas/:id', requireAuth, async (req, res) => {
         const original = originalRes.rows[0];
         const foto = m.foto || original.foto;
         const historico = m.historico || original.historico;
+        const categoria = m.categoria || original.categoria || 'Motorista Efetivo';
 
         const result = await db.query(`
             UPDATE motoristas SET
-                nome = $1, cpf = $2, rg = $3, cnh = $4, "categoriaCNH" = $5, "dataVencimentoCNH" = $6, status = $7, foto = $8, telefone = $9, email = $10, endereco = $11, "cnhAnexo" = $12, "comprovanteResidenciaAnexo" = $13, observacoes = $14, historico = $15, "dataNascimento" = $16
-            WHERE id = $17
+                nome = $1, cpf = $2, rg = $3, cnh = $4, "categoriaCNH" = $5, "dataVencimentoCNH" = $6, status = $7, foto = $8, telefone = $9, email = $10, endereco = $11, "cnhAnexo" = $12, "comprovanteResidenciaAnexo" = $13, observacoes = $14, historico = $15, "dataNascimento" = $16, categoria = $17
+            WHERE id = $18
             RETURNING *
         `, [
-            m.nome, m.cpf, m.rg, m.cnh, m.categoriaCNH, m.dataVencimentoCNH, m.status || 'ativo', foto, m.telefone, m.email, m.endereco, m.cnhAnexo, m.comprovanteResidenciaAnexo, m.observacoes, JSON.stringify(historico), m.dataNascimento || null, req.params.id
+            m.nome, m.cpf, m.rg, m.cnh, m.categoriaCNH, m.dataVencimentoCNH, m.status || 'ativo', foto, m.telefone, m.email, m.endereco, m.cnhAnexo, m.comprovanteResidenciaAnexo, m.observacoes, JSON.stringify(historico), m.dataNascimento || null, categoria, req.params.id
         ]);
 
-        await addLog(req.session.nome, req.session.perfil, 'Edição', 'Motorista', `Editou motorista ${m.nome}`);
+        await addLog(req.session.nome, req.session.perfil, 'Edição', 'Motorista', `Editou condutor ${m.nome} (Categoria: ${categoria})`);
         res.json(result.rows[0]);
     } catch (err) {
         console.error("Erro ao editar motorista:", err);
@@ -744,18 +746,24 @@ app.post('/api/abastecimentos', requireAuth, async (req, res) => {
             }
         }
 
+        // Buscar categoria e nome do motorista
+        const driverRes = await db.query('SELECT nome, categoria FROM motoristas WHERE id = $1', [ab.motoristaId]);
+        const driver = driverRes.rows[0];
+        const motoristaCategoria = driver ? (driver.categoria || 'Motorista Efetivo') : 'Motorista Efetivo';
+        const motoristaNome = driver ? driver.nome : 'Deletado';
+
         await db.query(`
-            INSERT INTO abastecimentos (id, "veiculoId", "motoristaId", data, combustivel, litros, "valorLitro", "valorTotal", "kmAtual", posto, comprovante, observacoes, "kmL", "custoKM")
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            INSERT INTO abastecimentos (id, "veiculoId", "motoristaId", "motoristaCategoria", data, combustivel, litros, "valorLitro", "valorTotal", "kmAtual", posto, comprovante, observacoes, "kmL", "custoKM")
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
         `, [
-            id, ab.veiculoId, ab.motoristaId, ab.data, ab.combustivel, litros, valorLitro, valorTotal, kmAtual, ab.posto, ab.comprovante, ab.observacoes, 0, 0
+            id, ab.veiculoId, ab.motoristaId, motoristaCategoria, ab.data, ab.combustivel, litros, valorLitro, valorTotal, kmAtual, ab.posto, ab.comprovante, ab.observacoes, 0, 0
         ]);
 
         // Recalcular médias após o insert
         await recalculateVehicleRefuelings(ab.veiculoId);
 
         const updatedRes = await db.query('SELECT * FROM abastecimentos WHERE id = $1', [id]);
-        await addLog(req.session.nome, req.session.perfil, 'Cadastro', 'Abastecimento', `Registrou abastecimento R$ ${valorTotal.toFixed(2)} - ${veic ? veic.placa : ''}`);
+        await addLog(req.session.nome, req.session.perfil, 'Cadastro', 'Abastecimento', `Registrou abastecimento R$ ${valorTotal.toFixed(2)} - veículo ${veic ? veic.placa : ''}, condutor: ${motoristaNome} (${motoristaCategoria})`);
         res.json(updatedRes.rows[0]);
     } catch (err) {
         console.error("Erro ao cadastrar abastecimento:", err);
@@ -789,13 +797,21 @@ app.put('/api/abastecimentos/:id', requireAuth, async (req, res) => {
             }
         }
 
+        // Buscar categoria e nome do motorista
+        const motoristaId = ab.motoristaId || original.motoristaId;
+        const driverRes = await db.query('SELECT nome, categoria FROM motoristas WHERE id = $1', [motoristaId]);
+        const driver = driverRes.rows[0];
+        const motoristaCategoria = driver ? (driver.categoria || 'Motorista Efetivo') : 'Motorista Efetivo';
+        const motoristaNome = driver ? driver.nome : 'Deletado';
+
         await db.query(`
             UPDATE abastecimentos SET
-                "veiculoId" = $1, "motoristaId" = $2, data = $3, combustivel = $4, litros = $5, "valorLitro" = $6, "valorTotal" = $7, "kmAtual" = $8, posto = $9, comprovante = $10, observacoes = $11
-            WHERE id = $12
+                "veiculoId" = $1, "motoristaId" = $2, "motoristaCategoria" = $3, data = $4, combustivel = $5, litros = $6, "valorLitro" = $7, "valorTotal" = $8, "kmAtual" = $9, posto = $10, comprovante = $11, observacoes = $12
+            WHERE id = $13
         `, [
             ab.veiculoId || original.veiculoId,
             ab.motoristaId || original.motoristaId,
+            motoristaCategoria,
             ab.data || original.data,
             ab.combustivel || original.combustivel,
             litros,
@@ -812,7 +828,7 @@ app.put('/api/abastecimentos/:id', requireAuth, async (req, res) => {
         await recalculateVehicleRefuelings(ab.veiculoId || original.veiculoId);
 
         const updatedRes = await db.query('SELECT * FROM abastecimentos WHERE id = $1', [req.params.id]);
-        await addLog(req.session.nome, req.session.perfil, 'Edição', 'Abastecimento', `Editou abastecimento R$ ${valorTotal.toFixed(2)} - ${veic ? veic.placa : ''}`);
+        await addLog(req.session.nome, req.session.perfil, 'Edição', 'Abastecimento', `Editou abastecimento R$ ${valorTotal.toFixed(2)} - veículo ${veic ? veic.placa : ''}, condutor: ${motoristaNome} (${motoristaCategoria})`);
         res.json(updatedRes.rows[0]);
     } catch (err) {
         console.error("Erro ao atualizar abastecimento:", err);
@@ -1204,6 +1220,9 @@ app.get('/api/viagens', requireAuth, async (req, res) => {
 app.post('/api/viagens', requireAuth, async (req, res) => {
     try {
         const v = req.body;
+        if (!v.veiculoId || !v.motoristaId || !v.dataSaida || !v.origem || !v.destino) {
+            return res.status(400).json({ error: 'Campos obrigatórios ausentes.' });
+        }
         if (!v.horaSaida) {
             return res.status(400).json({ error: 'O horário de saída é obrigatório.' });
         }
@@ -1213,15 +1232,25 @@ app.post('/api/viagens', requireAuth, async (req, res) => {
         const custos = parseFloat(v.custos) || 0;
         const kmRodado = kmFinal > kmInicial ? kmFinal - kmInicial : 0;
 
+        // Buscar categoria e nome do motorista
+        const driverRes = await db.query('SELECT nome, categoria FROM motoristas WHERE id = $1', [v.motoristaId]);
+        const driver = driverRes.rows[0];
+        const motoristaCategoria = driver ? (driver.categoria || 'Motorista Efetivo') : 'Motorista Efetivo';
+        const motoristaNome = driver ? driver.nome : 'Deletado';
+
+        // Buscar placa do veículo
+        const veicRes = await db.query('SELECT placa FROM veiculos WHERE id = $1', [v.veiculoId]);
+        const veiculoPlaca = veicRes.rows[0] ? veicRes.rows[0].placa : 'N/A';
+
         const result = await db.query(`
-            INSERT INTO viagens (id, "veiculoId", "motoristaId", "dataSaida", "horaSaida", "dataRetorno", "horaRetorno", "kmInicial", "kmFinal", origem, destino, status, observacoes, "kmRodado", custos)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+            INSERT INTO viagens (id, "veiculoId", "motoristaId", "motoristaCategoria", "dataSaida", "horaSaida", "dataRetorno", "horaRetorno", "kmInicial", "kmFinal", origem, destino, status, observacoes, "kmRodado", custos)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
             RETURNING *
         `, [
-            id, v.veiculoId, v.motoristaId, v.dataSaida, v.horaSaida, v.dataRetorno, v.horaRetorno, kmInicial, kmFinal, v.origem, v.destino, v.status || 'Em Andamento', v.observacoes, kmRodado, custos
+            id, v.veiculoId, v.motoristaId, motoristaCategoria, v.dataSaida, v.horaSaida, v.dataRetorno, v.horaRetorno, kmInicial, kmFinal, v.origem, v.destino, v.status || 'Em Andamento', v.observacoes, kmRodado, custos
         ]);
 
-        await addLog(req.session.nome, req.session.perfil, 'Cadastro', 'Viagem', `Registrou viagem ${v.origem} → ${v.destino}`);
+        await addLog(req.session.nome, req.session.perfil, 'Cadastro', 'Viagem', `Registrou saída de viagem: veículo ${veiculoPlaca}, condutor ${motoristaNome} (${motoristaCategoria}), rota ${v.origem} → ${v.destino}`);
         res.json(result.rows[0]);
     } catch (err) {
         console.error("Erro ao cadastrar viagem:", err);
@@ -1261,10 +1290,22 @@ app.put('/api/viagens/:id', requireAuth, async (req, res) => {
             }
         }
 
+        // Buscar categoria e nome do motorista
+        const motoristaId = updates.motoristaId !== undefined ? updates.motoristaId : original.motoristaId;
+        const driverRes = await db.query('SELECT nome, categoria FROM motoristas WHERE id = $1', [motoristaId]);
+        const driver = driverRes.rows[0];
+        const motoristaCategoria = driver ? (driver.categoria || 'Motorista Efetivo') : 'Motorista Efetivo';
+        const motoristaNome = driver ? driver.nome : 'Deletado';
+
+        // Buscar placa do veículo
+        const veiculoId = updates.veiculoId || original.veiculoId;
+        const veicRes = await db.query('SELECT placa FROM veiculos WHERE id = $1', [veiculoId]);
+        const veiculoPlaca = veicRes.rows[0] ? veicRes.rows[0].placa : 'N/A';
+
         const result = await db.query(`
             UPDATE viagens SET
-                "veiculoId" = $1, "motoristaId" = $2, "dataSaida" = $3, "horaSaida" = $4, "dataRetorno" = $5, "horaRetorno" = $6, "kmInicial" = $7, "kmFinal" = $8, origem = $9, destino = $10, status = $11, observacoes = $12, "kmRodado" = $13, custos = $14
-            WHERE id = $15
+                "veiculoId" = $1, "motoristaId" = $2, "motoristaCategoria" = $3, "dataSaida" = $4, "horaSaida" = $5, "dataRetorno" = $6, "horaRetorno" = $7, "kmInicial" = $8, "kmFinal" = $9, origem = $10, destino = $11, status = $12, observacoes = $13, "kmRodado" = $14, custos = $15
+            WHERE id = $16
             RETURNING *
         `, [
             updates.veiculoId || original.veiculoId,
@@ -1332,14 +1373,32 @@ app.post('/api/multas', requireAuth, async (req, res) => {
             }
         ];
 
+        // Buscar categoria e nome do motorista
+        const motoristaId = m.motoristaId && m.motoristaId !== "" ? m.motoristaId : null;
+        let motoristaCategoria = null;
+        let motoristaNome = 'Sem motorista';
+        if (motoristaId) {
+            const driverRes = await db.query('SELECT nome, categoria FROM motoristas WHERE id = $1', [motoristaId]);
+            const driver = driverRes.rows[0];
+            if (driver) {
+                motoristaCategoria = driver.categoria || 'Motorista Efetivo';
+                motoristaNome = driver.nome;
+            }
+        }
+
+        // Buscar placa do veículo
+        const veicRes = await db.query('SELECT placa FROM veiculos WHERE id = $1', [m.veiculoId]);
+        const veiculoPlaca = veicRes.rows[0] ? veicRes.rows[0].placa : 'N/A';
+
         const result = await db.query(`
-            INSERT INTO multas (id, "veiculoId", "motoristaId", data, hora, horario, codigo, descricao, gravidade, pontos, valor, status, observacoes, anexo, "anexoBoleto", "anexoComprovante", historico, "associacaoTipo", "viagemId")
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+            INSERT INTO multas (id, "veiculoId", "motoristaId", "motoristaCategoria", data, hora, horario, codigo, descricao, gravidade, pontos, valor, status, observacoes, anexo, "anexoBoleto", "anexoComprovante", historico, "associacaoTipo", "viagemId")
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
             RETURNING *
         `, [
             id,
             m.veiculoId && m.veiculoId !== "" ? m.veiculoId : null,
-            m.motoristaId && m.motoristaId !== "" ? m.motoristaId : null,
+            motoristaId,
+            motoristaCategoria,
             m.data,
             m.hora || m.horario,
             m.horario || m.hora,
@@ -1358,7 +1417,7 @@ app.post('/api/multas', requireAuth, async (req, res) => {
             m.viagemId && m.viagemId !== "" ? m.viagemId : null
         ]);
 
-        await addLog(req.session.nome, req.session.perfil, 'Cadastro', 'Multa', `Registrou multa no valor de R$ ${valor.toFixed(2)}`);
+        await addLog(req.session.nome, req.session.perfil, 'Cadastro', 'Multa', `Registrou multa no valor de R$ ${valor.toFixed(2)} - veículo ${veiculoPlaca}, condutor: ${motoristaNome}${motoristaCategoria ? ` (${motoristaCategoria})` : ''}`);
         res.json(result.rows[0]);
     } catch (err) {
         console.error("Erro ao cadastrar multa:", err);
@@ -1389,14 +1448,33 @@ app.put('/api/multas/:id', requireAuth, async (req, res) => {
             status: m.status || original.status
         });
 
+        // Buscar categoria e nome do motorista
+        const motoristaId = m.motoristaId !== undefined ? (m.motoristaId && m.motoristaId !== "" ? m.motoristaId : null) : original.motoristaId;
+        let motoristaCategoria = null;
+        let motoristaNome = 'Sem motorista';
+        if (motoristaId) {
+            const driverRes = await db.query('SELECT nome, categoria FROM motoristas WHERE id = $1', [motoristaId]);
+            const driver = driverRes.rows[0];
+            if (driver) {
+                motoristaCategoria = driver.categoria || 'Motorista Efetivo';
+                motoristaNome = driver.nome;
+            }
+        }
+
+        // Buscar placa do veículo
+        const veiculoId = m.veiculoId && m.veiculoId !== "" ? m.veiculoId : original.veiculoId;
+        const veicRes = await db.query('SELECT placa FROM veiculos WHERE id = $1', [veiculoId]);
+        const veiculoPlaca = veicRes.rows[0] ? veicRes.rows[0].placa : 'N/A';
+
         const result = await db.query(`
             UPDATE multas SET
-                "veiculoId" = $1, "motoristaId" = $2, data = $3, hora = $4, horario = $5, codigo = $6, descricao = $7, gravidade = $8, pontos = $9, valor = $10, status = $11, observacoes = $12, anexo = $13, "anexoBoleto" = $14, "anexoComprovante" = $15, historico = $16, "associacaoTipo" = $17, "viagemId" = $18
-            WHERE id = $19
+                "veiculoId" = $1, "motoristaId" = $2, "motoristaCategoria" = $3, data = $4, hora = $5, horario = $6, codigo = $7, descricao = $8, gravidade = $9, pontos = $10, valor = $11, status = $12, observacoes = $13, anexo = $14, "anexoBoleto" = $15, "anexoComprovante" = $16, historico = $17, "associacaoTipo" = $18, "viagemId" = $19
+            WHERE id = $20
             RETURNING *
         `, [
-            m.veiculoId && m.veiculoId !== "" ? m.veiculoId : original.veiculoId,
-            m.motoristaId !== undefined ? (m.motoristaId && m.motoristaId !== "" ? m.motoristaId : null) : original.motoristaId,
+            veiculoId,
+            motoristaId,
+            motoristaCategoria,
             m.data || original.data,
             m.hora || m.horario || original.hora,
             m.horario || m.hora || original.horario,
@@ -1416,7 +1494,7 @@ app.put('/api/multas/:id', requireAuth, async (req, res) => {
             req.params.id
         ]);
 
-        await addLog(req.session.nome, req.session.perfil, 'Edição', 'Multa', `Atualizou dados da multa ${req.params.id}`);
+        await addLog(req.session.nome, req.session.perfil, 'Edição', 'Multa', `Atualizou dados da multa ${req.params.id} - veículo ${veiculoPlaca}, condutor: ${motoristaNome}${motoristaCategoria ? ` (${motoristaCategoria})` : ''}`);
         res.json(result.rows[0]);
     } catch (err) {
         console.error("Erro ao atualizar multa:", err);
@@ -1486,7 +1564,7 @@ app.get('/api/metricas', requireAuth, async (req, res) => {
             multasRes
         ] = await Promise.all([
             db.query('SELECT "kmAtual", "historicoKM", status FROM veiculos'),
-            db.query('SELECT status, "dataVencimentoCNH" FROM motoristas'),
+            db.query('SELECT status, "dataVencimentoCNH", categoria FROM motoristas'),
             db.query('SELECT "valorTotal", "kmL" FROM abastecimentos'),
             db.query('SELECT valor, status FROM manutencoes'),
             db.query('SELECT valor FROM oleos'),
@@ -1517,9 +1595,13 @@ app.get('/api/metricas', requireAuth, async (req, res) => {
         const kmlValid = abastecimentos.filter(a => parseFloat(a.kmL) > 0);
         const mediaKML = kmlValid.length > 0 ? kmlValid.reduce((s, a) => s + parseFloat(a.kmL), 0) / kmlValid.length : 0;
 
-        // Alertas rápidos
-        const cnhVencidas = motoristas.filter(m => new Date(m.dataVencimentoCNH) < today).length;
-        const cnhAVencer = motoristas.filter(m => { const d = new Date(m.dataVencimentoCNH); return d >= today && d <= tenDays; }).length;
+        // Filtrar motoristas efetivos para métricas (inclui categoria vazia ou 'Motorista Efetivo')
+        const isEfetivo = m => !m.categoria || m.categoria === 'Motorista Efetivo';
+        const motoristasEfetivos = motoristas.filter(isEfetivo);
+
+        // Alertas rápidos (apenas motoristas efetivos)
+        const cnhVencidas = motoristasEfetivos.filter(m => new Date(m.dataVencimentoCNH) < today).length;
+        const cnhAVencer = motoristasEfetivos.filter(m => { const d = new Date(m.dataVencimentoCNH); return d >= today && d <= tenDays; }).length;
         const manutAtrasadas = manutencoes.filter(m => m.status === 'Atrasada').length;
 
         // Multas metrics
@@ -1535,7 +1617,7 @@ app.get('/api/metricas', requireAuth, async (req, res) => {
             mediaKMLGeral: parseFloat(mediaKML.toFixed(2)) || 9.8,
             veiculosEmManutencao: veiculos.filter(v => v.status === 'em_manutencao').length,
             totalVeiculos: veiculos.length,
-            totalMotoristas: motoristas.filter(m => m.status === 'ativo').length,
+            totalMotoristas: motoristasEfetivos.filter(m => m.status === 'ativo').length,
             cnhsVencidas: cnhVencidas,
             cnhsAVencer: cnhAVencer,
             manutencaoAtrasada: manutAtrasadas,
@@ -1561,7 +1643,7 @@ app.get('/api/alertas', requireAuth, async (req, res) => {
             multasRes,
             pneusRes
         ] = await Promise.all([
-            db.query('SELECT id, nome, "dataVencimentoCNH" FROM motoristas'),
+            db.query('SELECT id, nome, "dataVencimentoCNH", categoria FROM motoristas'),
             db.query('SELECT m.id, m.km, m.tipo, m.status, v.placa, m."veiculoId" FROM manutencoes m LEFT JOIN veiculos v ON m."veiculoId" = v.id WHERE m.status = \'Atrasada\''),
             db.query('SELECT m.id, m.data, m.valor, m.status, v.placa, m."veiculoId" FROM multas m LEFT JOIN veiculos v ON m."veiculoId" = v.id WHERE m.status = \'Não Pago\''),
             db.query('SELECT p.id, p.codigo, p."vidaEstimada", p."kmInicial", v.placa, v."kmAtual" FROM pneus p JOIN veiculos v ON p."veiculoAtual" = v.id WHERE p."veiculoAtual" IS NOT NULL')
@@ -1573,6 +1655,8 @@ app.get('/api/alertas', requireAuth, async (req, res) => {
         const pneus = pneusRes.rows;
 
         motoristas.forEach(m => {
+            // Apenas motoristas efetivos geram alertas de CNH
+            if (m.categoria && m.categoria !== 'Motorista Efetivo') return;
             const exp = new Date(m.dataVencimentoCNH);
             if (exp < today) alerts.push({ id: `ALT-CNH-EXP-${m.id}`, prioridade: 'Alta', titulo: `CNH Vencida: ${m.nome}`, desc: `Venceu em ${m.dataVencimentoCNH}`, link: 'motoristas', targetId: m.id });
             else if (exp <= tenDays) alerts.push({ id: `ALT-CNH-PRX-${m.id}`, prioridade: 'Média', titulo: `CNH a Vencer: ${m.nome}`, desc: `Vence em ${m.dataVencimentoCNH}`, link: 'motoristas', targetId: m.id });

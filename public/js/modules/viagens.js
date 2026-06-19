@@ -30,6 +30,19 @@
 
         activeTabStatus = state.activeTabStatus;
 
+        // KPI Calculations
+        const activeTripsCount = trips.filter(t => t.status && t.status.toLowerCase() === 'em andamento').length;
+
+        const completedTrips = trips.filter(t => t.status && t.status.toLowerCase() === 'realizada');
+        const totalKm = completedTrips.reduce((sum, t) => sum + (t.kmRodado || 0), 0);
+        const avgKm = completedTrips.length > 0 ? (totalKm / completedTrips.length) : 0;
+
+        const availVehiclesCount = vehicles.filter(v => v.status === 'disponivel' && v.tipoUnidade !== 'Implemento/Reboque').length;
+
+        const activeTrips = trips.filter(t => t.status && t.status.toLowerCase() === 'em andamento');
+        const driversInUseIds = new Set(activeTrips.map(t => t.motoristaId));
+        const availDriversCount = drivers.filter(m => m.status === 'ativo' && !driversInUseIds.has(m.id)).length;
+
         container.innerHTML = `
             <div class="page-header">
                 <div class="page-title-group">
@@ -42,6 +55,46 @@
                             <i class="fa-solid fa-map-pin"></i> Registrar Saída Viagem
                         </button>
                     ` : ''}
+                </div>
+            </div>
+
+            <!-- KPI CARDS -->
+            <div class="grid-4" style="margin-bottom: 24px;">
+                <div class="card stat-card">
+                    <div class="stat-info">
+                        <span class="stat-label">Viagens em Andamento</span>
+                        <span class="stat-value">${activeTripsCount}</span>
+                    </div>
+                    <div class="stat-icon primary">
+                        <i class="fa-solid fa-truck-fast"></i>
+                    </div>
+                </div>
+                <div class="card stat-card">
+                    <div class="stat-info">
+                        <span class="stat-label">KM Médio por Viagem</span>
+                        <span class="stat-value">${avgKm.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} km</span>
+                    </div>
+                    <div class="stat-icon info">
+                        <i class="fa-solid fa-road"></i>
+                    </div>
+                </div>
+                <div class="card stat-card">
+                    <div class="stat-info">
+                        <span class="stat-label">Veículos Disponíveis</span>
+                        <span class="stat-value">${availVehiclesCount}</span>
+                    </div>
+                    <div class="stat-icon success">
+                        <i class="fa-solid fa-truck"></i>
+                    </div>
+                </div>
+                <div class="card stat-card">
+                    <div class="stat-info">
+                        <span class="stat-label">Motoristas Disponíveis</span>
+                        <span class="stat-value">${availDriversCount}</span>
+                    </div>
+                    <div class="stat-icon warning">
+                        <i class="fa-solid fa-user-check"></i>
+                    </div>
                 </div>
             </div>
 
@@ -269,7 +322,9 @@
                         <td style="font-weight:700; color:var(--primary); cursor:pointer;" onclick="window.movixRouter.navigateTo('veiculos', '${t.veiculoId}')">
                             ${v ? v.placa : 'Deletado'}
                         </td>
-                        <td style="font-weight:600;">${m ? m.nome : 'Deletado'}</td>
+                        <td style="font-weight:600;">
+                            ${m ? `${m.nome} <span style="font-size:0.75rem; color:var(--text-muted); font-weight:normal; display:block; margin-top:2px;">(${t.motoristaCategoria || m.categoria || 'Motorista Efetivo'})</span>` : 'Deletado'}
+                        </td>
                         <td>
                             <div style="display:flex; flex-direction:column;">
                                 <strong style="font-size:0.85rem;">${t.origem} → ${t.destino}</strong>
@@ -460,6 +515,7 @@
                         <ul class="detail-sidebar-info-list" style="border:none; padding:0; font-size:0.85rem; display:flex; flex-direction:column; gap:10px;">
                             <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Veículo</span><strong style="color:var(--primary);">${v ? `${v.placa} (${v.marca} ${v.modelo})` : 'Deletado'}</strong></li>
                             <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Motorista</span><strong>${m ? m.nome : 'Deletado'}</strong></li>
+                            <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Categoria do Condutor</span><strong>${t.motoristaCategoria || (m ? m.categoria : 'Motorista Efetivo')}</strong></li>
                             <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Origem</span><strong>${t.origem}</strong></li>
                             <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Destino</span><strong>${t.destino}</strong></li>
                             <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Partida</span><strong>${t.dataSaida.split('-').reverse().join('/')} às ${t.horaSaida || '-'}</strong></li>
@@ -537,8 +593,8 @@
                         <select class="form-control" name="motoristaId" required>
                             <option value="" disabled ${!isEdit ? 'selected' : ''}>Selecione um motorista</option>
                             ${isEdit
-                                ? drivers.map(m => `<option value="${m.id}" ${t.motoristaId === m.id ? 'selected' : ''}>${m.nome}</option>`).join('')
-                                : drivers.filter(m => m.status === 'ativo').map(m => `<option value="${m.id}">${m.nome}</option>`).join('')}
+                                ? drivers.map(m => `<option value="${m.id}" ${t.motoristaId === m.id ? 'selected' : ''}>${m.nome} (${m.categoria || 'Motorista Efetivo'})</option>`).join('')
+                                : drivers.filter(m => m.status === 'ativo').map(m => `<option value="${m.id}">${m.nome} (${m.categoria || 'Motorista Efetivo'})</option>`).join('')}
                         </select>
                     </div>
 

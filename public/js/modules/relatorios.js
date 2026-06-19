@@ -488,6 +488,16 @@
                         </select>
                     </div>
                     <div class="filter-group">
+                        <label>Categoria do Condutor</label>
+                        <select class="filter-input" id="filter-categoria-condutor">
+                            <option value="">Todas</option>
+                            <option value="Motorista Efetivo">Motorista Efetivo</option>
+                            <option value="Motorista Temporário (Diarista)">Motorista Temporário (Diarista)</option>
+                            <option value="Condutor Interno">Condutor Interno</option>
+                            <option value="Condutor Externo">Condutor Externo</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
                         <label>Status CNH</label>
                         <select class="filter-input" id="filter-status-cnh">
                             <option value="">Todos</option>
@@ -1213,12 +1223,14 @@
             // ─── 👨✈️ 8. DRIVERS REPORT ──────────────────────────────
             } else if (reportType === 'drivers_report') {
                 const filterDriver = document.getElementById('filter-motorista').value;
+                const filterCategoria = document.getElementById('filter-categoria-condutor') ? document.getElementById('filter-categoria-condutor').value : '';
                 const filterStatusCNH = document.getElementById('filter-status-cnh').value;
 
-                activeHeaders = ['Nome Motorista', 'CPF', 'CNH', 'Categoria', 'Vencimento CNH', 'Telefone', 'E-mail', 'Status', 'Vencimento Situação'];
+                activeHeaders = ['Nome Motorista', 'Categoria Condutor', 'CPF', 'CNH', 'Categoria', 'Vencimento CNH', 'Telefone', 'E-mail', 'Status', 'Vencimento Situação'];
 
                 const filtered = drivers.filter(d => {
                     const matchDriver = !filterDriver || d.id === filterDriver;
+                    const matchCategoria = !filterCategoria || d.categoria === filterCategoria;
                     
                     let matchStatus = true;
                     if (filterStatusCNH) {
@@ -1235,7 +1247,7 @@
                         }
                     }
 
-                    return matchDriver && matchStatus;
+                    return matchDriver && matchStatus && matchCategoria;
                 });
 
                 const totalDrivers = filtered.length;
@@ -1287,6 +1299,7 @@
                     return {
                         id: d.id,
                         nome: d.nome,
+                        categoriaCondutor: d.categoria || 'Motorista Efetivo',
                         cpf: d.cpf,
                         cnh: d.cnh,
                         categoriaCNH: d.categoriaCNH,
@@ -1619,9 +1632,15 @@
 
                 const filtered = vehicles.filter(v => {
                     if (v.tipoUnidade === 'Implemento/Reboque') {
-                        return !filterImp || v.id === filterImp;
+                        if (filterImp) {
+                            return v.id === filterImp;
+                        }
+                        return !filterVeic;
                     }
-                    return !filterVeic || v.id === filterVeic;
+                    if (filterVeic) {
+                        return v.id === filterVeic;
+                    }
+                    return true;
                 });
 
                 let costComb = 0, costMaint = 0, costMulta = 0, costPneu = 0, costSeg = 0, costRast = 0;
@@ -2098,6 +2117,7 @@
                             'seguro?': 'seguro',
                             'rastreador?': 'rastreador',
                             'nome_motorista': 'nome',
+                            'categoria_condutor': 'categoriaCondutor',
                             'categoria': 'categoriaCNH',
                             'vencimento_cnh': '_rawTotal',
                             'e-mail': 'email',

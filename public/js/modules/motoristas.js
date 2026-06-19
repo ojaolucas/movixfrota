@@ -213,6 +213,7 @@
                         <td>
                             <div style="display:flex; flex-direction:column;">
                                 <span style="font-weight:600;">${m.nome}</span>
+                                <span style="font-size:0.75rem; color:var(--primary); font-weight:500;">${m.categoria || 'Motorista Efetivo'}</span>
                                 <span style="font-size:0.75rem; color:var(--text-muted);">CPF: ${m.cpf}</span>
                             </div>
                         </td>
@@ -402,6 +403,16 @@
                     <select class="form-control" name="status" required>
                         <option value="ativo" ${isEdit && m.status === 'ativo' ? 'selected' : ''}>Ativo</option>
                         <option value="inativo" ${isEdit && m.status === 'inativo' ? 'selected' : ''}>Inativo</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Categoria do Condutor <span class="required">*</span></label>
+                    <select class="form-control" name="categoria" required>
+                        <option value="" disabled ${!isEdit ? 'selected' : ''}>Selecione a categoria</option>
+                        <option value="Motorista Efetivo" ${isEdit && m.categoria === 'Motorista Efetivo' ? 'selected' : ''}>Motorista Efetivo</option>
+                        <option value="Motorista Temporário (Diarista)" ${isEdit && m.categoria === 'Motorista Temporário (Diarista)' ? 'selected' : ''}>Motorista Temporário (Diarista)</option>
+                        <option value="Condutor Interno" ${isEdit && m.categoria === 'Condutor Interno' ? 'selected' : ''}>Condutor Interno</option>
+                        <option value="Condutor Externo" ${isEdit && m.categoria === 'Condutor Externo' ? 'selected' : ''}>Condutor Externo</option>
                     </select>
                 </div>
                 <div class="form-group full-width">
@@ -616,14 +627,20 @@
                     <img src="${m.foto || '/img/avatar-default.png'}" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:2px solid var(--primary); background:#ffffff;">
                     <div>
                         <h4 style="font-family:var(--font-heading); color:var(--text-main); font-size:1.1rem; font-weight:700; margin:0;">${m.nome}</h4>
-                        <span class="status-pill ${m.status === 'ativo' ? 'ativo' : 'inativo'}" style="margin-top:6px; display:inline-block;">
-                            ${m.status === 'ativo' ? 'Ativo' : 'Inativo'}
-                        </span>
+                        <div style="display:flex; gap:6px; align-items:center; margin-top:6px;">
+                            <span class="status-pill ${m.status === 'ativo' ? 'ativo' : 'inativo'}">
+                                ${m.status === 'ativo' ? 'Ativo' : 'Inativo'}
+                            </span>
+                            <span style="font-size:0.75rem; font-weight:600; padding:3px 8px; border-radius:4px; background:var(--bg-surface-hover); color:var(--primary); border:1px solid var(--border-color);">
+                                ${m.categoria || 'Motorista Efetivo'}
+                            </span>
+                        </div>
                     </div>
                 </div>
 
                 <h4 style="font-family:var(--font-heading); color:var(--primary); margin-bottom:12px;"><i class="fa-solid fa-circle-info"></i> Informações Pessoais</h4>
                 <ul class="detail-sidebar-info-list" style="border:none; padding:0; font-size:0.85rem; display:flex; flex-direction:column; gap:10px;">
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Categoria Condutor</span><strong>${m.categoria || 'Motorista Efetivo'}</strong></li>
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>CPF</span><strong>${m.cpf}</strong></li>
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>RG</span><strong>${m.rg || '-'}</strong></li>
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Telefone</span><strong>${m.telefone}</strong></li>

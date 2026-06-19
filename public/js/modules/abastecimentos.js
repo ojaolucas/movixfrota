@@ -150,7 +150,9 @@
                     <tr>
                         <td>${a.data.split('-').reverse().join('/')}</td>
                         <td>${veicHTML}</td>
-                        <td style="font-weight:600;">${m ? m.nome : 'Motorista Deletado'}</td>
+                        <td style="font-weight:600;">
+                            ${m ? `${m.nome} <span style="font-size:0.75rem; color:var(--text-muted); font-weight:normal; display:block; margin-top:2px;">(${a.motoristaCategoria || m.categoria || 'Motorista Efetivo'})</span>` : 'Motorista Deletado'}
+                        </td>
                         <td>${parseFloat(a.kmAtual).toLocaleString('pt-BR')} km</td>
                         <td>
                             <div style="display:flex; flex-direction:column;">
@@ -467,6 +469,7 @@
                 <ul class="detail-sidebar-info-list" style="border:none; padding:0; font-size:0.85rem; display:flex; flex-direction:column; gap:10px;">
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Veículo</span><strong style="color:var(--primary);">${v ? `${v.placa} (${v.marca} ${v.modelo})` : 'Deletado'}</strong></li>
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Motorista</span><strong>${m ? m.nome : 'Deletado'}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Categoria do Condutor</span><strong>${ab.motoristaCategoria || (m ? m.categoria : 'Motorista Efetivo')}</strong></li>
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Data</span><strong>${ab.data.split('-').reverse().join('/')}</strong></li>
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Combustível</span><strong>${ab.combustivel}</strong></li>
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Volume Abastecido</span><strong>${ab.litros} Litros</strong></li>
