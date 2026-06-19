@@ -109,6 +109,11 @@
                             <option value="Atrasada" ${state.filters.status === 'Atrasada' ? 'selected' : ''}>Atrasada</option>
                         </select>
                     </div>
+                    <div class="filter-group" style="display: flex; align-items: flex-end;">
+                        <button class="btn btn-secondary" id="btn-limpar-filtros" style="height: 38px; width: 100%; white-space: nowrap;">
+                            <i class="fa-solid fa-filter-circle-xmark"></i> Limpar Filtros
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -271,6 +276,14 @@
         document.getElementById('filter-tipo-manut').addEventListener('change', () => { currentPage = 1; updateTable(); });
         document.getElementById('filter-cat-manut').addEventListener('change', () => { currentPage = 1; updateTable(); });
         document.getElementById('filter-status-manut').addEventListener('change', () => { currentPage = 1; updateTable(); });
+        document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
+            document.getElementById('filter-veiculo-manut').value = '';
+            document.getElementById('filter-tipo-manut').value = '';
+            document.getElementById('filter-cat-manut').value = '';
+            document.getElementById('filter-status-manut').value = '';
+            currentPage = 1;
+            updateTable();
+        });
 
         // Pagination handled by MovixApp.renderPagination helper
 

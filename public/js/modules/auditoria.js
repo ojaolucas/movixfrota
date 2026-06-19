@@ -59,6 +59,9 @@
                             <option value="Aprovação">Aprovação</option>
                             <option value="Sessão">Sessão</option>
                         </select>
+                        <button class="btn btn-secondary" id="btn-limpar-filtros" style="height: 38px; white-space: nowrap;">
+                            <i class="fa-solid fa-filter-circle-xmark"></i> Limpar Filtros
+                        </button>
                     </div>
 
                     <div class="table-responsive" style="border:none; box-shadow:none; flex-grow:1; margin-top:12px;">
@@ -181,6 +184,11 @@
         // Filters events hooks
         document.getElementById('search-logs').addEventListener('input', updateLogsTable);
         document.getElementById('filter-log-action').addEventListener('change', updateLogsTable);
+        document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
+            document.getElementById('search-logs').value = '';
+            document.getElementById('filter-log-action').value = '';
+            updateLogsTable();
+        });
 
         // Erase logs trigger (Admin only)
         if (document.getElementById('btn-limpar-logs')) {

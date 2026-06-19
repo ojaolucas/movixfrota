@@ -131,6 +131,11 @@
                             <input type="date" class="filter-input" id="filter-data-ate" value="${state.filters.ate || ''}">
                         </div>
                     </div>
+                    <div class="filter-group" style="margin-left: auto; display: flex; align-items: flex-end;">
+                        <button class="btn btn-secondary" id="btn-limpar-filtros" style="height: 38px; white-space: nowrap;">
+                            <i class="fa-solid fa-filter-circle-xmark"></i> Limpar Filtros
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -364,6 +369,20 @@
         document.getElementById('filter-status-multa').addEventListener('change', () => { state.currentPage = 1; updateTable(); });
         document.getElementById('filter-data-de').addEventListener('change', () => { state.currentPage = 1; updateTable(); });
         document.getElementById('filter-data-ate').addEventListener('change', () => { state.currentPage = 1; updateTable(); });
+        document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
+            document.getElementById('search-multas').value = '';
+            document.getElementById('filter-veiculo-multa').value = '';
+            document.getElementById('filter-motorista-multa').value = '';
+            document.getElementById('filter-status-multa').value = '';
+            document.getElementById('filter-periodo-multa').value = 'tudo';
+            document.getElementById('filter-data-de').value = '';
+            document.getElementById('filter-data-ate').value = '';
+            document.getElementById('custom-date-container').style.display = 'none';
+            currentSort = { column: 'data', direction: 'desc' };
+            state.currentSort = currentSort;
+            state.currentPage = 1;
+            updateTable();
+        });
 
         // Sort table clicks
         document.querySelectorAll('#table-multas th.sortable').forEach(th => {

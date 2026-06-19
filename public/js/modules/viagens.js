@@ -119,6 +119,11 @@
                             <input type="date" class="filter-input" id="filter-viagem-ate" value="${state.filters.ate || ''}">
                         </div>
                     </div>
+                    <div class="filter-group" style="display: flex; align-items: flex-end;">
+                        <button class="btn btn-secondary" id="btn-limpar-filtros" style="height: 38px; white-space: nowrap;">
+                            <i class="fa-solid fa-filter-circle-xmark"></i> Limpar Filtros
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -412,6 +417,17 @@
                 updateTable();
             });
         }
+        document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
+            if (filterBusca) filterBusca.value = '';
+            if (filterVeiculo) filterVeiculo.value = '';
+            if (filterMotorista) filterMotorista.value = '';
+            if (filterPeriodo) filterPeriodo.value = 'tudo';
+            if (filterDe) filterDe.value = '';
+            if (filterAte) filterAte.value = '';
+            if (customDateContainer) customDateContainer.style.display = 'none';
+            currentPage = 1;
+            updateTable();
+        });
 
         // Add Trip Trigger
         if (document.getElementById('btn-nova-viagem')) {

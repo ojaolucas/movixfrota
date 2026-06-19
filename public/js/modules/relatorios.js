@@ -653,7 +653,13 @@
                 `;
             }
 
-            filterGroup.innerHTML = html;
+            filterGroup.innerHTML = html + `
+                <div class="filter-group" style="display: flex; align-items: flex-end;">
+                    <button class="btn btn-secondary" id="btn-limpar-filtros" style="height: 38px; width: 100%; white-space: nowrap;">
+                        <i class="fa-solid fa-filter-circle-xmark"></i> Limpar Filtros
+                    </button>
+                </div>
+            `;
 
             // Restore from state if initial bootstrap
             if (isInitial) {
@@ -748,6 +754,41 @@
                     }
                 }
             });
+
+            const btnLimpar = document.getElementById('btn-limpar-filtros');
+            if (btnLimpar) {
+                btnLimpar.addEventListener('click', () => {
+                    const inputs = filterGroup.querySelectorAll('.filter-input');
+                    inputs.forEach(input => {
+                        if (input.id === 'report-period-filter') {
+                            input.value = 'all';
+                        } else if (input.id === 'report-date-start' || input.id === 'report-date-end') {
+                            input.value = '';
+                        } else if (input.tagName === 'SELECT') {
+                            input.value = '';
+                        } else if (input.tagName === 'INPUT') {
+                            input.value = '';
+                        }
+                        state.filters[input.id] = input.value;
+                    });
+                    
+                    const customDatesContainer = document.getElementById('report-custom-dates-container');
+                    if (customDatesContainer) {
+                        customDatesContainer.style.display = 'none';
+                    }
+
+                    const searchInput = document.getElementById('report-search');
+                    if (searchInput) {
+                        searchInput.value = '';
+                    }
+                    state.filters.search = '';
+
+                    state.currentSort = { column: '', direction: 'asc' };
+                    state.currentPage = 1;
+                    window.movixApp.saveListState('relatorios', state);
+                    generateReport(false);
+                });
+            }
 
             generateReport(isInitial);
         }

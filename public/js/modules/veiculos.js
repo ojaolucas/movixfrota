@@ -92,6 +92,11 @@
                             <option value="inativo" ${state.filters.status === 'inativo' ? 'selected' : ''}>Inativo</option>
                         </select>
                     </div>
+                    <div class="filter-group" style="display: flex; align-items: flex-end;">
+                        <button class="btn btn-secondary" id="btn-limpar-filtros" style="height: 38px; width: 100%; white-space: nowrap;">
+                            <i class="fa-solid fa-filter-circle-xmark"></i> Limpar Filtros
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -295,6 +300,16 @@
         document.getElementById('filter-tipo').addEventListener('change', () => { currentPage = 1; updateTable(); });
         document.getElementById('filter-combustivel').addEventListener('change', () => { currentPage = 1; updateTable(); });
         document.getElementById('filter-status').addEventListener('change', () => { currentPage = 1; updateTable(); });
+        document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
+            document.getElementById('search-veiculos').value = '';
+            document.getElementById('filter-tipo').value = '';
+            document.getElementById('filter-combustivel').value = '';
+            document.getElementById('filter-status').value = '';
+            currentSort = { column: 'placa', direction: 'asc' };
+            state.currentSort = currentSort;
+            currentPage = 1;
+            updateTable();
+        });
 
         // Sort click triggers
         document.querySelectorAll('#table-veiculos th.sortable').forEach(th => {

@@ -87,6 +87,11 @@
                             <option value="inativo" ${state.filters.status === 'inativo' ? 'selected' : ''}>Inativos</option>
                         </select>
                     </div>
+                    <div class="filter-group" style="display: flex; align-items: flex-end;">
+                        <button class="btn btn-secondary" id="btn-limpar-filtros" style="height: 38px; width: 100%; white-space: nowrap;">
+                            <i class="fa-solid fa-filter-circle-xmark"></i> Limpar Filtros
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -249,6 +254,15 @@
         document.getElementById('search-usuarios').addEventListener('input', () => { state.currentPage = 1; updateTable(); });
         document.getElementById('filter-perfil').addEventListener('change', () => { state.currentPage = 1; updateTable(); });
         document.getElementById('filter-status').addEventListener('change', () => { state.currentPage = 1; updateTable(); });
+        document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
+            document.getElementById('search-usuarios').value = '';
+            document.getElementById('filter-perfil').value = '';
+            document.getElementById('filter-status').value = '';
+            currentSort = { column: 'nome', direction: 'asc' };
+            state.currentSort = currentSort;
+            state.currentPage = 1;
+            updateTable();
+        });
 
         // Sort click triggers
         document.querySelectorAll('#table-usuarios th.sortable').forEach(th => {

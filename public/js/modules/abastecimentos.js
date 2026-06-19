@@ -71,6 +71,11 @@
                             <option value="GNV" ${state.filters.combustivel === 'GNV' ? 'selected' : ''}>GNV</option>
                         </select>
                     </div>
+                    <div class="filter-group" style="display: flex; align-items: flex-end;">
+                        <button class="btn btn-secondary" id="btn-limpar-filtros" style="height: 38px; width: 100%; white-space: nowrap;">
+                            <i class="fa-solid fa-filter-circle-xmark"></i> Limpar Filtros
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -222,6 +227,13 @@
         document.getElementById('filter-veiculo').addEventListener('change', () => { currentPage = 1; updateTable(); });
         document.getElementById('filter-motorista').addEventListener('change', () => { currentPage = 1; updateTable(); });
         document.getElementById('filter-fuel-type').addEventListener('change', () => { currentPage = 1; updateTable(); });
+        document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
+            document.getElementById('filter-veiculo').value = '';
+            document.getElementById('filter-motorista').value = '';
+            document.getElementById('filter-fuel-type').value = '';
+            currentPage = 1;
+            updateTable();
+        });
 
         // Pagination handled by MovixApp.renderPagination helper
 

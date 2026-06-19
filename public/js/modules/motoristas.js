@@ -78,6 +78,11 @@
                             <option value="inativo" ${state.filters.motStatus === 'inativo' ? 'selected' : ''}>Inativo</option>
                         </select>
                     </div>
+                    <div class="filter-group" style="display: flex; align-items: flex-end;">
+                        <button class="btn btn-secondary" id="btn-limpar-filtros" style="height: 38px; width: 100%; white-space: nowrap;">
+                            <i class="fa-solid fa-filter-circle-xmark"></i> Limpar Filtros
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -305,6 +310,16 @@
         document.getElementById('filter-cnh-cat').addEventListener('change', () => { currentPage = 1; updateTable(); });
         document.getElementById('filter-cnh-status').addEventListener('change', () => { currentPage = 1; updateTable(); });
         document.getElementById('filter-mot-status').addEventListener('change', () => { currentPage = 1; updateTable(); });
+        document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
+            document.getElementById('search-motoristas').value = '';
+            document.getElementById('filter-cnh-cat').value = '';
+            document.getElementById('filter-cnh-status').value = '';
+            document.getElementById('filter-mot-status').value = '';
+            currentSort = { column: 'nome', direction: 'asc' };
+            state.currentSort = currentSort;
+            currentPage = 1;
+            updateTable();
+        });
 
         // Sorting trigger
         document.querySelectorAll('#table-motoristas th.sortable').forEach(th => {
