@@ -1310,6 +1310,7 @@ app.put('/api/viagens/:id', requireAuth, async (req, res) => {
         `, [
             updates.veiculoId || original.veiculoId,
             updates.motoristaId || original.motoristaId,
+            motoristaCategoria,
             updates.dataSaida || original.dataSaida,
             updates.horaSaida || original.horaSaida,
             updates.dataRetorno || original.dataRetorno,
