@@ -33,7 +33,7 @@
                         <i class="fa-solid fa-traffic-light text-muted"></i>
                     </div>
 
-                    <div style="display:flex; flex-direction:column; gap:14px; max-height:460px; overflow-y:auto;" id="semaforo-cards-container">
+                    <div style="display:flex; flex-direction:column; gap:14px; flex: 1; min-height: 0; overflow-y:auto;" id="semaforo-cards-container">
                         <!-- Loaded dynamically -->
                     </div>
                 </div>
