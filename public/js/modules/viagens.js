@@ -31,15 +31,16 @@
         activeTabStatus = state.activeTabStatus;
 
         // KPI Calculations
-        const activeTripsCount = trips.filter(t => t.status && t.status.toLowerCase() === 'em andamento').length;
+        const activeTrips = trips.filter(t => t.status && t.status.toLowerCase() === 'em andamento');
+        const activeTripsCount = activeTrips.length;
 
         const completedTrips = trips.filter(t => t.status && t.status.toLowerCase() === 'realizada');
         const totalKm = completedTrips.reduce((sum, t) => sum + (t.kmRodado || 0), 0);
         const avgKm = completedTrips.length > 0 ? (totalKm / completedTrips.length) : 0;
 
-        const availVehiclesCount = vehicles.filter(v => v.status === 'disponivel' && v.tipoUnidade !== 'Implemento/Reboque').length;
+        const vehiclesInUseIds = new Set(activeTrips.map(t => t.veiculoId));
+        const availVehiclesCount = vehicles.filter(v => v.status === 'disponivel' && v.tipoUnidade !== 'Implemento/Reboque' && !vehiclesInUseIds.has(v.id)).length;
 
-        const activeTrips = trips.filter(t => t.status && t.status.toLowerCase() === 'em andamento');
         const driversInUseIds = new Set(activeTrips.map(t => t.motoristaId));
         const availDriversCount = drivers.filter(m => m.status === 'ativo' && !driversInUseIds.has(m.id)).length;
 
