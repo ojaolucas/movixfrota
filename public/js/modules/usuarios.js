@@ -175,7 +175,7 @@
                 window.movixApp.saveListState('usuarios', state);
             }
             
-            const startIdx = (state.currentPage - 1) * itemsPerPageVal;
+            const startIdx = itemsPerPageVal === Infinity ? 0 : (state.currentPage - 1) * itemsPerPageVal;
             const paginatedItems = filteredData.slice(startIdx, startIdx + itemsPerPageVal);
 
             tbody.innerHTML = '';

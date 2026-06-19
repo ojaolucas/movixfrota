@@ -156,7 +156,7 @@
                 window.movixApp.saveListState('auditoria', state);
             }
             
-            const startIdx = (state.currentPage - 1) * itemsPerPageVal;
+            const startIdx = itemsPerPageVal === Infinity ? 0 : (state.currentPage - 1) * itemsPerPageVal;
             const paginatedItems = filteredLogs.slice(startIdx, startIdx + itemsPerPageVal);
 
             tbody.innerHTML = '';

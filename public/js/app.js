@@ -1005,7 +1005,7 @@ class MovixApp {
         
         let validCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
 
-        const startIdx = totalItems === 0 ? 0 : (validCurrentPage - 1) * itemsPerPageNum + 1;
+        const startIdx = totalItems === 0 ? 0 : (itemsPerPageNum === Infinity ? 1 : (validCurrentPage - 1) * itemsPerPageNum + 1);
         const endIdx = itemsPerPageNum === Infinity ? totalItems : Math.min(validCurrentPage * itemsPerPageNum, totalItems);
 
         let pages = [];

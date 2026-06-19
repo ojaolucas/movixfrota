@@ -157,7 +157,7 @@
                 state.currentPage = currentPage;
                 window.movixApp.saveListState('oleo', state);
             }
-            const startIdx = (currentPage - 1) * itemsPerPageVal;
+            const startIdx = itemsPerPageVal === Infinity ? 0 : (currentPage - 1) * itemsPerPageVal;
             const paginatedItems = sortedOleos.slice(startIdx, startIdx + itemsPerPageVal);
 
             paginatedItems.forEach(o => {

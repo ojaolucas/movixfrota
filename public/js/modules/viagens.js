@@ -283,7 +283,7 @@
             const itemsPerPageVal = state.itemsPerPage === 'Todos' ? Infinity : (parseInt(state.itemsPerPage) || 10);
             const totalPages = Math.ceil(filteredData.length / itemsPerPageVal) || 1;
             if (currentPage > totalPages) currentPage = totalPages;
-            const startIdx = (currentPage - 1) * itemsPerPageVal;
+            const startIdx = itemsPerPageVal === Infinity ? 0 : (currentPage - 1) * itemsPerPageVal;
             const paginatedItems = filteredData.slice(startIdx, startIdx + itemsPerPageVal);
 
             tbody.innerHTML = '';

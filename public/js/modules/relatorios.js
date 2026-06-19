@@ -2258,7 +2258,7 @@
                 state.currentPage = totalPages;
                 window.movixApp.saveListState('relatorios', state);
             }
-            const startIdx = (state.currentPage - 1) * itemsPerPageVal;
+            const startIdx = itemsPerPageVal === Infinity ? 0 : (state.currentPage - 1) * itemsPerPageVal;
             const paginated = searchedData.slice(startIdx, startIdx + itemsPerPageVal);
 
             tbody.innerHTML = '';

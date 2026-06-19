@@ -206,7 +206,7 @@
                 window.movixApp.saveListState('veiculos', state);
             }
             
-            const startIdx = (currentPage - 1) * itemsPerPageVal;
+            const startIdx = itemsPerPageVal === Infinity ? 0 : (currentPage - 1) * itemsPerPageVal;
             const paginatedItems = filteredData.slice(startIdx, startIdx + itemsPerPageVal);
 
             tbody.innerHTML = '';

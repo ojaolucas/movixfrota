@@ -293,7 +293,7 @@
                 state.currentPage = currentPage;
                 window.movixApp.saveListState('pneus', state);
             }
-            const startIdx = (currentPage - 1) * itemsPerPageVal;
+            const startIdx = itemsPerPageVal === Infinity ? 0 : (currentPage - 1) * itemsPerPageVal;
             const paginatedItems = currentTires.slice(startIdx, startIdx + itemsPerPageVal);
             
             if (paginatedItems.length === 0) {
