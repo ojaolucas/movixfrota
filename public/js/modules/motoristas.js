@@ -70,6 +70,7 @@
                         <select class="filter-input" id="filter-mot-status">
                             <option value="">Todos</option>
                             <option value="ativo" ${state.filters.motStatus === 'ativo' ? 'selected' : ''}>Ativo</option>
+                            <option value="em_viagem" ${state.filters.motStatus === 'em_viagem' ? 'selected' : ''}>Em Viagem</option>
                             <option value="inativo" ${state.filters.motStatus === 'inativo' ? 'selected' : ''}>Inativo</option>
                         </select>
                     </div>
@@ -107,6 +108,10 @@
         function updateTable() {
             const tbody = document.getElementById('tbody-motoristas');
             if (!tbody) return;
+
+            // Get active trips to resolve traveling drivers in-memory
+            const activeTrips = window.movixStore.getViagens().filter(t => t.status && t.status.toLowerCase() === 'em andamento');
+            const driversInUseIds = new Set(activeTrips.map(t => t.motoristaId));
 
             const searchVal = document.getElementById('search-motoristas').value.toLowerCase();
             const catVal = document.getElementById('filter-cnh-cat').value;
@@ -147,7 +152,12 @@
                                     m.email.toLowerCase().includes(searchVal);
                 
                 const matchCat = !catVal || m.categoriaCNH === catVal;
-                const matchStatus = !motStatusVal || m.status === motStatusVal;
+                
+                let actualStatus = m.status;
+                if (m.status === 'ativo' && driversInUseIds.has(m.id)) {
+                    actualStatus = 'em_viagem';
+                }
+                const matchStatus = !motStatusVal || actualStatus === motStatusVal;
                 
                 // CNH Expiration filters logic
                 const expDate = new Date(m.dataVencimentoCNH);
@@ -235,8 +245,8 @@
                         <td style="font-weight:700; color:var(--info);">${avgKml}</td>
                         <td>${cnhBadge}</td>
                         <td>
-                            <span class="status-pill ${m.status === 'ativo' ? 'ativo' : 'inativo'}">
-                                ${m.status === 'ativo' ? 'Ativo' : 'Inativo'}
+                            <span class="status-pill ${m.status === 'inativo' ? 'inativo' : (driversInUseIds.has(m.id) ? 'em_andamento' : 'ativo')}">
+                                ${m.status === 'inativo' ? 'Inativo' : (driversInUseIds.has(m.id) ? 'Em Viagem' : 'Ativo')}
                             </span>
                         </td>
                         <td style="text-align: center; display: flex; gap: 8px; justify-content: center; align-items:center; height:68px;">
@@ -628,8 +638,8 @@
                     <div>
                         <h4 style="font-family:var(--font-heading); color:var(--text-main); font-size:1.1rem; font-weight:700; margin:0;">${m.nome}</h4>
                         <div style="display:flex; gap:6px; align-items:center; margin-top:6px;">
-                            <span class="status-pill ${m.status === 'ativo' ? 'ativo' : 'inativo'}">
-                                ${m.status === 'ativo' ? 'Ativo' : 'Inativo'}
+                            <span class="status-pill ${m.status === 'inativo' ? 'inativo' : (window.movixStore.getViagens().filter(t => t.status && t.status.toLowerCase() === 'em andamento').some(t => t.motoristaId === m.id) ? 'em_andamento' : 'ativo')}">
+                                ${m.status === 'inativo' ? 'Inativo' : (window.movixStore.getViagens().filter(t => t.status && t.status.toLowerCase() === 'em andamento').some(t => t.motoristaId === m.id) ? 'Em Viagem' : 'Ativo')}
                             </span>
                             <span style="font-size:0.75rem; font-weight:600; padding:3px 8px; border-radius:4px; background:var(--bg-surface-hover); color:var(--primary); border:1px solid var(--border-color);">
                                 ${m.categoria || 'Motorista Efetivo'}
