@@ -63,45 +63,7 @@
                 </div>
             </div>
 
-            <!-- KPI CARDS -->
-            <div class="grid-4" style="margin-bottom: 24px;">
-                <div class="card stat-card">
-                    <div class="stat-info">
-                        <span class="stat-label">Viagens em Andamento</span>
-                        <span class="stat-value">${activeTripsCount}</span>
-                    </div>
-                    <div class="stat-icon primary">
-                        <i class="fa-solid fa-truck-fast"></i>
-                    </div>
-                </div>
-                <div class="card stat-card">
-                    <div class="stat-info">
-                        <span class="stat-label">KM Médio por Viagem</span>
-                        <span class="stat-value">${avgKm.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} km</span>
-                    </div>
-                    <div class="stat-icon info">
-                        <i class="fa-solid fa-road"></i>
-                    </div>
-                </div>
-                <div class="card stat-card">
-                    <div class="stat-info">
-                        <span class="stat-label">Veículos Disponíveis</span>
-                        <span class="stat-value">${availVehiclesCount}</span>
-                    </div>
-                    <div class="stat-icon success">
-                        <i class="fa-solid fa-truck"></i>
-                    </div>
-                </div>
-                <div class="card stat-card">
-                    <div class="stat-info">
-                        <span class="stat-label">Motoristas Disponíveis</span>
-                        <span class="stat-value">${availDriversCount}</span>
-                    </div>
-                    <div class="stat-icon warning">
-                        <i class="fa-solid fa-user-check"></i>
-                    </div>
-                </div>
-            </div>
+
 
             <!-- TAB SELECTION -->
             <div class="detail-tab-menu" style="margin-bottom: 16px;">

@@ -749,9 +749,7 @@
                 }
             });
 
-            if (isInitial) {
-                generateReport(true);
-            }
+            generateReport(isInitial);
         }
 
         // MAIN GENERATION FUNCTION
