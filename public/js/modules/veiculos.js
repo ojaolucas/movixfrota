@@ -83,6 +83,7 @@
                         <select class="filter-input" id="filter-status">
                             <option value="">Todas</option>
                             <option value="disponivel" ${state.filters.status === 'disponivel' ? 'selected' : ''}>Disponível</option>
+                            <option value="em_viagem" ${state.filters.status === 'em_viagem' ? 'selected' : ''}>Em Viagem</option>
                             <option value="em_manutencao" ${state.filters.status === 'em_manutencao' ? 'selected' : ''}>Em Manutenção</option>
                             <option value="inativo" ${state.filters.status === 'inativo' ? 'selected' : ''}>Inativo</option>
                         </select>
@@ -125,6 +126,10 @@
             const tbody = document.getElementById('tbody-veiculos');
             if (!tbody) return;
 
+            // Get active trips to resolve traveling vehicles in-memory
+            const activeTrips = window.movixStore.getViagens().filter(t => t.status && t.status.toLowerCase() === 'em andamento');
+            const vehiclesInUseIds = new Set(activeTrips.map(t => t.veiculoId));
+
             // Search logic
             const searchVal = document.getElementById('search-veiculos').value.toLowerCase();
             const tipoVal = document.getElementById('filter-tipo').value;
@@ -161,7 +166,12 @@
                                     v.marca.toLowerCase().includes(searchVal);
                 const matchTipo = !tipoVal || v.tipo === tipoVal;
                 const matchCombustivel = !combustivelVal || v.combustivel === combustivelVal;
-                const matchStatus = !statusVal || v.status === statusVal;
+                
+                let actualStatus = v.status;
+                if (v.status === 'disponivel' && vehiclesInUseIds.has(v.id)) {
+                    actualStatus = 'em_viagem';
+                }
+                const matchStatus = !statusVal || actualStatus === statusVal;
                 
                 return matchSearch && matchTipo && matchCombustivel && matchStatus;
             });
@@ -204,9 +214,15 @@
 
             paginatedItems.forEach(v => {
                 let statusLabel = '';
-                if (v.status === 'disponivel') statusLabel = '<span class="status-pill disponivel">Disponível</span>';
-                else if (v.status === 'em_manutencao') statusLabel = '<span class="status-pill em_manutencao">Em Oficina</span>';
-                else statusLabel = '<span class="status-pill inativo">Inativo</span>';
+                if (v.status === 'inativo') {
+                    statusLabel = '<span class="status-pill inativo">Inativo</span>';
+                } else if (v.status === 'em_manutencao') {
+                    statusLabel = '<span class="status-pill em_manutencao">Em Oficina</span>';
+                } else if (vehiclesInUseIds.has(v.id)) {
+                    statusLabel = '<span class="status-pill em_andamento">Em Viagem</span>';
+                } else {
+                    statusLabel = '<span class="status-pill disponivel">Disponível</span>';
+                }
 
                 const isTrailer = v.tipoUnidade === 'Implemento/Reboque';
 
@@ -1633,6 +1649,8 @@
     // --- FICHA DE VIDA ÚTIL VIEW ---
     function renderFichaVidaUtil(container, veiculoId) {
         const vehicle = window.movixStore.getVeiculo(veiculoId);
+        const activeTrips = window.movixStore.getViagens().filter(t => t.status && t.status.toLowerCase() === 'em andamento');
+        const isCurrentlyTraveling = activeTrips.some(t => t.veiculoId === veiculoId);
         if (!vehicle) {
             container.innerHTML = `
                 <div class="search-no-results" style="padding: 64px;">
@@ -1758,7 +1776,7 @@
                     </div>
                     <div class="detail-sidebar-title">
                         <h2>${vehicle.marca} ${vehicle.modelo}</h2>
-                        <span class="status-pill ${vehicle.status}" style="margin-top:6px;">${vehicle.status === 'disponivel' ? 'Disponível' : (vehicle.status === 'em_manutencao' ? 'Em Oficina' : 'Inativo')}</span>
+                        <span class="status-pill ${isCurrentlyTraveling ? 'em_andamento' : vehicle.status}" style="margin-top:6px;">${isCurrentlyTraveling ? 'Em Viagem' : (vehicle.status === 'disponivel' ? 'Disponível' : (vehicle.status === 'em_manutencao' ? 'Em Oficina' : 'Inativo'))}</span>
                     </div>
 
                     <ul class="detail-sidebar-info-list">
