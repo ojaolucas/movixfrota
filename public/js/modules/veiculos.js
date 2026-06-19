@@ -27,8 +27,12 @@
                     combustivel: '',
                     status: ''
                 },
+                itemsPerPage: 10,
                 scroll: 0
             };
+            window.movixApp.saveListState('veiculos', state);
+        } else if (state.itemsPerPage === undefined) {
+            state.itemsPerPage = 10;
             window.movixApp.saveListState('veiculos', state);
         }
 
@@ -119,7 +123,6 @@
         let filteredData = [...vehicles];
         let currentSort = state.currentSort;
         let currentPage = state.currentPage;
-        const itemsPerPage = 8;
 
         // Render functions inside listing scope
         function updateTable() {
@@ -195,15 +198,16 @@
             });
 
             // Pagination calculation
-            const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
+            const itemsPerPageVal = state.itemsPerPage === 'Todos' ? Infinity : (parseInt(state.itemsPerPage) || 10);
+            const totalPages = Math.ceil(filteredData.length / itemsPerPageVal) || 1;
             if (currentPage > totalPages) {
                 currentPage = totalPages;
                 state.currentPage = currentPage;
                 window.movixApp.saveListState('veiculos', state);
             }
             
-            const startIdx = (currentPage - 1) * itemsPerPage;
-            const paginatedItems = filteredData.slice(startIdx, startIdx + itemsPerPage);
+            const startIdx = (currentPage - 1) * itemsPerPageVal;
+            const paginatedItems = filteredData.slice(startIdx, startIdx + itemsPerPageVal);
 
             tbody.innerHTML = '';
             if (paginatedItems.length === 0) {
@@ -259,16 +263,27 @@
             });
 
             // Render pagination links
-            let pagHTML = `<span>Mostrando ${startIdx + 1} a ${Math.min(startIdx + itemsPerPage, filteredData.length)} de ${filteredData.length} registros</span>`;
-            pagHTML += `<div class="pagination-pages">`;
-            pagHTML += `<button class="page-number-btn" id="prev-page" ${currentPage === 1 ? 'disabled' : ''}><i class="fa-solid fa-chevron-left"></i></button>`;
-            for (let i = 1; i <= totalPages; i++) {
-                pagHTML += `<button class="page-number-btn ${currentPage === i ? 'active' : ''}" data-page="${i}">${i}</button>`;
-            }
-            pagHTML += `<button class="page-number-btn" id="next-page" ${currentPage === totalPages ? 'disabled' : ''}><i class="fa-solid fa-chevron-right"></i></button>`;
-            pagHTML += `</div>`;
-            document.getElementById('pagination-veiculos').innerHTML = pagHTML;
-
+            window.movixApp.renderPagination({
+                containerId: 'pagination-veiculos',
+                currentPage: currentPage,
+                totalItems: filteredData.length,
+                itemsPerPage: state.itemsPerPage || 10,
+                noun: 'veículos',
+                onPageChange: (newPage) => {
+                    currentPage = newPage;
+                    state.currentPage = newPage;
+                    window.movixApp.saveListState('veiculos', state);
+                    updateTable();
+                },
+                onItemsPerPageChange: (newLimit) => {
+                    state.itemsPerPage = newLimit;
+                    currentPage = 1;
+                    state.currentPage = 1;
+                    window.movixApp.saveListState('veiculos', state);
+                    updateTable();
+                }
+            });
+ 
             // Restore scroll position
             setTimeout(() => {
                 window.scrollTo(0, state.scroll || 0);
@@ -299,21 +314,12 @@
                 const curIcon = th.querySelector('i');
                 curIcon.className = currentSort.direction === 'asc' ? 'fa-solid fa-sort-up' : 'fa-solid fa-sort-down';
                 
+                // Pagination handled by MovixApp.renderPagination helper
                 updateTable();
             });
         });
 
-        // Pagination buttons handlers
-        document.getElementById('pagination-veiculos').addEventListener('click', (e) => {
-            const btn = e.target.closest('.page-number-btn');
-            if (!btn || btn.disabled) return;
-
-            if (btn.id === 'prev-page') currentPage--;
-            else if (btn.id === 'next-page') currentPage++;
-            else currentPage = parseInt(btn.getAttribute('data-page'));
-
-            updateTable();
-        });
+        // Pagination handled by MovixApp.renderPagination helper
 
         // Insert and Edit Form Modals
         if (document.getElementById('btn-novo-veiculo')) {

@@ -19,8 +19,12 @@
                     motoristaId: '',
                     combustivel: ''
                 },
+                itemsPerPage: 10,
                 scroll: 0
             };
+            window.movixApp.saveListState('abastecimentos', state);
+        } else if (state.itemsPerPage === undefined) {
+            state.itemsPerPage = 10;
             window.movixApp.saveListState('abastecimentos', state);
         }
 
@@ -96,7 +100,6 @@
 
         let filteredData = [...supplies];
         let currentPage = state.currentPage;
-        const itemsPerPage = 8;
 
         function updateTable() {
             const tbody = document.getElementById('tbody-abastecimentos');
@@ -122,14 +125,15 @@
                 return matchVeiculo && matchMotorista && matchFuel;
             });
 
-            const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
+            const itemsPerPageVal = state.itemsPerPage === 'Todos' ? Infinity : (parseInt(state.itemsPerPage) || 10);
+            const totalPages = Math.ceil(filteredData.length / itemsPerPageVal) || 1;
             if (currentPage > totalPages) {
                 currentPage = totalPages;
                 state.currentPage = currentPage;
                 window.movixApp.saveListState('abastecimentos', state);
             }
-            const startIdx = (currentPage - 1) * itemsPerPage;
-            const paginatedItems = filteredData.slice(startIdx, startIdx + itemsPerPage);
+            const startIdx = (currentPage - 1) * itemsPerPageVal;
+            const paginatedItems = filteredData.slice(startIdx, startIdx + itemsPerPageVal);
 
             tbody.innerHTML = '';
             if (paginatedItems.length === 0) {
@@ -186,16 +190,27 @@
                 `;
             });
 
-            // Pagination UI
-            let pagHTML = `<span>Mostrando ${startIdx + 1} a ${Math.min(startIdx + itemsPerPage, filteredData.length)} de ${filteredData.length} abastecimentos</span>`;
-            pagHTML += `<div class="pagination-pages">`;
-            pagHTML += `<button class="page-number-btn" id="prev-page" ${currentPage === 1 ? 'disabled' : ''}><i class="fa-solid fa-chevron-left"></i></button>`;
-            for (let i = 1; i <= totalPages; i++) {
-                pagHTML += `<button class="page-number-btn ${currentPage === i ? 'active' : ''}" data-page="${i}">${i}</button>`;
-            }
-            pagHTML += `<button class="page-number-btn" id="next-page" ${currentPage === totalPages ? 'disabled' : ''}><i class="fa-solid fa-chevron-right"></i></button>`;
-            pagHTML += `</div>`;
-            document.getElementById('pagination-abastecimentos').innerHTML = pagHTML;
+            // Pagination UI using helper
+            window.movixApp.renderPagination({
+                containerId: 'pagination-abastecimentos',
+                currentPage: currentPage,
+                totalItems: filteredData.length,
+                itemsPerPage: state.itemsPerPage || 10,
+                noun: 'abastecimentos',
+                onPageChange: (newPage) => {
+                    currentPage = newPage;
+                    state.currentPage = newPage;
+                    window.movixApp.saveListState('abastecimentos', state);
+                    updateTable();
+                },
+                onItemsPerPageChange: (newLimit) => {
+                    state.itemsPerPage = newLimit;
+                    currentPage = 1;
+                    state.currentPage = 1;
+                    window.movixApp.saveListState('abastecimentos', state);
+                    updateTable();
+                }
+            });
 
             // Restore scroll position
             setTimeout(() => {
@@ -208,15 +223,7 @@
         document.getElementById('filter-motorista').addEventListener('change', () => { currentPage = 1; updateTable(); });
         document.getElementById('filter-fuel-type').addEventListener('change', () => { currentPage = 1; updateTable(); });
 
-        // Pagination buttons
-        document.getElementById('pagination-abastecimentos').addEventListener('click', (e) => {
-            const btn = e.target.closest('.page-number-btn');
-            if (!btn || btn.disabled) return;
-            if (btn.id === 'prev-page') currentPage--;
-            else if (btn.id === 'next-page') currentPage++;
-            else currentPage = parseInt(btn.getAttribute('data-page'));
-            updateTable();
-        });
+        // Pagination handled by MovixApp.renderPagination helper
 
         // Add supply Trigger
         if (document.getElementById('btn-novo-abastecimento')) {

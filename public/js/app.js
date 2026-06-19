@@ -983,6 +983,111 @@ class MovixApp {
         };
     }
 
+    renderPagination({
+        containerId,
+        currentPage,
+        totalItems,
+        itemsPerPage,
+        noun = 'registros',
+        onPageChange,
+        onItemsPerPageChange
+    }) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        if (totalItems === 0) {
+            container.innerHTML = '';
+            return;
+        }
+
+        const itemsPerPageNum = itemsPerPage === 'Todos' ? Infinity : parseInt(itemsPerPage);
+        const totalPages = Math.ceil(totalItems / itemsPerPageNum) || 1;
+        
+        let validCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+
+        const startIdx = totalItems === 0 ? 0 : (validCurrentPage - 1) * itemsPerPageNum + 1;
+        const endIdx = itemsPerPageNum === Infinity ? totalItems : Math.min(validCurrentPage * itemsPerPageNum, totalItems);
+
+        let pages = [];
+        if (totalPages <= 7) {
+            for (let i = 1; i <= totalPages; i++) {
+                pages.push(i);
+            }
+        } else {
+            if (validCurrentPage <= 4) {
+                pages = [1, 2, 3, 4, 5, '...', totalPages];
+            } else if (validCurrentPage >= totalPages - 3) {
+                pages = [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+            } else {
+                pages = [1, '...', validCurrentPage - 1, validCurrentPage, validCurrentPage + 1, '...', totalPages];
+            }
+        }
+
+        let html = `
+            <div class="pagination-limit" style="display: flex; align-items: center; gap: 8px;">
+                <span>Mostrar:</span>
+                <select class="pagination-select" style="padding: 4px 8px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); background-color: var(--bg-surface); color: var(--text-main); font-size: 0.8rem; cursor: pointer;">
+                    <option value="10" ${itemsPerPage == 10 ? 'selected' : ''}>10 registros</option>
+                    <option value="25" ${itemsPerPage == 25 ? 'selected' : ''}>25 registros</option>
+                    <option value="50" ${itemsPerPage == 50 ? 'selected' : ''}>50 registros</option>
+                    <option value="100" ${itemsPerPage == 100 ? 'selected' : ''}>100 registros</option>
+                    <option value="Todos" ${itemsPerPage === 'Todos' ? 'selected' : ''}>Todos</option>
+                </select>
+                <span>por página</span>
+            </div>
+            <span class="pagination-info" style="font-weight: 500;">Mostrando ${startIdx} a ${endIdx} de ${totalItems} ${noun}</span>
+            <div class="pagination-pages" style="display: flex; gap: 6px; align-items: center;">
+                <button class="page-number-btn" id="prev-page" ${validCurrentPage === 1 ? 'disabled' : ''} style="display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-chevron-left"></i></button>
+        `;
+
+        pages.forEach(p => {
+            if (p === '...') {
+                html += `<span style="padding: 0 4px; color: var(--text-muted);">...</span>`;
+            } else {
+                html += `
+                    <button class="page-number-btn ${validCurrentPage === p ? 'active' : ''}" data-page="${p}">
+                        ${p}
+                    </button>
+                `;
+            }
+        });
+
+        html += `
+                <button class="page-number-btn" id="next-page" ${validCurrentPage === totalPages ? 'disabled' : ''} style="display: flex; align-items: center; justify-content: center;"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+        `;
+
+        container.innerHTML = html;
+
+        const newContainer = container.cloneNode(true);
+        container.parentNode.replaceChild(newContainer, container);
+
+        newContainer.addEventListener('click', (e) => {
+            const btn = e.target.closest('.page-number-btn');
+            if (!btn || btn.disabled) return;
+
+            let targetPage = validCurrentPage;
+            if (btn.id === 'prev-page') {
+                targetPage = validCurrentPage - 1;
+            } else if (btn.id === 'next-page') {
+                targetPage = validCurrentPage + 1;
+            } else {
+                targetPage = parseInt(btn.getAttribute('data-page'));
+            }
+
+            if (onPageChange && targetPage !== validCurrentPage) {
+                onPageChange(targetPage);
+            }
+        });
+
+        const newSelect = newContainer.querySelector('.pagination-select');
+        newSelect.addEventListener('change', (e) => {
+            if (onItemsPerPageChange) {
+                onItemsPerPageChange(e.target.value);
+            }
+        });
+    }
+
     setupScrollTracking() {
         window.addEventListener('scroll', () => {
             if (window.movixRouter && window.movixRouter.currentRoute) {

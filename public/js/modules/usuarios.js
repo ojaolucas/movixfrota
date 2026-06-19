@@ -38,8 +38,14 @@
                     perfil: '',
                     status: ''
                 },
+                itemsPerPage: 10,
                 scroll: 0
             };
+            window.movixApp.saveListState('usuarios', state);
+        } else {
+            if (state.currentPage === undefined) state.currentPage = 1;
+            if (state.itemsPerPage === undefined) state.itemsPerPage = 10;
+            if (!state.currentSort) state.currentSort = { column: 'nome', direction: 'asc' };
             window.movixApp.saveListState('usuarios', state);
         }
         
@@ -110,8 +116,6 @@
 
         let filteredData = [...users];
         let currentSort = state.currentSort;
-        let currentPage = state.currentPage;
-        const itemsPerPage = 6;
 
         function updateTable() {
             const tbody = document.getElementById('tbody-usuarios');
@@ -127,7 +131,6 @@
                 perfil: perfilVal,
                 status: statusVal
             };
-            state.currentPage = currentPage;
             state.currentSort = currentSort;
             window.movixApp.saveListState('usuarios', state);
 
@@ -165,15 +168,15 @@
             });
 
             // Pagination calculation
-            const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
-            if (currentPage > totalPages) {
-                currentPage = totalPages;
-                state.currentPage = currentPage;
+            const itemsPerPageVal = state.itemsPerPage === 'Todos' ? Infinity : (parseInt(state.itemsPerPage) || 10);
+            const totalPages = Math.ceil(filteredData.length / itemsPerPageVal) || 1;
+            if (state.currentPage > totalPages) {
+                state.currentPage = totalPages;
                 window.movixApp.saveListState('usuarios', state);
             }
             
-            const startIdx = (currentPage - 1) * itemsPerPage;
-            const paginatedItems = filteredData.slice(startIdx, startIdx + itemsPerPage);
+            const startIdx = (state.currentPage - 1) * itemsPerPageVal;
+            const paginatedItems = filteredData.slice(startIdx, startIdx + itemsPerPageVal);
 
             tbody.innerHTML = '';
             if (paginatedItems.length === 0) {
@@ -216,16 +219,25 @@
                 `;
             });
 
-            // Pagination UI
-            let pagHTML = `<span>Mostrando ${startIdx + 1} a ${Math.min(startIdx + itemsPerPage, filteredData.length)} de ${filteredData.length} registros</span>`;
-            pagHTML += `<div class="pagination-pages">`;
-            pagHTML += `<button class="page-number-btn" id="prev-page-u" ${currentPage === 1 ? 'disabled' : ''}><i class="fa-solid fa-chevron-left"></i></button>`;
-            for (let i = 1; i <= totalPages; i++) {
-                pagHTML += `<button class="page-number-btn ${currentPage === i ? 'active' : ''}" data-page="${i}">${i}</button>`;
-            }
-            pagHTML += `<button class="page-number-btn" id="next-page-u" ${currentPage === totalPages ? 'disabled' : ''}><i class="fa-solid fa-chevron-right"></i></button>`;
-            pagHTML += `</div>`;
-            document.getElementById('pagination-usuarios').innerHTML = pagHTML;
+            // Render Pagination controls using central helper
+            window.movixApp.renderPagination({
+                containerId: 'pagination-usuarios',
+                currentPage: state.currentPage,
+                totalItems: filteredData.length,
+                itemsPerPage: state.itemsPerPage,
+                noun: 'registros',
+                onPageChange: (newPage) => {
+                    state.currentPage = newPage;
+                    window.movixApp.saveListState('usuarios', state);
+                    updateTable();
+                },
+                onItemsPerPageChange: (newLimit) => {
+                    state.itemsPerPage = newLimit;
+                    state.currentPage = 1;
+                    window.movixApp.saveListState('usuarios', state);
+                    updateTable();
+                }
+            });
 
             // Restore scroll position
             setTimeout(() => {
@@ -234,9 +246,9 @@
         }
 
         // Event hooks
-        document.getElementById('search-usuarios').addEventListener('input', () => { currentPage = 1; updateTable(); });
-        document.getElementById('filter-perfil').addEventListener('change', () => { currentPage = 1; updateTable(); });
-        document.getElementById('filter-status').addEventListener('change', () => { currentPage = 1; updateTable(); });
+        document.getElementById('search-usuarios').addEventListener('input', () => { state.currentPage = 1; updateTable(); });
+        document.getElementById('filter-perfil').addEventListener('change', () => { state.currentPage = 1; updateTable(); });
+        document.getElementById('filter-status').addEventListener('change', () => { state.currentPage = 1; updateTable(); });
 
         // Sort click triggers
         document.querySelectorAll('#table-usuarios th.sortable').forEach(th => {
@@ -252,17 +264,7 @@
             });
         });
 
-        // Pagination buttons handlers
-        document.getElementById('pagination-usuarios').addEventListener('click', (e) => {
-            const btn = e.target.closest('.page-number-btn');
-            if (!btn || btn.disabled) return;
-
-            if (btn.id === 'prev-page-u') currentPage--;
-            else if (btn.id === 'next-page-u') currentPage++;
-            else currentPage = parseInt(btn.getAttribute('data-page'));
-
-            updateTable();
-        });
+        // Pagination is handled centrally
 
         // Action Buttons click triggers
         document.getElementById('btn-novo-usuario').addEventListener('click', () => openUsuarioModal());

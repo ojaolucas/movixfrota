@@ -23,8 +23,12 @@
                     de: '',
                     ate: ''
                 },
+                itemsPerPage: 10,
                 scroll: 0
             };
+            window.movixApp.saveListState('viagens', state);
+        } else if (state.itemsPerPage === undefined) {
+            state.itemsPerPage = 10;
             window.movixApp.saveListState('viagens', state);
         }
 
@@ -181,7 +185,6 @@
         `;
 
         let currentPage = state.currentPage;
-        const itemsPerPage = 8;
 
         function updateTable() {
             const tbody = document.getElementById('tbody-viagens');
@@ -277,10 +280,11 @@
                 return true;
             });
 
-            const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
+            const itemsPerPageVal = state.itemsPerPage === 'Todos' ? Infinity : (parseInt(state.itemsPerPage) || 10);
+            const totalPages = Math.ceil(filteredData.length / itemsPerPageVal) || 1;
             if (currentPage > totalPages) currentPage = totalPages;
-            const startIdx = (currentPage - 1) * itemsPerPage;
-            const paginatedItems = filteredData.slice(startIdx, startIdx + itemsPerPage);
+            const startIdx = (currentPage - 1) * itemsPerPageVal;
+            const paginatedItems = filteredData.slice(startIdx, startIdx + itemsPerPageVal);
 
             tbody.innerHTML = '';
             if (paginatedItems.length === 0) {
@@ -358,16 +362,27 @@
                 `;
             });
 
-            // Pagination Render
-            let pagHTML = `<span>Mostrando ${startIdx + 1} a ${Math.min(startIdx + itemsPerPage, filteredData.length)} de ${filteredData.length} escalas</span>`;
-            pagHTML += `<div class="pagination-pages">`;
-            pagHTML += `<button class="page-number-btn" id="prev-page" ${currentPage === 1 ? 'disabled' : ''}><i class="fa-solid fa-chevron-left"></i></button>`;
-            for (let i = 1; i <= totalPages; i++) {
-                pagHTML += `<button class="page-number-btn ${currentPage === i ? 'active' : ''}" data-page="${i}">${i}</button>`;
-            }
-            pagHTML += `<button class="page-number-btn" id="next-page" ${currentPage === totalPages ? 'disabled' : ''}><i class="fa-solid fa-chevron-right"></i></button>`;
-            pagHTML += `</div>`;
-            document.getElementById('pagination-viagens').innerHTML = pagHTML;
+            // Pagination Render using helper
+            window.movixApp.renderPagination({
+                containerId: 'pagination-viagens',
+                currentPage: currentPage,
+                totalItems: filteredData.length,
+                itemsPerPage: state.itemsPerPage || 10,
+                noun: 'viagens',
+                onPageChange: (newPage) => {
+                    currentPage = newPage;
+                    state.currentPage = newPage;
+                    window.movixApp.saveListState('viagens', state);
+                    updateTable();
+                },
+                onItemsPerPageChange: (newLimit) => {
+                    state.itemsPerPage = newLimit;
+                    currentPage = 1;
+                    state.currentPage = 1;
+                    window.movixApp.saveListState('viagens', state);
+                    updateTable();
+                }
+            });
 
             // Restore scroll position
             setTimeout(() => {
@@ -375,15 +390,7 @@
             }, 0);
         }
 
-        // Pagination Triggers
-        document.getElementById('pagination-viagens').addEventListener('click', (e) => {
-            const btn = e.target.closest('.page-number-btn');
-            if (!btn || btn.disabled) return;
-            if (btn.id === 'prev-page') currentPage--;
-            else if (btn.id === 'next-page') currentPage++;
-            else currentPage = parseInt(btn.getAttribute('data-page'));
-            updateTable();
-        });
+        // Pagination handled by MovixApp.renderPagination helper
 
         // Tab Clicks Bindings
         const tabEmAndamento = document.getElementById('tab-btn-em-andamento');

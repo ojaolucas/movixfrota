@@ -24,6 +24,25 @@
         const users = window.movixStore.state.usuarios;
         const isAdmin = activeUser.perfil === 'Administrador';
 
+        let state = window.movixApp.getListState('auditoria');
+        if (!state) {
+            state = {
+                currentPage: 1,
+                itemsPerPage: 10,
+                filters: {
+                    search: '',
+                    action: ''
+                },
+                scroll: 0
+            };
+            window.movixApp.saveListState('auditoria', state);
+        } else {
+            if (state.currentPage === undefined) state.currentPage = 1;
+            if (state.itemsPerPage === undefined) state.itemsPerPage = 10;
+            if (!state.filters) state.filters = { search: '', action: '' };
+            window.movixApp.saveListState('auditoria', state);
+        }
+
         container.innerHTML = `
             <div class="page-header">
                 <div class="page-title-group">
@@ -50,14 +69,14 @@
 
                     <!-- SEARCH/FILTER BAR -->
                     <div style="display:flex; gap:12px; margin-top:12px;">
-                        <input type="text" class="filter-input" id="search-logs" placeholder="Filtrar logs..." style="flex-grow:1;">
+                        <input type="text" class="filter-input" id="search-logs" placeholder="Filtrar logs..." style="flex-grow:1;" value="${state.filters.search || ''}">
                         <select class="filter-input" id="filter-log-action" style="width:160px;">
                             <option value="">Todas Ações</option>
-                            <option value="Cadastro">Cadastro</option>
-                            <option value="Edição">Edição</option>
-                            <option value="Exclusão">Exclusão</option>
-                            <option value="Aprovação">Aprovação</option>
-                            <option value="Sessão">Sessão</option>
+                            <option value="Cadastro" ${state.filters.action === 'Cadastro' ? 'selected' : ''}>Cadastro</option>
+                            <option value="Edição" ${state.filters.action === 'Edição' ? 'selected' : ''}>Edição</option>
+                            <option value="Exclusão" ${state.filters.action === 'Exclusão' ? 'selected' : ''}>Exclusão</option>
+                            <option value="Aprovação" ${state.filters.action === 'Aprovação' ? 'selected' : ''}>Aprovação</option>
+                            <option value="Sessão" ${state.filters.action === 'Sessão' ? 'selected' : ''}>Sessão</option>
                         </select>
                     </div>
 
@@ -77,6 +96,7 @@
                             </tbody>
                         </table>
                     </div>
+                    <div class="table-pagination" id="pagination-logs" style="margin-top: 12px;"></div>
                 </div>
 
                 <!-- SIMULATED USERS MANAGER PANEL -->
@@ -105,6 +125,13 @@
             const searchVal = document.getElementById('search-logs').value.toLowerCase();
             const actionVal = document.getElementById('filter-log-action').value;
 
+            // Save filter state
+            state.filters = {
+                search: document.getElementById('search-logs').value,
+                action: actionVal
+            };
+            window.movixApp.saveListState('auditoria', state);
+
             const filteredLogs = logs.filter(l => {
                 const matchSearch = l.usuario.toLowerCase().includes(searchVal) || 
                                     l.detalhes.toLowerCase().includes(searchVal) ||
@@ -121,13 +148,25 @@
                 return matchSearch && matchAction;
             });
 
+            // Pagination calculation
+            const itemsPerPageVal = state.itemsPerPage === 'Todos' ? Infinity : (parseInt(state.itemsPerPage) || 10);
+            const totalPages = Math.ceil(filteredLogs.length / itemsPerPageVal) || 1;
+            if (state.currentPage > totalPages) {
+                state.currentPage = totalPages;
+                window.movixApp.saveListState('auditoria', state);
+            }
+            
+            const startIdx = (state.currentPage - 1) * itemsPerPageVal;
+            const paginatedItems = filteredLogs.slice(startIdx, startIdx + itemsPerPageVal);
+
             tbody.innerHTML = '';
-            if (filteredLogs.length === 0) {
+            if (paginatedItems.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="5" class="search-no-results">Nenhum evento registrado</td></tr>`;
+                document.getElementById('pagination-logs').innerHTML = '';
                 return;
             }
 
-            filteredLogs.forEach(l => {
+            paginatedItems.forEach(l => {
                 const date = new Date(l.data);
                 const timeStr = `${date.toLocaleDateString('pt-BR')} ${date.toLocaleTimeString('pt-BR')}`;
                 
@@ -151,6 +190,31 @@
                     </tr>
                 `;
             });
+
+            // Render pagination links
+            window.movixApp.renderPagination({
+                containerId: 'pagination-logs',
+                currentPage: state.currentPage,
+                totalItems: filteredLogs.length,
+                itemsPerPage: state.itemsPerPage,
+                noun: 'logs',
+                onPageChange: (newPage) => {
+                    state.currentPage = newPage;
+                    window.movixApp.saveListState('auditoria', state);
+                    updateLogsTable();
+                },
+                onItemsPerPageChange: (newLimit) => {
+                    state.itemsPerPage = newLimit;
+                    state.currentPage = 1;
+                    window.movixApp.saveListState('auditoria', state);
+                    updateLogsTable();
+                }
+            });
+
+            // Restore scroll position
+            setTimeout(() => {
+                window.scrollTo(0, state.scroll || 0);
+            }, 0);
         }
 
         function renderUsers() {
@@ -177,8 +241,8 @@
         }
 
         // Filters events hooks
-        document.getElementById('search-logs').addEventListener('input', updateLogsTable);
-        document.getElementById('filter-log-action').addEventListener('change', updateLogsTable);
+        document.getElementById('search-logs').addEventListener('input', () => { state.currentPage = 1; updateLogsTable(); });
+        document.getElementById('filter-log-action').addEventListener('change', () => { state.currentPage = 1; updateLogsTable(); });
 
         // Erase logs trigger (Admin only)
         if (document.getElementById('btn-limpar-logs')) {

@@ -53,8 +53,14 @@
                     de: '',
                     ate: ''
                 },
+                itemsPerPage: 10,
                 scroll: 0
             };
+            window.movixApp.saveListState('multas', state);
+        } else {
+            if (state.currentPage === undefined) state.currentPage = 1;
+            if (state.itemsPerPage === undefined) state.itemsPerPage = 10;
+            if (!state.currentSort) state.currentSort = { column: 'data', direction: 'desc' };
             window.movixApp.saveListState('multas', state);
         }
 
@@ -155,8 +161,6 @@
 
         let filteredData = [...multas];
         let currentSort = state.currentSort;
-        let currentPage = state.currentPage;
-        const itemsPerPage = 8;
 
         const dateContainer = document.getElementById('custom-date-container');
         const periodSel = document.getElementById('filter-periodo-multa');
@@ -170,7 +174,7 @@
                     document.getElementById('filter-data-de').value = '';
                     document.getElementById('filter-data-ate').value = '';
                 }
-                currentPage = 1;
+                state.currentPage = 1;
                 updateTable();
             });
         }
@@ -196,7 +200,6 @@
                 de: dataDeVal,
                 ate: dataAteVal
             };
-            state.currentPage = currentPage;
             state.currentSort = currentSort;
             window.movixApp.saveListState('multas', state);
 
@@ -263,15 +266,15 @@
             });
 
             // Pagination calculation
-            const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
-            if (currentPage > totalPages) {
-                currentPage = totalPages;
-                state.currentPage = currentPage;
+            const itemsPerPageVal = state.itemsPerPage === 'Todos' ? Infinity : (parseInt(state.itemsPerPage) || 10);
+            const totalPages = Math.ceil(filteredData.length / itemsPerPageVal) || 1;
+            if (state.currentPage > totalPages) {
+                state.currentPage = totalPages;
                 window.movixApp.saveListState('multas', state);
             }
             
-            const startIdx = (currentPage - 1) * itemsPerPage;
-            const paginatedItems = filteredData.slice(startIdx, startIdx + itemsPerPage);
+            const startIdx = (state.currentPage - 1) * itemsPerPageVal;
+            const paginatedItems = filteredData.slice(startIdx, startIdx + itemsPerPageVal);
 
             tbody.innerHTML = '';
             if (paginatedItems.length === 0) {
@@ -328,16 +331,25 @@
                 `;
             });
 
-            // Render pagination links
-            let pagHTML = `<span>Mostrando ${startIdx + 1} a ${Math.min(startIdx + itemsPerPage, filteredData.length)} de ${filteredData.length} infrações</span>`;
-            pagHTML += `<div class="pagination-pages">`;
-            pagHTML += `<button class="page-number-btn" id="prev-page" ${currentPage === 1 ? 'disabled' : ''}><i class="fa-solid fa-chevron-left"></i></button>`;
-            for (let i = 1; i <= totalPages; i++) {
-                pagHTML += `<button class="page-number-btn ${currentPage === i ? 'active' : ''}" data-page="${i}">${i}</button>`;
-            }
-            pagHTML += `<button class="page-number-btn" id="next-page" ${currentPage === totalPages ? 'disabled' : ''}><i class="fa-solid fa-chevron-right"></i></button>`;
-            pagHTML += `</div>`;
-            document.getElementById('pagination-multas').innerHTML = pagHTML;
+            // Render pagination links using central helper
+            window.movixApp.renderPagination({
+                containerId: 'pagination-multas',
+                currentPage: state.currentPage,
+                totalItems: filteredData.length,
+                itemsPerPage: state.itemsPerPage,
+                noun: 'infrações',
+                onPageChange: (newPage) => {
+                    state.currentPage = newPage;
+                    window.movixApp.saveListState('multas', state);
+                    updateTable();
+                },
+                onItemsPerPageChange: (newLimit) => {
+                    state.itemsPerPage = newLimit;
+                    state.currentPage = 1;
+                    window.movixApp.saveListState('multas', state);
+                    updateTable();
+                }
+            });
 
             // Restore scroll position
             setTimeout(() => {
@@ -346,12 +358,12 @@
         }
 
         // Attach filter listeners
-        document.getElementById('search-multas').addEventListener('input', () => { currentPage = 1; updateTable(); });
-        document.getElementById('filter-veiculo-multa').addEventListener('change', () => { currentPage = 1; updateTable(); });
-        document.getElementById('filter-motorista-multa').addEventListener('change', () => { currentPage = 1; updateTable(); });
-        document.getElementById('filter-status-multa').addEventListener('change', () => { currentPage = 1; updateTable(); });
-        document.getElementById('filter-data-de').addEventListener('change', () => { currentPage = 1; updateTable(); });
-        document.getElementById('filter-data-ate').addEventListener('change', () => { currentPage = 1; updateTable(); });
+        document.getElementById('search-multas').addEventListener('input', () => { state.currentPage = 1; updateTable(); });
+        document.getElementById('filter-veiculo-multa').addEventListener('change', () => { state.currentPage = 1; updateTable(); });
+        document.getElementById('filter-motorista-multa').addEventListener('change', () => { state.currentPage = 1; updateTable(); });
+        document.getElementById('filter-status-multa').addEventListener('change', () => { state.currentPage = 1; updateTable(); });
+        document.getElementById('filter-data-de').addEventListener('change', () => { state.currentPage = 1; updateTable(); });
+        document.getElementById('filter-data-ate').addEventListener('change', () => { state.currentPage = 1; updateTable(); });
 
         // Sort table clicks
         document.querySelectorAll('#table-multas th.sortable').forEach(th => {
@@ -374,17 +386,7 @@
             });
         });
 
-        // Pagination buttons handlers
-        document.getElementById('pagination-multas').addEventListener('click', (e) => {
-            const btn = e.target.closest('.page-number-btn');
-            if (!btn || btn.disabled) return;
-
-            if (btn.id === 'prev-page') currentPage--;
-            else if (btn.id === 'next-page') currentPage++;
-            else currentPage = parseInt(btn.getAttribute('data-page'));
-
-            updateTable();
-        });
+        // Pagination logic is handled centrally by renderPagination
 
         // Form Modal Triggers
         if (document.getElementById('btn-nova-multa')) {

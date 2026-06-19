@@ -657,6 +657,7 @@ class MovixStore {
 
         // 1. CNH Expiration Alerts (Drivers)
         this.state.motoristas.forEach(m => {
+            if (m.status === 'inativo') return;
             if (m.categoria && m.categoria !== 'Motorista Efetivo') return;
             const expDate = new Date(m.dataVencimentoCNH);
             if (expDate < today) {

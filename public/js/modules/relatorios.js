@@ -7,6 +7,28 @@
         const drivers = window.movixStore.getMotoristas();
         const activeUser = window.movixStore.getActiveUser();
         
+        let state = window.movixApp.getListState('relatorios');
+        if (!state) {
+            state = {
+                currentPage: 1,
+                itemsPerPage: 10,
+                currentSort: { column: '', direction: 'asc' },
+                reportType: 'fuel_costs',
+                filters: {
+                    search: ''
+                },
+                scroll: 0
+            };
+            window.movixApp.saveListState('relatorios', state);
+        } else {
+            if (state.currentPage === undefined) state.currentPage = 1;
+            if (state.itemsPerPage === undefined) state.itemsPerPage = 10;
+            if (!state.currentSort) state.currentSort = { column: '', direction: 'asc' };
+            if (!state.reportType) state.reportType = 'fuel_costs';
+            if (!state.filters) state.filters = { search: '' };
+            window.movixApp.saveListState('relatorios', state);
+        }
+        
         container.innerHTML = `
             <style>
                 /* Estilos CSS Otimizados para Exibição Executiva e Impressão */
@@ -220,12 +242,13 @@
             </div>
         `;
 
+        if (state.reportType) {
+            document.getElementById('report-type-sel').value = state.reportType;
+        }
+
         let currentChartInstance = null;
         let activeReportData = []; // Rows of generated report
         let activeHeaders = [];
-        let currentSort = { column: '', direction: 'asc' };
-        let currentPage = 1;
-        let itemsPerPage = 10;
 
         // Date helper
         function parseDate(dateStr) {
@@ -262,7 +285,7 @@
         }
 
         // Render dynamic filter fields based on report type selection
-        function setupDynamicFilters() {
+        function setupDynamicFilters(isInitial = false) {
             const reportType = document.getElementById('report-type-sel').value;
             const filterGroup = document.getElementById('dynamic-filters-group');
             if (!filterGroup) return;
@@ -484,7 +507,7 @@
                         <label>Motorista</label>
                         <select class="filter-input" id="filter-motorista">
                             <option value="">Todos</option>
-                            ${driversList.map(d => `<option value="${d.id}">${d.nome}</option>`).join('')}
+                            ${driversList.filter(d => d.status !== 'inativo').map(d => `<option value="${d.id}">${d.nome}</option>`).join('')}
                         </select>
                     </div>
                     <div class="filter-group">
@@ -632,45 +655,107 @@
 
             filterGroup.innerHTML = html;
 
+            // Restore from state if initial bootstrap
+            if (isInitial) {
+                const dynamicInputs = filterGroup.querySelectorAll('.filter-input');
+                dynamicInputs.forEach(input => {
+                    if (state.filters[input.id] !== undefined) {
+                        input.value = state.filters[input.id];
+                    }
+                });
+                const dateStart = document.getElementById('report-date-start');
+                const dateEnd = document.getElementById('report-date-end');
+                if (dateStart && state.filters['report-date-start'] !== undefined) {
+                    dateStart.value = state.filters['report-date-start'];
+                }
+                if (dateEnd && state.filters['report-date-end'] !== undefined) {
+                    dateEnd.value = state.filters['report-date-end'];
+                }
+            }
+
             // Hook dates visibility toggling
             const periodFilter = document.getElementById('report-period-filter');
             const customDatesContainer = document.getElementById('report-custom-dates-container');
             if (periodFilter && customDatesContainer) {
-                const handlePeriodChange = () => {
+                const handlePeriodChange = (isInitCall = false) => {
                     if (periodFilter.value === 'custom') {
                         customDatesContainer.style.display = 'grid';
                     } else {
                         customDatesContainer.style.display = 'none';
                     }
-                    generateReport();
+                    state.filters['report-period-filter'] = periodFilter.value;
+                    const dateStart = document.getElementById('report-date-start');
+                    const dateEnd = document.getElementById('report-date-end');
+                    if (dateStart) state.filters['report-date-start'] = dateStart.value;
+                    if (dateEnd) state.filters['report-date-end'] = dateEnd.value;
+                    
+                    if (!isInitCall) {
+                        state.currentPage = 1;
+                    }
+                    window.movixApp.saveListState('relatorios', state);
+                    generateReport(isInitCall);
                 };
-                periodFilter.addEventListener('change', handlePeriodChange);
-                handlePeriodChange(); // Run initially
+                periodFilter.addEventListener('change', () => handlePeriodChange(false));
+                
+                const dateStart = document.getElementById('report-date-start');
+                const dateEnd = document.getElementById('report-date-end');
+                if (dateStart) {
+                    dateStart.addEventListener('change', () => {
+                        state.filters['report-date-start'] = dateStart.value;
+                        state.currentPage = 1;
+                        window.movixApp.saveListState('relatorios', state);
+                        generateReport(false);
+                    });
+                }
+                if (dateEnd) {
+                    dateEnd.addEventListener('change', () => {
+                        state.filters['report-date-end'] = dateEnd.value;
+                        state.currentPage = 1;
+                        window.movixApp.saveListState('relatorios', state);
+                        generateReport(false);
+                    });
+                }
+
+                // Run initially
+                if (isInitial) {
+                    if (periodFilter.value === 'custom') {
+                        customDatesContainer.style.display = 'grid';
+                    } else {
+                        customDatesContainer.style.display = 'none';
+                    }
+                } else {
+                    handlePeriodChange(false);
+                }
             }
 
             // Hook listeners to all inputs to trigger report re-generation
             const dynamicInputs = filterGroup.querySelectorAll('.filter-input');
             dynamicInputs.forEach(input => {
-                if (input.id !== 'report-period-filter') {
+                if (input.id !== 'report-period-filter' && input.id !== 'report-date-start' && input.id !== 'report-date-end') {
                     input.addEventListener('change', () => {
-                        currentPage = 1;
-                        generateReport();
+                        state.filters[input.id] = input.value;
+                        state.currentPage = 1;
+                        window.movixApp.saveListState('relatorios', state);
+                        generateReport(false);
                     });
                     if (input.tagName === 'INPUT') {
                         input.addEventListener('input', () => {
-                            currentPage = 1;
-                            generateReport();
+                            state.filters[input.id] = input.value;
+                            state.currentPage = 1;
+                            window.movixApp.saveListState('relatorios', state);
+                            generateReport(false);
                         });
                     }
                 }
             });
 
-            currentPage = 1;
-            generateReport(); // Initial generation with new filters
+            if (isInitial) {
+                generateReport(true);
+            }
         }
 
         // MAIN GENERATION FUNCTION
-        function generateReport() {
+        function generateReport(isInitial = false) {
             const reportType = document.getElementById('report-type-sel').value;
             const periodFilter = document.getElementById('report-period-filter');
             const periodVal = periodFilter ? periodFilter.value : 'all';
@@ -1229,6 +1314,7 @@
                 activeHeaders = ['Nome Motorista', 'Categoria Condutor', 'CPF', 'CNH', 'Categoria', 'Vencimento CNH', 'Telefone', 'E-mail', 'Status', 'Vencimento Situação'];
 
                 const filtered = drivers.filter(d => {
+                    if (d.status === 'inativo') return false;
                     const matchDriver = !filterDriver || d.id === filterDriver;
                     const matchCategoria = !filterCategoria || d.categoria === filterCategoria;
                     
@@ -1853,6 +1939,7 @@
 
                 // 1. CNH expirations
                 drivers.forEach(d => {
+                    if (d.status === 'inativo') return;
                     if (!d.dataVencimentoCNH) return;
                     const venc = parseDate(d.dataVencimentoCNH);
                     if (!venc) return;
@@ -2010,7 +2097,10 @@
             }
 
             // After calculating `activeReportData`, setup table layout
-            currentPage = 1;
+            if (!isInitial) {
+                state.currentPage = 1;
+                window.movixApp.saveListState('relatorios', state);
+            }
             renderReportTable();
         }
 
@@ -2026,8 +2116,8 @@
                 <tr>
                     ${activeHeaders.map(h => {
                         const colKey = h.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "_");
-                        const sortIcon = currentSort.column === colKey 
-                            ? (currentSort.direction === 'asc' ? ' <i class="fa-solid fa-sort-up"></i>' : ' <i class="fa-solid fa-sort-down"></i>')
+                        const sortIcon = state.currentSort.column === colKey 
+                            ? (state.currentSort.direction === 'asc' ? ' <i class="fa-solid fa-sort-up"></i>' : ' <i class="fa-solid fa-sort-down"></i>')
                             : ' <i class="fa-solid fa-sort text-muted" style="font-size:0.7rem;"></i>';
                         return `<th class="sortable" data-col="${colKey}" style="cursor:pointer; user-select:none;">${h}${sortIcon}</th>`;
                     }).join('')}
@@ -2038,12 +2128,13 @@
             thead.querySelectorAll('th.sortable').forEach(th => {
                 th.addEventListener('click', () => {
                     const col = th.getAttribute('data-col');
-                    if (currentSort.column === col) {
-                        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+                    if (state.currentSort.column === col) {
+                        state.currentSort.direction = state.currentSort.direction === 'asc' ? 'desc' : 'asc';
                     } else {
-                        currentSort.column = col;
-                        currentSort.direction = 'asc';
+                        state.currentSort.column = col;
+                        state.currentSort.direction = 'asc';
                     }
+                    window.movixApp.saveListState('relatorios', state);
                     renderReportTable();
                 });
             });
@@ -2063,11 +2154,11 @@
             document.getElementById('report-counter').innerText = `Mostrando ${searchedData.length} de ${activeReportData.length} registros`;
 
             // 3. Sort searchedData
-            if (currentSort.column) {
+            if (state.currentSort.column) {
                 searchedData.sort((a, b) => {
                     // Try getting raw values first for numeric fields
-                    let valA = a[currentSort.column];
-                    let valB = b[currentSort.column];
+                    let valA = a[state.currentSort.column];
+                    let valB = b[state.currentSort.column];
 
                     // Fallback search keys mapping to actual object properties
                     if (valA === undefined) {
@@ -2126,7 +2217,7 @@
                             'situacao': 'status',
                             'data_vencimento': 'data'
                         };
-                        const mappedKey = mapping[currentSort.column];
+                        const mappedKey = mapping[state.currentSort.column];
                         if (mappedKey) {
                             valA = a[mappedKey];
                             valB = b[mappedKey];
@@ -2148,23 +2239,27 @@
                     if (valB === undefined || valB === null) valB = '';
 
                     if (typeof valA === 'number' && typeof valB === 'number') {
-                        return currentSort.direction === 'asc' ? valA - valB : valB - valA;
+                        return state.currentSort.direction === 'asc' ? valA - valB : valB - valA;
                     }
 
                     valA = String(valA).toLowerCase();
                     valB = String(valB).toLowerCase();
 
-                    if (valA < valB) return currentSort.direction === 'asc' ? -1 : 1;
-                    if (valA > valB) return currentSort.direction === 'asc' ? 1 : -1;
+                    if (valA < valB) return state.currentSort.direction === 'asc' ? -1 : 1;
+                    if (valA > valB) return state.currentSort.direction === 'asc' ? 1 : -1;
                     return 0;
                 });
             }
 
             // 4. Paginate
-            const totalPages = Math.ceil(searchedData.length / itemsPerPage) || 1;
-            if (currentPage > totalPages) currentPage = totalPages;
-            const startIdx = (currentPage - 1) * itemsPerPage;
-            const paginated = searchedData.slice(startIdx, startIdx + itemsPerPage);
+            const itemsPerPageVal = state.itemsPerPage === 'Todos' ? Infinity : (parseInt(state.itemsPerPage) || 10);
+            const totalPages = Math.ceil(searchedData.length / itemsPerPageVal) || 1;
+            if (state.currentPage > totalPages) {
+                state.currentPage = totalPages;
+                window.movixApp.saveListState('relatorios', state);
+            }
+            const startIdx = (state.currentPage - 1) * itemsPerPageVal;
+            const paginated = searchedData.slice(startIdx, startIdx + itemsPerPageVal);
 
             tbody.innerHTML = '';
             if (paginated.length === 0) {
@@ -2209,16 +2304,25 @@
                 tbody.innerHTML += htmlRow;
             });
 
-            // Render Pagination controls
-            let pagHTML = `<span>Mostrando ${startIdx + 1} a ${Math.min(startIdx + itemsPerPage, searchedData.length)} de ${searchedData.length} registros</span>`;
-            pagHTML += `<div class="pagination-pages">`;
-            pagHTML += `<button class="page-number-btn" id="report-prev" ${currentPage === 1 ? 'disabled' : ''}><i class="fa-solid fa-chevron-left"></i></button>`;
-            for (let i = 1; i <= totalPages; i++) {
-                pagHTML += `<button class="page-number-btn ${currentPage === i ? 'active' : ''}" data-page="${i}">${i}</button>`;
-            }
-            pagHTML += `<button class="page-number-btn" id="report-next" ${currentPage === totalPages ? 'disabled' : ''}><i class="fa-solid fa-chevron-right"></i></button>`;
-            pagHTML += `</div>`;
-            document.getElementById('report-pagination').innerHTML = pagHTML;
+            // Render Pagination controls using central helper
+            window.movixApp.renderPagination({
+                containerId: 'report-pagination',
+                currentPage: state.currentPage,
+                totalItems: searchedData.length,
+                itemsPerPage: state.itemsPerPage,
+                noun: 'registros',
+                onPageChange: (newPage) => {
+                    state.currentPage = newPage;
+                    window.movixApp.saveListState('relatorios', state);
+                    renderReportTable();
+                },
+                onItemsPerPageChange: (newLimit) => {
+                    state.itemsPerPage = newLimit;
+                    state.currentPage = 1;
+                    window.movixApp.saveListState('relatorios', state);
+                    renderReportTable();
+                }
+            });
         }
 
         // EXCEL EXPORTER HELPER (UTF-8 BOM Portuguese Compatibility)
@@ -2295,27 +2399,21 @@
 
         // Setup Main Change Listener for Dynamic Filter groups
         document.getElementById('report-type-sel').addEventListener('change', () => {
-            setupDynamicFilters();
+            state.reportType = document.getElementById('report-type-sel').value;
+            state.filters = { search: '' };
+            state.currentPage = 1;
+            window.movixApp.saveListState('relatorios', state);
+            setupDynamicFilters(false);
         });
 
         // Search Input listener
         document.getElementById('view-content-wrapper').addEventListener('input', (e) => {
             if (e.target && e.target.id === 'report-search') {
-                currentPage = 1;
+                state.filters.search = e.target.value;
+                state.currentPage = 1;
+                window.movixApp.saveListState('relatorios', state);
                 renderReportTable();
             }
-        });
-
-        // Pagination Clicks Event Delegation
-        document.getElementById('view-content-wrapper').addEventListener('click', (e) => {
-            const btn = e.target.closest('.page-number-btn');
-            if (!btn || btn.disabled) return;
-
-            if (btn.id === 'report-prev') currentPage--;
-            else if (btn.id === 'report-next') currentPage++;
-            else currentPage = parseInt(btn.getAttribute('data-page'));
-
-            renderReportTable();
         });
 
         // Binding Actions Buttons
@@ -2327,14 +2425,14 @@
             document.head.appendChild(style);
 
             // Temporarily disable pagination to include all filtered items in the print DOM
-            const oldItemsPerPage = itemsPerPage;
-            itemsPerPage = 999999;
+            const oldItemsPerPage = state.itemsPerPage;
+            state.itemsPerPage = 'Todos';
             renderReportTable();
 
             window.print();
 
             // Restore pagination to its original state
-            itemsPerPage = oldItemsPerPage;
+            state.itemsPerPage = oldItemsPerPage;
             renderReportTable();
 
             setTimeout(() => {
@@ -2343,8 +2441,14 @@
             }, 500);
         });
 
+        // Restore report search input value if saved
+        const searchInput = document.getElementById('report-search');
+        if (searchInput && state.filters.search) {
+            searchInput.value = state.filters.search;
+        }
+
         // Bootstrapping the Module
-        setupDynamicFilters();
+        setupDynamicFilters(true);
     }
 
     window.movixRouter.register('relatorios', renderRelatorios);

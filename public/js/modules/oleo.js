@@ -8,6 +8,20 @@
         const activeUser = window.movixStore.getActiveUser();
         const isVisualizador = activeUser.perfil === 'Visualizador';
 
+        let state = window.movixApp.getListState('oleo');
+        if (!state) {
+            state = {
+                currentPage: 1,
+                itemsPerPage: 10,
+                scroll: 0
+            };
+            window.movixApp.saveListState('oleo', state);
+        } else {
+            if (state.currentPage === undefined) state.currentPage = 1;
+            if (state.itemsPerPage === undefined) state.itemsPerPage = 10;
+            window.movixApp.saveListState('oleo', state);
+        }
+
         container.innerHTML = `
             <div class="page-header">
                 <div class="page-title-group">
@@ -63,6 +77,7 @@
                             </tbody>
                         </table>
                     </div>
+                    <div class="table-pagination" id="pagination-oleo"></div>
                 </div>
 
             </div>
@@ -127,13 +142,25 @@
             tbody.innerHTML = '';
             if (oleos.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Nenhum registro de troca encontrado.</td></tr>`;
+                document.getElementById('pagination-oleo').innerHTML = '';
                 return;
             }
 
             // Ordenar de forma robusta por data decrescente
             const sortedOleos = [...oleos].sort((a, b) => new Date(b.dataTroca) - new Date(a.dataTroca));
 
-            sortedOleos.forEach(o => {
+            const itemsPerPageVal = state.itemsPerPage === 'Todos' ? Infinity : (parseInt(state.itemsPerPage) || 10);
+            const totalPages = Math.ceil(sortedOleos.length / itemsPerPageVal) || 1;
+            let currentPage = state.currentPage || 1;
+            if (currentPage > totalPages) {
+                currentPage = totalPages;
+                state.currentPage = currentPage;
+                window.movixApp.saveListState('oleo', state);
+            }
+            const startIdx = (currentPage - 1) * itemsPerPageVal;
+            const paginatedItems = sortedOleos.slice(startIdx, startIdx + itemsPerPageVal);
+
+            paginatedItems.forEach(o => {
                 const v = vehicles.find(item => item.id === o.veiculoId);
                 const plaque = v ? v.placa : 'Deletado';
                 
@@ -181,6 +208,31 @@
                     </tr>
                 `;
             });
+
+            // Render pagination links
+            window.movixApp.renderPagination({
+                containerId: 'pagination-oleo',
+                currentPage: currentPage,
+                totalItems: sortedOleos.length,
+                itemsPerPage: state.itemsPerPage || 10,
+                noun: 'trocas',
+                onPageChange: (newPage) => {
+                    state.currentPage = newPage;
+                    window.movixApp.saveListState('oleo', state);
+                    renderHistoryTable();
+                },
+                onItemsPerPageChange: (newLimit) => {
+                    state.itemsPerPage = newLimit;
+                    state.currentPage = 1;
+                    window.movixApp.saveListState('oleo', state);
+                    renderHistoryTable();
+                }
+            });
+
+            // Restore scroll position
+            setTimeout(() => {
+                window.scrollTo(0, state.scroll || 0);
+            }, 0);
         }
 
         // Add Oil Change Trigger
