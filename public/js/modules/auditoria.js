@@ -70,42 +70,38 @@
                     </div>
 
                     <!-- SEARCH/FILTER BAR -->
-                    <div style="display:flex; flex-direction:column; gap:12px; margin-top:12px;">
-                        <div style="display:flex; gap:12px; align-items:center;">
-                            <input type="text" class="filter-input" id="search-logs" placeholder="Filtrar logs..." value="${state.filters.busca || ''}" style="flex-grow:1;">
-                            <select class="filter-input" id="filter-log-action" style="width:160px;">
-                                <option value="">Todas Ações</option>
-                                <option value="Cadastro" ${state.filters.acao === 'Cadastro' ? 'selected' : ''}>Cadastro</option>
-                                <option value="Edição" ${state.filters.acao === 'Edição' ? 'selected' : ''}>Edição</option>
-                                <option value="Exclusão" ${state.filters.acao === 'Exclusão' ? 'selected' : ''}>Exclusão</option>
-                                <option value="Aprovação" ${state.filters.acao === 'Aprovação' ? 'selected' : ''}>Aprovação</option>
-                                <option value="Sessão" ${state.filters.acao === 'Sessão' ? 'selected' : ''}>Sessão</option>
-                            </select>
+                    <div style="display:flex; gap:12px; margin-top:12px; align-items:center; flex-wrap:wrap; width:100%;">
+                        <input type="text" class="filter-input" id="search-logs" placeholder="Filtrar logs..." value="${state.filters.busca || ''}" style="flex-grow:2; min-width:200px;">
+                        
+                        <select class="filter-input" id="filter-log-action" style="width:150px; flex-shrink:0;">
+                            <option value="">Todas Ações</option>
+                            <option value="Cadastro" ${state.filters.acao === 'Cadastro' ? 'selected' : ''}>Cadastro</option>
+                            <option value="Edição" ${state.filters.acao === 'Edição' ? 'selected' : ''}>Edição</option>
+                            <option value="Exclusão" ${state.filters.acao === 'Exclusão' ? 'selected' : ''}>Exclusão</option>
+                            <option value="Aprovação" ${state.filters.acao === 'Aprovação' ? 'selected' : ''}>Aprovação</option>
+                            <option value="Sessão" ${state.filters.acao === 'Sessão' ? 'selected' : ''}>Sessão</option>
+                        </select>
+
+                        <select class="filter-input" id="filter-log-periodo" style="width:165px; flex-shrink:0;">
+                            <option value="tudo" ${state.filters.periodo === 'tudo' ? 'selected' : ''}>Todo o histórico</option>
+                            <option value="hoje" ${state.filters.periodo === 'hoje' ? 'selected' : ''}>Hoje</option>
+                            <option value="ontem" ${state.filters.periodo === 'ontem' ? 'selected' : ''}>Ontem</option>
+                            <option value="7dias" ${state.filters.periodo === '7dias' ? 'selected' : ''}>Últimos 7 dias</option>
+                            <option value="30dias" ${state.filters.periodo === '30dias' ? 'selected' : ''}>Últimos 30 dias</option>
+                            <option value="este_mes" ${state.filters.periodo === 'este_mes' ? 'selected' : ''}>Este mês</option>
+                            <option value="mes_anterior" ${state.filters.periodo === 'mes_anterior' ? 'selected' : ''}>Mês anterior</option>
+                            <option value="personalizado" ${state.filters.periodo === 'personalizado' ? 'selected' : ''}>Personalizado...</option>
+                        </select>
+                        
+                        <div id="custom-date-container-log" style="display: ${state.filters.periodo === 'personalizado' ? 'flex' : 'none'}; gap: 8px; align-items: center; flex-shrink:0;">
+                            <input type="date" class="filter-input" id="filter-log-de" value="${state.filters.de || ''}" placeholder="De" style="width:130px;">
+                            <span style="color:var(--text-muted); font-size:0.85rem;">até</span>
+                            <input type="date" class="filter-input" id="filter-log-ate" value="${state.filters.ate || ''}" placeholder="Até" style="width:130px;">
                         </div>
-                        <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-                            <select class="filter-input" id="filter-log-periodo" style="width:180px;">
-                                <option value="tudo" ${state.filters.periodo === 'tudo' ? 'selected' : ''}>Todo o histórico</option>
-                                <option value="hoje" ${state.filters.periodo === 'hoje' ? 'selected' : ''}>Hoje</option>
-                                <option value="ontem" ${state.filters.periodo === 'ontem' ? 'selected' : ''}>Ontem</option>
-                                <option value="7dias" ${state.filters.periodo === '7dias' ? 'selected' : ''}>Últimos 7 dias</option>
-                                <option value="30dias" ${state.filters.periodo === '30dias' ? 'selected' : ''}>Últimos 30 dias</option>
-                                <option value="este_mes" ${state.filters.periodo === 'este_mes' ? 'selected' : ''}>Este mês</option>
-                                <option value="mes_anterior" ${state.filters.periodo === 'mes_anterior' ? 'selected' : ''}>Mês anterior</option>
-                                <option value="personalizado" ${state.filters.periodo === 'personalizado' ? 'selected' : ''}>Personalizado...</option>
-                            </select>
-                            
-                            <div id="custom-date-container-log" style="display: ${state.filters.periodo === 'personalizado' ? 'flex' : 'none'}; gap: 12px; align-items: center;">
-                                <input type="date" class="filter-input" id="filter-log-de" value="${state.filters.de || ''}" placeholder="De" style="width:140px;">
-                                <span style="color:var(--text-muted); font-size:0.85rem;">até</span>
-                                <input type="date" class="filter-input" id="filter-log-ate" value="${state.filters.ate || ''}" placeholder="Até" style="width:140px;">
-                            </div>
-                            
-                            <div style="margin-left: auto; display: flex; align-items: center; justify-content: flex-end;">
-                                <button class="btn btn-secondary" id="btn-limpar-filtros" style="height: 38px; white-space: nowrap; justify-content: center;">
-                                    <i class="fa-solid fa-filter-circle-xmark"></i> Limpar Filtros
-                                </button>
-                            </div>
-                        </div>
+
+                        <button class="btn btn-secondary" id="btn-limpar-filtros" style="height: 38px; white-space: nowrap; justify-content: center; flex-shrink:0; margin-left:auto;">
+                            <i class="fa-solid fa-filter-circle-xmark"></i> Limpar Filtros
+                        </button>
                     </div>
 
                     <div class="table-responsive" style="border:none; box-shadow:none; flex-grow:1; margin-top:12px;">
