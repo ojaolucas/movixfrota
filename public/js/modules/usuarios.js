@@ -87,8 +87,8 @@
                             <option value="inativo" ${state.filters.status === 'inativo' ? 'selected' : ''}>Inativos</option>
                         </select>
                     </div>
-                    <div class="filter-group" style="display: flex; align-items: flex-end;">
-                        <button class="btn btn-secondary" id="btn-limpar-filtros" style="height: 38px; width: 100%; white-space: nowrap;">
+                    <div class="filter-group" style="justify-content: flex-end;">
+                        <button class="btn btn-secondary" id="btn-limpar-filtros" style="height: 38px; width: 100%; white-space: nowrap; justify-content: center;">
                             <i class="fa-solid fa-filter-circle-xmark"></i> Limpar Filtros
                         </button>
                     </div>
