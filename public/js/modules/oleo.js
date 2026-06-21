@@ -8,6 +8,27 @@
         const activeUser = window.movixStore.getActiveUser();
         const isVisualizador = activeUser.perfil === 'Visualizador';
 
+        let state = window.movixApp.getListState('oleo');
+        if (!state) {
+            state = {
+                currentPage: 1,
+                filters: {
+                    buscaVeiculo: '',
+                    buscaTipo: '',
+                    periodo: 'tudo',
+                    de: '',
+                    ate: ''
+                },
+                itemsPerPage: 10
+            };
+            window.movixApp.saveListState('oleo', state);
+        } else if (state.itemsPerPage === undefined) {
+            state.itemsPerPage = 10;
+            window.movixApp.saveListState('oleo', state);
+        }
+
+        let currentPage = state.currentPage || 1;
+
         container.innerHTML = `
             <div class="page-header">
                 <div class="page-title-group">
@@ -27,25 +48,51 @@
             <div class="grid-1-1-8">
                 
                 <!-- TRAFFIC-LIGHT STATUS CARDS (SEMAFOROS) -->
-                <div class="card" style="display:flex; flex-direction:column; gap:16px;">
+                <div class="card" style="display:flex; flex-direction:column; gap:16px; min-height: 480px;">
                     <div class="card-header-simple">
                         <h3>Status de Lubrificação por Veículo</h3>
                         <i class="fa-solid fa-traffic-light text-muted"></i>
                     </div>
 
-                    <div style="display:flex; flex-direction:column; gap:14px; max-height:460px; overflow-y:auto;" id="semaforo-cards-container">
+                    <div style="display:flex; flex-direction:column; gap:14px; flex:1; min-height:0; overflow-y:auto;" id="semaforo-cards-container">
                         <!-- Loaded dynamically -->
                     </div>
                 </div>
 
                 <!-- HISTORICAL OIL LOGS -->
-                <div class="card">
+                <div class="card" style="display:flex; flex-direction:column; min-height: 480px;">
                     <div class="card-header-simple">
                         <h3>Histórico Completo de Trocas</h3>
                         <span class="status-pill ok" style="font-size:0.75rem;">${oleos.length} registros</span>
                     </div>
 
-                    <div class="table-responsive" style="border:none; box-shadow:none; margin-top:12px;">
+                    <!-- SEARCH/FILTER BAR -->
+                    <div style="display:flex; gap:12px; margin-top:12px; align-items:center; flex-wrap:wrap; width:100%;">
+                        <input type="text" class="filter-input" id="search-oleo-veiculo" placeholder="Buscar veículo (placa ou modelo)..." value="${state.filters.buscaVeiculo || ''}" style="flex-grow:1; min-width:200px;">
+                        
+                        <select class="filter-input" id="filter-oleo-periodo" style="width:165px; flex-shrink:0;">
+                            <option value="tudo" ${state.filters.periodo === 'tudo' ? 'selected' : ''}>Todo o histórico</option>
+                            <option value="hoje" ${state.filters.periodo === 'hoje' ? 'selected' : ''}>Hoje</option>
+                            <option value="ontem" ${state.filters.periodo === 'ontem' ? 'selected' : ''}>Ontem</option>
+                            <option value="7dias" ${state.filters.periodo === '7dias' ? 'selected' : ''}>Últimos 7 dias</option>
+                            <option value="30dias" ${state.filters.periodo === '30dias' ? 'selected' : ''}>Últimos 30 dias</option>
+                            <option value="este_mes" ${state.filters.periodo === 'este_mes' ? 'selected' : ''}>Este mês</option>
+                            <option value="mes_anterior" ${state.filters.periodo === 'mes_anterior' ? 'selected' : ''}>Mês anterior</option>
+                            <option value="personalizado" ${state.filters.periodo === 'personalizado' ? 'selected' : ''}>Personalizado...</option>
+                        </select>
+                        
+                        <div id="custom-date-container-oleo" style="display: ${state.filters.periodo === 'personalizado' ? 'flex' : 'none'}; gap: 8px; align-items: center; flex-shrink:0;">
+                            <input type="date" class="filter-input" id="filter-oleo-de" value="${state.filters.de || ''}" placeholder="De" style="width:130px;">
+                            <span style="color:var(--text-muted); font-size:0.85rem;">até</span>
+                            <input type="date" class="filter-input" id="filter-oleo-ate" value="${state.filters.ate || ''}" placeholder="Até" style="width:130px;">
+                        </div>
+
+                        <button class="btn btn-secondary" id="btn-limpar-filtros" style="height: 38px; white-space: nowrap; justify-content: center; flex-shrink:0; margin-left:auto;">
+                            <i class="fa-solid fa-filter-circle-xmark"></i> Limpar Filtros
+                        </button>
+                    </div>
+
+                    <div class="table-responsive" style="border:none; box-shadow:none; flex:1; margin-top:12px;">
                         <table class="smart-table">
                             <thead>
                                 <tr>
@@ -63,6 +110,7 @@
                             </tbody>
                         </table>
                     </div>
+                    <div class="table-pagination" id="pagination-oleos"></div>
                 </div>
 
             </div>
@@ -124,16 +172,91 @@
             const tbody = document.getElementById('tbody-oleos');
             if (!tbody) return;
 
+            const searchVeiculo = document.getElementById('search-oleo-veiculo').value.toLowerCase();
+            const periodVal = document.getElementById('filter-oleo-periodo').value;
+            const deVal = document.getElementById('filter-oleo-de').value;
+            const ateVal = document.getElementById('filter-oleo-ate').value;
+
+            // Save state
+            state.filters = {
+                buscaVeiculo: searchVeiculo,
+                periodo: periodVal,
+                de: deVal,
+                ate: ateVal
+            };
+            state.currentPage = currentPage;
+            window.movixApp.saveListState('oleo', state);
+
+            const filteredData = oleos.filter(o => {
+                const v = vehicles.find(item => item.id === o.veiculoId);
+                const plaque = v ? v.placa.toLowerCase() : '';
+                const model = v ? `${v.marca} ${v.modelo}`.toLowerCase() : '';
+
+                const matchVeiculo = !searchVeiculo || plaque.includes(searchVeiculo) || model.includes(searchVeiculo);
+
+                let matchPeriod = true;
+                if (periodVal !== 'tudo') {
+                    const oilDateStr = o.dataTroca; 
+                    const localNow = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
+                    const todayStr = localNow.toISOString().split('T')[0];
+
+                    if (periodVal === 'hoje') {
+                        matchPeriod = oilDateStr === todayStr;
+                    } else if (periodVal === 'ontem') {
+                        const yesterday = new Date(localNow);
+                        yesterday.setDate(yesterday.getDate() - 1);
+                        const yesterdayStr = yesterday.toISOString().split('T')[0];
+                        matchPeriod = oilDateStr === yesterdayStr;
+                    } else if (periodVal === '7dias') {
+                        const limit = new Date(localNow);
+                        limit.setDate(limit.getDate() - 7);
+                        const limitStr = limit.toISOString().split('T')[0];
+                        matchPeriod = oilDateStr >= limitStr && oilDateStr <= todayStr;
+                    } else if (periodVal === '30dias') {
+                        const limit = new Date(localNow);
+                        limit.setDate(limit.getDate() - 30);
+                        const limitStr = limit.toISOString().split('T')[0];
+                        matchPeriod = oilDateStr >= limitStr && oilDateStr <= todayStr;
+                    } else if (periodVal === 'este_mes') {
+                        const yearMonth = todayStr.substring(0, 7);
+                        matchPeriod = oilDateStr.startsWith(yearMonth);
+                    } else if (periodVal === 'mes_anterior') {
+                        const prevMonthDate = new Date(localNow);
+                        prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
+                        const prevYearMonth = prevMonthDate.toISOString().split('T')[0].substring(0, 7);
+                        matchPeriod = oilDateStr.startsWith(prevYearMonth);
+                    } else if (periodVal === 'personalizado') {
+                        if (deVal && oilDateStr < deVal) matchPeriod = false;
+                        if (ateVal && oilDateStr > ateVal) matchPeriod = false;
+                    }
+                }
+
+                return matchVeiculo && matchPeriod;
+            });
+
+            // Sort by date descending
+            const sortedOleos = [...filteredData].sort((a, b) => new Date(b.dataTroca) - new Date(a.dataTroca));
+
+            const itemsPerPageVal = state.itemsPerPage === 'Todos' ? Infinity : (parseInt(state.itemsPerPage) || 10);
+            const totalPages = Math.ceil(sortedOleos.length / itemsPerPageVal) || 1;
+            if (currentPage > totalPages) {
+                currentPage = totalPages;
+                state.currentPage = currentPage;
+                window.movixApp.saveListState('oleo', state);
+            }
+            const startIdx = itemsPerPageVal === Infinity ? 0 : (currentPage - 1) * itemsPerPageVal;
+            const paginatedItems = sortedOleos.slice(startIdx, startIdx + itemsPerPageVal);
+
+            const paginationEl = document.getElementById('pagination-oleos');
+
             tbody.innerHTML = '';
-            if (oleos.length === 0) {
+            if (paginatedItems.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Nenhum registro de troca encontrado.</td></tr>`;
+                if (paginationEl) paginationEl.innerHTML = '';
                 return;
             }
 
-            // Ordenar de forma robusta por data decrescente
-            const sortedOleos = [...oleos].sort((a, b) => new Date(b.dataTroca) - new Date(a.dataTroca));
-
-            sortedOleos.forEach(o => {
+            paginatedItems.forEach(o => {
                 const v = vehicles.find(item => item.id === o.veiculoId);
                 const plaque = v ? v.placa : 'Deletado';
                 
@@ -181,6 +304,28 @@
                     </tr>
                 `;
             });
+
+            // Render pagination
+            window.movixApp.renderPagination({
+                containerId: 'pagination-oleos',
+                currentPage: currentPage,
+                totalItems: filteredData.length,
+                itemsPerPage: state.itemsPerPage || 10,
+                noun: 'trocas de óleo',
+                onPageChange: (newPage) => {
+                    currentPage = newPage;
+                    state.currentPage = newPage;
+                    window.movixApp.saveListState('oleo', state);
+                    renderHistoryTable();
+                },
+                onItemsPerPageChange: (newLimit) => {
+                    state.itemsPerPage = newLimit;
+                    currentPage = 1;
+                    state.currentPage = 1;
+                    window.movixApp.saveListState('oleo', state);
+                    renderHistoryTable();
+                }
+            });
         }
 
         // Add Oil Change Trigger
@@ -207,6 +352,36 @@
                 }
             });
         }
+
+        // Filters events hooks
+        document.getElementById('search-oleo-veiculo').addEventListener('input', () => { currentPage = 1; renderHistoryTable(); });
+        
+        const periodSelect = document.getElementById('filter-oleo-periodo');
+        const customDateContainer = document.getElementById('custom-date-container-oleo');
+        
+        periodSelect.addEventListener('change', () => {
+            currentPage = 1;
+            const isPersonalizado = periodSelect.value === 'personalizado';
+            customDateContainer.style.display = isPersonalizado ? 'flex' : 'none';
+            if (!isPersonalizado) {
+                document.getElementById('filter-oleo-de').value = '';
+                document.getElementById('filter-oleo-ate').value = '';
+            }
+            renderHistoryTable();
+        });
+
+        document.getElementById('filter-oleo-de').addEventListener('change', () => { currentPage = 1; renderHistoryTable(); });
+        document.getElementById('filter-oleo-ate').addEventListener('change', () => { currentPage = 1; renderHistoryTable(); });
+
+        document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
+            document.getElementById('search-oleo-veiculo').value = '';
+            document.getElementById('filter-oleo-periodo').value = 'tudo';
+            document.getElementById('filter-oleo-de').value = '';
+            document.getElementById('filter-oleo-ate').value = '';
+            customDateContainer.style.display = 'none';
+            currentPage = 1;
+            renderHistoryTable();
+        });
 
         // Add Troca Modal Dialog
         function openOleoModal(oleoId = null) {
