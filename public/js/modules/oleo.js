@@ -650,6 +650,68 @@
 
         renderSemaphores();
         renderHistoryTable();
+
+        // Dynamic Height Alignment
+        let resizeObserver = null;
+        const leftCard = container.querySelector('.grid-1-1-8 > .card:first-child');
+        const rightCard = container.querySelector('.grid-1-1-8 > .card:last-child');
+        const semaforoContainer = document.getElementById('semaforo-cards-container');
+
+        function adjustHeights() {
+            if (!leftCard || !rightCard || !semaforoContainer) return;
+
+            if (window.innerWidth > 992) {
+                // Get right card height
+                const rightHeight = rightCard.offsetHeight;
+                leftCard.style.height = `${rightHeight}px`;
+
+                // Calculate available height for semaforoContainer inside leftCard
+                const header = leftCard.querySelector('.card-header-simple');
+                const headerHeight = header ? header.offsetHeight : 0;
+                
+                const leftCardStyles = window.getComputedStyle(leftCard);
+                const paddingTop = parseFloat(leftCardStyles.paddingTop) || 24;
+                const paddingBottom = parseFloat(leftCardStyles.paddingBottom) || 24;
+                const gap = parseFloat(leftCardStyles.gap) || 16;
+
+                // Adjust for flex layout spacing inside card
+                const availableHeight = rightHeight - headerHeight - paddingTop - paddingBottom - gap;
+                
+                semaforoContainer.style.height = `${availableHeight}px`;
+                semaforoContainer.style.maxHeight = `${availableHeight}px`;
+            } else {
+                // Stacked mobile view: reset explicit heights
+                leftCard.style.height = 'auto';
+                semaforoContainer.style.height = 'auto';
+                semaforoContainer.style.maxHeight = '460px'; // Cap height on mobile
+            }
+        }
+
+        function handleResize() {
+            if (!document.body.contains(leftCard)) {
+                window.removeEventListener('resize', handleResize);
+                if (resizeObserver) {
+                    resizeObserver.disconnect();
+                }
+                return;
+            }
+            adjustHeights();
+        }
+
+        if (leftCard && rightCard && semaforoContainer) {
+            // Run initially and set a small timeout to let the page fully render/layout
+            adjustHeights();
+            setTimeout(adjustHeights, 100);
+
+            // Observe the right card for resize changes
+            resizeObserver = new ResizeObserver(() => {
+                handleResize();
+            });
+            resizeObserver.observe(rightCard);
+
+            // Handle window resize
+            window.addEventListener('resize', handleResize);
+        }
     }
 
     window.movixRouter.register('oleo', renderOleo);
