@@ -24,6 +24,27 @@
         const users = window.movixStore.state.usuarios;
         const isAdmin = activeUser.perfil === 'Administrador';
 
+        let state = window.movixApp.getListState('auditoria');
+        if (!state) {
+            state = {
+                currentPage: 1,
+                filters: {
+                    busca: '',
+                    acao: '',
+                    periodo: 'tudo',
+                    de: '',
+                    ate: ''
+                },
+                itemsPerPage: 10
+            };
+            window.movixApp.saveListState('auditoria', state);
+        } else if (state.itemsPerPage === undefined) {
+            state.itemsPerPage = 10;
+            window.movixApp.saveListState('auditoria', state);
+        }
+
+        let currentPage = state.currentPage || 1;
+
         container.innerHTML = `
             <div class="page-header">
                 <div class="page-title-group">
@@ -49,19 +70,42 @@
                     </div>
 
                     <!-- SEARCH/FILTER BAR -->
-                    <div style="display:flex; gap:12px; margin-top:12px;">
-                        <input type="text" class="filter-input" id="search-logs" placeholder="Filtrar logs..." style="flex-grow:1;">
-                        <select class="filter-input" id="filter-log-action" style="width:160px;">
-                            <option value="">Todas Ações</option>
-                            <option value="Cadastro">Cadastro</option>
-                            <option value="Edição">Edição</option>
-                            <option value="Exclusão">Exclusão</option>
-                            <option value="Aprovação">Aprovação</option>
-                            <option value="Sessão">Sessão</option>
-                        </select>
-                        <button class="btn btn-secondary" id="btn-limpar-filtros" style="height: 38px; white-space: nowrap;">
-                            <i class="fa-solid fa-filter-circle-xmark"></i> Limpar Filtros
-                        </button>
+                    <div style="display:flex; flex-direction:column; gap:12px; margin-top:12px;">
+                        <div style="display:flex; gap:12px; align-items:center;">
+                            <input type="text" class="filter-input" id="search-logs" placeholder="Filtrar logs..." value="${state.filters.busca || ''}" style="flex-grow:1;">
+                            <select class="filter-input" id="filter-log-action" style="width:160px;">
+                                <option value="">Todas Ações</option>
+                                <option value="Cadastro" ${state.filters.acao === 'Cadastro' ? 'selected' : ''}>Cadastro</option>
+                                <option value="Edição" ${state.filters.acao === 'Edição' ? 'selected' : ''}>Edição</option>
+                                <option value="Exclusão" ${state.filters.acao === 'Exclusão' ? 'selected' : ''}>Exclusão</option>
+                                <option value="Aprovação" ${state.filters.acao === 'Aprovação' ? 'selected' : ''}>Aprovação</option>
+                                <option value="Sessão" ${state.filters.acao === 'Sessão' ? 'selected' : ''}>Sessão</option>
+                            </select>
+                        </div>
+                        <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                            <select class="filter-input" id="filter-log-periodo" style="width:180px;">
+                                <option value="tudo" ${state.filters.periodo === 'tudo' ? 'selected' : ''}>Todo o histórico</option>
+                                <option value="hoje" ${state.filters.periodo === 'hoje' ? 'selected' : ''}>Hoje</option>
+                                <option value="ontem" ${state.filters.periodo === 'ontem' ? 'selected' : ''}>Ontem</option>
+                                <option value="7dias" ${state.filters.periodo === '7dias' ? 'selected' : ''}>Últimos 7 dias</option>
+                                <option value="30dias" ${state.filters.periodo === '30dias' ? 'selected' : ''}>Últimos 30 dias</option>
+                                <option value="este_mes" ${state.filters.periodo === 'este_mes' ? 'selected' : ''}>Este mês</option>
+                                <option value="mes_anterior" ${state.filters.periodo === 'mes_anterior' ? 'selected' : ''}>Mês anterior</option>
+                                <option value="personalizado" ${state.filters.periodo === 'personalizado' ? 'selected' : ''}>Personalizado...</option>
+                            </select>
+                            
+                            <div id="custom-date-container-log" style="display: ${state.filters.periodo === 'personalizado' ? 'flex' : 'none'}; gap: 12px; align-items: center;">
+                                <input type="date" class="filter-input" id="filter-log-de" value="${state.filters.de || ''}" placeholder="De" style="width:140px;">
+                                <span style="color:var(--text-muted); font-size:0.85rem;">até</span>
+                                <input type="date" class="filter-input" id="filter-log-ate" value="${state.filters.ate || ''}" placeholder="Até" style="width:140px;">
+                            </div>
+                            
+                            <div style="margin-left: auto; display: flex; align-items: center; justify-content: flex-end;">
+                                <button class="btn btn-secondary" id="btn-limpar-filtros" style="height: 38px; white-space: nowrap; justify-content: center;">
+                                    <i class="fa-solid fa-filter-circle-xmark"></i> Limpar Filtros
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="table-responsive" style="border:none; box-shadow:none; flex-grow:1; margin-top:12px;">
@@ -79,6 +123,7 @@
                                 <!-- Dynamic -->
                             </tbody>
                         </table>
+                        <div class="table-pagination" id="pagination-auditoria"></div>
                     </div>
                 </div>
 
@@ -107,6 +152,20 @@
 
             const searchVal = document.getElementById('search-logs').value.toLowerCase();
             const actionVal = document.getElementById('filter-log-action').value;
+            const periodVal = document.getElementById('filter-log-periodo').value;
+            const deVal = document.getElementById('filter-log-de').value;
+            const ateVal = document.getElementById('filter-log-ate').value;
+
+            // Save list state
+            state.filters = {
+                busca: searchVal,
+                acao: actionVal,
+                periodo: periodVal,
+                de: deVal,
+                ate: ateVal
+            };
+            state.currentPage = currentPage;
+            window.movixApp.saveListState('auditoria', state);
 
             const filteredLogs = logs.filter(l => {
                 const matchSearch = l.usuario.toLowerCase().includes(searchVal) || 
@@ -121,16 +180,71 @@
                         matchAction = l.acao === actionVal;
                     }
                 }
-                return matchSearch && matchAction;
+
+                let matchPeriod = true;
+                if (periodVal !== 'tudo') {
+                    // Extract local date string YYYY-MM-DD
+                    const logTime = new Date(l.data);
+                    const localOffset = logTime.getTimezoneOffset() * 60000;
+                    const logDateStr = new Date(logTime.getTime() - localOffset).toISOString().split('T')[0];
+
+                    const localNow = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
+                    const todayStr = localNow.toISOString().split('T')[0];
+
+                    if (periodVal === 'hoje') {
+                        matchPeriod = logDateStr === todayStr;
+                    } else if (periodVal === 'ontem') {
+                        const yesterday = new Date(localNow);
+                        yesterday.setDate(yesterday.getDate() - 1);
+                        const yesterdayStr = yesterday.toISOString().split('T')[0];
+                        matchPeriod = logDateStr === yesterdayStr;
+                    } else if (periodVal === '7dias') {
+                        const limit = new Date(localNow);
+                        limit.setDate(limit.getDate() - 7);
+                        const limitStr = limit.toISOString().split('T')[0];
+                        matchPeriod = logDateStr >= limitStr && logDateStr <= todayStr;
+                    } else if (periodVal === '30dias') {
+                        const limit = new Date(localNow);
+                        limit.setDate(limit.getDate() - 30);
+                        const limitStr = limit.toISOString().split('T')[0];
+                        matchPeriod = logDateStr >= limitStr && logDateStr <= todayStr;
+                    } else if (periodVal === 'este_mes') {
+                        const yearMonth = todayStr.substring(0, 7);
+                        matchPeriod = logDateStr.startsWith(yearMonth);
+                    } else if (periodVal === 'mes_anterior') {
+                        const prevMonthDate = new Date(localNow);
+                        prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
+                        const prevYearMonth = prevMonthDate.toISOString().split('T')[0].substring(0, 7);
+                        matchPeriod = logDateStr.startsWith(prevYearMonth);
+                    } else if (periodVal === 'personalizado') {
+                        if (deVal && logDateStr < deVal) matchPeriod = false;
+                        if (ateVal && logDateStr > ateVal) matchPeriod = false;
+                    }
+                }
+
+                return matchSearch && matchAction && matchPeriod;
             });
 
-            if (filteredLogs.length === 0) {
+            const itemsPerPageVal = state.itemsPerPage === 'Todos' ? Infinity : (parseInt(state.itemsPerPage) || 10);
+            const totalPages = Math.ceil(filteredLogs.length / itemsPerPageVal) || 1;
+            if (currentPage > totalPages) {
+                currentPage = totalPages;
+                state.currentPage = currentPage;
+                window.movixApp.saveListState('auditoria', state);
+            }
+            const startIdx = itemsPerPageVal === Infinity ? 0 : (currentPage - 1) * itemsPerPageVal;
+            const paginatedItems = filteredLogs.slice(startIdx, startIdx + itemsPerPageVal);
+
+            const paginationEl = document.getElementById('pagination-auditoria');
+
+            if (paginatedItems.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="5" class="search-no-results">Nenhum evento registrado</td></tr>`;
+                if (paginationEl) paginationEl.innerHTML = '';
                 return;
             }
 
             let html = '';
-            filteredLogs.forEach(l => {
+            paginatedItems.forEach(l => {
                 const date = new Date(l.data);
                 const timeStr = `${date.toLocaleDateString('pt-BR')} ${date.toLocaleTimeString('pt-BR')}`;
                 
@@ -155,6 +269,28 @@
                 `;
             });
             tbody.innerHTML = html;
+
+            // Render pagination footer
+            window.movixApp.renderPagination({
+                containerId: 'pagination-auditoria',
+                currentPage: currentPage,
+                totalItems: filteredLogs.length,
+                itemsPerPage: state.itemsPerPage || 10,
+                noun: 'registros de auditoria',
+                onPageChange: (newPage) => {
+                    currentPage = newPage;
+                    state.currentPage = newPage;
+                    window.movixApp.saveListState('auditoria', state);
+                    updateLogsTable();
+                },
+                onItemsPerPageChange: (newLimit) => {
+                    state.itemsPerPage = newLimit;
+                    currentPage = 1;
+                    state.currentPage = 1;
+                    window.movixApp.saveListState('auditoria', state);
+                    updateLogsTable();
+                }
+            });
         }
 
         function renderUsers() {
@@ -182,11 +318,34 @@
         }
 
         // Filters events hooks
-        document.getElementById('search-logs').addEventListener('input', updateLogsTable);
-        document.getElementById('filter-log-action').addEventListener('change', updateLogsTable);
+        document.getElementById('search-logs').addEventListener('input', () => { currentPage = 1; updateLogsTable(); });
+        document.getElementById('filter-log-action').addEventListener('change', () => { currentPage = 1; updateLogsTable(); });
+        
+        const periodSelect = document.getElementById('filter-log-periodo');
+        const customDateContainer = document.getElementById('custom-date-container-log');
+        
+        periodSelect.addEventListener('change', () => {
+            currentPage = 1;
+            const isPersonalizado = periodSelect.value === 'personalizado';
+            customDateContainer.style.display = isPersonalizado ? 'flex' : 'none';
+            if (!isPersonalizado) {
+                document.getElementById('filter-log-de').value = '';
+                document.getElementById('filter-log-ate').value = '';
+            }
+            updateLogsTable();
+        });
+
+        document.getElementById('filter-log-de').addEventListener('change', () => { currentPage = 1; updateLogsTable(); });
+        document.getElementById('filter-log-ate').addEventListener('change', () => { currentPage = 1; updateLogsTable(); });
+
         document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
             document.getElementById('search-logs').value = '';
             document.getElementById('filter-log-action').value = '';
+            document.getElementById('filter-log-periodo').value = 'tudo';
+            document.getElementById('filter-log-de').value = '';
+            document.getElementById('filter-log-ate').value = '';
+            customDateContainer.style.display = 'none';
+            currentPage = 1;
             updateLogsTable();
         });
 
