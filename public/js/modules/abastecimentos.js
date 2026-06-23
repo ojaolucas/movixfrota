@@ -303,18 +303,19 @@
                     </div>
 
                     <div class="form-group">
+                        <label>Valor por Litro (R$) <span class="required">*</span></label>
+                        <input type="text" class="form-control" name="valorLitro" id="ab-litro-input" required placeholder="Ex: 6,89" value="${isEdit && ab.valorLitro ? window.movixApp.formatCurrency(ab.valorLitro) : ''}">
+                    </div>
+
+                    <div class="form-group">
                         <label>Litros Abastecidos <span class="required">*</span></label>
                         <input type="text" class="form-control" name="litros" id="ab-litros-input" required placeholder="Ex: 104,776" pattern="^\d+(,\d{1,3})?$" title="Informe um número inteiro ou com até 3 casas decimais separadas por vírgula (ex: 104,776)" value="${isEdit ? window.movixApp.formatDecimal(ab.litros) : ''}">
                     </div>
 
-                    <div class="form-group">
+                    <div class="form-group" style="position: relative;">
                         <label>Valor Pago Total (R$) <span class="required">*</span></label>
-                        <input type="text" class="form-control" name="valorTotal" id="ab-total-input" required placeholder="Calculado automaticamente ou manual" value="${isEdit && ab.valorTotal ? window.movixApp.formatCurrency(ab.valorTotal) : ''}">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Valor por Litro (R$) <span class="required">*</span></label>
-                        <input type="text" class="form-control" name="valorLitro" id="ab-litro-input" required placeholder="Ex: 6.20" value="${isEdit && ab.valorLitro ? window.movixApp.formatCurrency(ab.valorLitro) : ''}">
+                        <input type="text" class="form-control" name="valorTotal" id="ab-total-input" required placeholder="Calculado automaticamente" style="background-color: var(--bg-surface-hover); border-color: var(--success); font-weight: 700;" value="${isEdit && ab.valorTotal ? window.movixApp.formatCurrency(ab.valorTotal) : ''}">
+                        <span style="font-size:0.65rem; color:var(--success); font-weight:600; display:flex; align-items:center; gap:4px; margin-top:4px;"><i class="fa-solid fa-wand-magic-sparkles"></i> Calculado automaticamente</span>
                     </div>
 
                     <div class="form-group">
@@ -382,28 +383,15 @@
                 const active = document.activeElement;
                 const litrosVal = (litrosInput.value || '').trim().replace(',', '.');
                 const litros = parseFloat(litrosVal) || 0;
-                const total = window.movixApp.cleanCurrency(totalInput.value);
                 const litro = window.movixApp.cleanCurrency(litroInput.value);
 
-                if (active === litrosInput) {
-                    if (litro > 0) {
-                        totalInput.value = window.movixApp.formatCurrency(litros * litro);
-                    } else if (total > 0 && litros > 0) {
-                        litroInput.value = window.movixApp.formatCurrency(total / litros);
-                    }
-                } else if (active === litroInput) {
-                    if (litros > 0) {
-                        totalInput.value = window.movixApp.formatCurrency(litros * litro);
-                    } else if (total > 0 && litro > 0) {
-                        const calculated = total / litro;
-                        litrosInput.value = calculated.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
-                    }
-                } else if (active === totalInput) {
-                    if (litros > 0) {
-                        litroInput.value = window.movixApp.formatCurrency(total / litros);
-                    } else if (litro > 0) {
-                        const calculated = total / litro;
-                        litrosInput.value = calculated.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
+                if (active === litrosInput || active === litroInput) {
+                    if (litros > 0 && litro > 0) {
+                        const rawTotal = litros * litro;
+                        const totalValue = Math.floor(rawTotal * 100) / 100;
+                        totalInput.value = window.movixApp.formatCurrency(totalValue);
+                    } else {
+                        totalInput.value = '';
                     }
                 }
             }
@@ -424,7 +412,7 @@
                 const litros = parseFloat(litrosVal) || 0;
                 const litro = window.movixApp.cleanCurrency(litroInput.value);
                 if (!window.movixApp.cleanCurrency(totalInput.value) && litros > 0 && litro > 0) {
-                    totalInput.value = window.movixApp.formatCurrency(litros * litro);
+                    totalInput.value = window.movixApp.formatCurrency(Math.floor(litros * litro * 100) / 100);
                 }
 
                 if (!form.checkValidity()) {
