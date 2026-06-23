@@ -1058,7 +1058,7 @@
                 const filterImp = document.getElementById('filter-implemento').value;
                 const filterStatus = document.getElementById('filter-situacao-pneu').value;
 
-                activeHeaders = ['Código Pneu', 'Marca / Modelo', 'Medida', 'Custo unitário', 'Veículo Vinculado', 'Posição', 'KM Instalado', 'Vida Útil Estimada', 'Situação'];
+                activeHeaders = ['Código Pneu', 'Marca / Modelo', 'Referência / Medida', 'Custo unitário', 'Veículo Vinculado', 'Posição', 'KM Instalado', 'Vida Útil Estimada', 'Situação'];
 
                 const filtered = pneus.filter(p => {
                     const v = vehicles.find(item => item.id === p.veiculoAtual);
@@ -1106,11 +1106,12 @@
 
                 activeReportData = filtered.map(p => {
                     const v = vehicles.find(item => item.id === p.veiculoAtual);
+                    const tireInfo = window.movixApp.getTireInfo(p);
                     return {
                         id: p.id,
                         codigo: p.codigo,
-                        marcaModelo: `${p.marca || '-'} ${p.modelo || ''}`,
-                        medida: p.medida || '-',
+                        marcaModelo: tireInfo.marcaModelo || '-',
+                        medida: tireInfo.refMedida || '-',
                         custo: `R$ ${(parseFloat(p.custo) || 0).toFixed(2)}`,
                         veiculo: v ? v.placa : 'Estoque / Sem Veículo',
                         posicao: p.posicao || 'N/A',
@@ -1950,11 +1951,12 @@
                 });
 
                 vehiclePneus.forEach(p => {
+                    const tireInfo = window.movixApp.getTireInfo(p);
                     timeline.push({
                         data: p.dataInstalacao,
                         dataFormatted: p.dataInstalacao.split('-').reverse().join('/'),
                         categoria: 'Substituição Pneu',
-                        detalhe: `Pneu ${p.marca || ''} ${p.modelo || ''} na posição ${p.posicao || ''}`,
+                        detalhe: `Pneu ${tireInfo.marcaModelo}${tireInfo.refMedida ? ` (${tireInfo.refMedida})` : ''} na posição ${p.posicao || ''}`,
                         valor: `R$ ${(parseFloat(p.custo) || 0).toFixed(2)}`,
                         km: `${(parseFloat(p.kmInicial) || 0).toLocaleString('pt-BR')} km`,
                         _rawDate: p.dataInstalacao,

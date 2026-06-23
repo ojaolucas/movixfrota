@@ -539,7 +539,7 @@ class MovixApp {
             // Search vehicles, drivers, pneus
             const veic = window.movixStore.getVeiculos().filter(v => v.placa.toLowerCase().includes(query) || v.marca.toLowerCase().includes(query) || v.modelo.toLowerCase().includes(query));
             const mot = window.movixStore.getMotoristas().filter(m => m.nome.toLowerCase().includes(query) || m.cnh.toLowerCase().includes(query));
-            const pneu = window.movixStore.getPneus().filter(p => p.codigo.toLowerCase().includes(query) || p.marca.toLowerCase().includes(query));
+            const pneu = window.movixStore.getPneus().filter(p => p.codigo.toLowerCase().includes(query) || p.marca.toLowerCase().includes(query) || (p.modelo && p.modelo.toLowerCase().includes(query)));
 
             results.innerHTML = '';
             let totalMatches = 0;
@@ -581,12 +581,14 @@ class MovixApp {
             if (pneu.length > 0) {
                 results.innerHTML += `<div class="search-results-group"><span class="search-results-title">Pneus</span>`;
                 pneu.forEach(p => {
+                    const tireInfo = window.movixApp.getTireInfo(p);
+                    const labelStr = `${tireInfo.marcaModelo}${tireInfo.refMedida ? ` - ${tireInfo.refMedida}` : ''}`;
                     results.innerHTML += `
                         <div class="search-result-item" onclick="window.movixRouter.navigateTo('pneus')">
                             <div class="search-result-icon"><i class="fa-solid fa-ring"></i></div>
                             <div class="search-result-info">
                                 <strong>Pneu ${p.codigo}</strong>
-                                <span class="search-result-subtitle">${p.marca} ${p.modelo} (${p.posicao || 'Estoque'})</span>
+                                <span class="search-result-subtitle">${labelStr} (${p.posicao || 'Estoque'})</span>
                             </div>
                         </div>
                     `;
@@ -1160,3 +1162,20 @@ class MovixApp {
 
 // Instantiate App Control
 window.movixApp = new MovixApp();
+
+window.movixApp.getTireInfo = function(p) {
+    if (!p) return { marcaModelo: '', refMedida: '' };
+    const m = p.modelo || '';
+    const isMeasure = typeof m === 'string' && /^[0-9]/.test(m.trim()) && (m.includes('/') || /R[0-9]/i.test(m));
+    if (isMeasure) {
+        return {
+            marcaModelo: p.marca || '',
+            refMedida: m
+        };
+    } else {
+        return {
+            marcaModelo: p.modelo ? `${p.marca || ''} ${p.modelo}`.trim() : (p.marca || ''),
+            refMedida: p.medida || ''
+        };
+    }
+};

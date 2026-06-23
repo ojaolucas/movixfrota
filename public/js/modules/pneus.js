@@ -294,12 +294,14 @@
                     ? '<span class="status-pill warning" style="font-size:0.65rem; margin-top:2px; padding:1px 4px; line-height:1; display:inline-block; width:max-content;">Recapado</span>' 
                     : '';
 
+                const tireInfo = window.movixApp.getTireInfo(p);
+
                 tbody.innerHTML += `
                     <tr>
                         <td>
                             <div style="display:flex; flex-direction:column;">
                                 <strong style="font-family:var(--font-heading);">${p.codigo}</strong>
-                                <span style="font-size:0.75rem; color:var(--text-muted);">${p.marca} ${p.modelo}</span>
+                                <span style="font-size:0.75rem; color:var(--text-muted);">${tireInfo.marcaModelo}${tireInfo.refMedida ? ` - ${tireInfo.refMedida}` : ''}</span>
                                 ${recapHTML}
                             </div>
                         </td>
@@ -593,12 +595,12 @@
                         </div>
                     ` : ''}
                     <div class="form-group">
-                        <label>Marca <span class="required">*</span></label>
-                        <input type="text" class="form-control" name="marca" required placeholder="Ex: Michelin, Goodyear" value="${isEdit ? p.marca : ''}">
+                        <label>Marca / Modelo <span class="required">*</span></label>
+                        <input type="text" class="form-control" name="marca" required placeholder="Ex: Michelin X Multi Z" value="${isEdit ? p.marca : ''}">
                     </div>
                     <div class="form-group">
-                        <label>Modelo Pneu <span class="required">*</span></label>
-                        <input type="text" class="form-control" name="modelo" required placeholder="Ex: X Multi Z" value="${isEdit ? p.modelo : ''}">
+                        <label>Referência / Medida <span class="required">*</span></label>
+                        <input type="text" class="form-control" name="modelo" required placeholder="Ex: 295/80 R22.5" value="${isEdit ? p.modelo : ''}">
                     </div>
                     <div class="form-group">
                         <label>Vida Útil Estimada (KM) <span class="required">*</span></label>
@@ -812,10 +814,12 @@
 
             modalTitle.innerText = `Efetuar Rodízio - Pneu ${p.codigo}`;
 
+            const tireInfo = window.movixApp.getTireInfo(p);
+
             modalBody.innerHTML = `
                 <form id="form-rodizio" class="form-grid" style="display:flex; flex-direction:column; gap:16px;">
                     <div style="background-color:var(--bg-surface-hover); padding:16px; border-radius:8px; border:1px solid var(--border-color); font-size:0.85rem; line-height:1.6;">
-                        <p><strong>Pneu Selecionado:</strong> ${p.marca} ${p.modelo} (${p.codigo})</p>
+                        <p><strong>Pneu Selecionado:</strong> ${tireInfo.marcaModelo}${tireInfo.refMedida ? ` - ${tireInfo.refMedida}` : ''} (${p.codigo})</p>
                         <p><strong>Veículo Instalado:</strong> ${vehicles.find(item => item.id === p.veiculoAtual)?.placa || 'Sem veículo'}</p>
                         <p><strong>Posição Atual:</strong> ${p.posicao || 'Estoque'}</p>
                     </div>
@@ -910,10 +914,11 @@
             const modalFooter = document.getElementById('modal-footer-actions');
 
             modalTitle.innerText = 'Excluir Cadastro de Pneu';
+            const tireInfoDel = window.movixApp.getTireInfo(p);
             modalBody.innerHTML = `
                 <div style="text-align: center; padding: 16px;">
                     <i class="fa-solid fa-triangle-exclamation text-danger" style="font-size: 3rem; margin-bottom: 16px;"></i>
-                    <p style="font-size: 1.05rem; font-weight: 600;">Deseja realmente excluir o pneu <strong>${p.codigo}</strong> (${p.marca} ${p.modelo})?</p>
+                    <p style="font-size: 1.05rem; font-weight: 600;">Deseja realmente excluir o pneu <strong>${p.codigo}</strong> (${tireInfoDel.marcaModelo}${tireInfoDel.refMedida ? ` - ${tireInfoDel.refMedida}` : ''})?</p>
                     <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 8px;">Esta ação removerá permanentemente o pneu do sistema e dos relatórios de custo da frota.</p>
                 </div>
             `;
