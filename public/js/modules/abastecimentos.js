@@ -309,7 +309,7 @@
 
                     <div class="form-group">
                         <label>Litros Abastecidos <span class="required">*</span></label>
-                        <input type="text" class="form-control" name="litros" id="ab-litros-input" required placeholder="Ex: 104,776" pattern="^\d+(,\d{1,3})?$" title="Informe um número inteiro ou com até 3 casas decimais separadas por vírgula (ex: 104,776)" value="${isEdit ? window.movixApp.formatDecimal(ab.litros) : ''}">
+                        <input type="text" class="form-control" name="litros" id="ab-litros-input" required placeholder="Ex: 104,776" pattern="^[0-9]+(,[0-9]{1,3})?$" title="Informe um número inteiro ou com até 3 casas decimais separadas por vírgula (ex: 104,776)" value="${isEdit ? window.movixApp.formatDecimal(ab.litros) : ''}">
                     </div>
 
                     <div class="form-group" style="position: relative;">
