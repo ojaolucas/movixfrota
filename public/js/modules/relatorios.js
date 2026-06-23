@@ -345,6 +345,7 @@
                             <option value="Gasolina">Gasolina</option>
                             <option value="Etanol">Etanol</option>
                             <option value="GNV">GNV</option>
+                            <option value="Arla 32">Arla 32</option>
                         </select>
                     </div>
                     ${periodHTML}

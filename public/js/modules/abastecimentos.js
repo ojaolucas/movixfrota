@@ -69,6 +69,7 @@
                             <option value="Gasolina" ${state.filters.combustivel === 'Gasolina' ? 'selected' : ''}>Gasolina</option>
                             <option value="Etanol" ${state.filters.combustivel === 'Etanol' ? 'selected' : ''}>Etanol</option>
                             <option value="GNV" ${state.filters.combustivel === 'GNV' ? 'selected' : ''}>GNV</option>
+                            <option value="Arla 32" ${state.filters.combustivel === 'Arla 32' ? 'selected' : ''}>Arla 32</option>
                         </select>
                     </div>
                     <div class="filter-group" style="justify-content: flex-end;">
@@ -326,6 +327,7 @@
                             <option value="Gasolina" ${isEdit && ab.combustivel === 'Gasolina' ? 'selected' : ''}>Gasolina</option>
                             <option value="Etanol" ${isEdit && ab.combustivel === 'Etanol' ? 'selected' : ''}>Etanol</option>
                             <option value="GNV" ${isEdit && ab.combustivel === 'GNV' ? 'selected' : ''}>GNV</option>
+                            <option value="Arla 32" ${isEdit && ab.combustivel === 'Arla 32' ? 'selected' : ''}>Arla 32</option>
                         </select>
                     </div>
 

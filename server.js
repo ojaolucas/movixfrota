@@ -674,10 +674,10 @@ async function recalculateVehicleRefuelings(veiculoId) {
                 maxKM = kmAtual;
             }
 
-            // Encontrar o abastecimento anterior cronologicamente com KM menor
+            // Encontrar o abastecimento anterior cronologicamente com KM menor e que não seja Arla 32
             let kmAnterior = 0;
             for (let j = i - 1; j >= 0; j--) {
-                if (parseFloat(abastecimentos[j].kmAtual) < kmAtual) {
+                if (abastecimentos[j].combustivel !== 'Arla 32' && parseFloat(abastecimentos[j].kmAtual) < kmAtual) {
                     kmAnterior = parseFloat(abastecimentos[j].kmAtual);
                     break;
                 }
@@ -691,9 +691,13 @@ async function recalculateVehicleRefuelings(veiculoId) {
                 }
             }
 
-            const kmRodado = kmAtual - kmAnterior;
-            const kmL = (kmAnterior > 0 && kmRodado > 0 && litros > 0) ? parseFloat((kmRodado / litros).toFixed(2)) : 0;
-            const custoKM = kmL > 0 ? parseFloat((valorLitro / kmL).toFixed(2)) : 0;
+            let kmL = 0;
+            let custoKM = 0;
+            if (currentAbs.combustivel !== 'Arla 32') {
+                const kmRodado = kmAtual - kmAnterior;
+                kmL = (kmAnterior > 0 && kmRodado > 0 && litros > 0) ? parseFloat((kmRodado / litros).toFixed(2)) : 0;
+                custoKM = kmL > 0 ? parseFloat((valorLitro / kmL).toFixed(2)) : 0;
+            }
 
             await db.query(`
                 UPDATE abastecimentos 
