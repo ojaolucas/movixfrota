@@ -165,7 +165,7 @@
                         <td>${parseFloat(a.kmAtual).toLocaleString('pt-BR')} km</td>
                         <td>
                             <div style="display:flex; flex-direction:column;">
-                                <span style="font-weight:600;">${a.litros} L</span>
+                                <span style="font-weight:600;">${window.movixApp.formatDecimal(a.litros)} L</span>
                                 <span style="font-size:0.75rem; color:var(--text-muted);">${a.combustivel} • R$ ${a.valorLitro.toFixed(2)}/L</span>
                             </div>
                         </td>
@@ -304,7 +304,7 @@
 
                     <div class="form-group">
                         <label>Litros Abastecidos <span class="required">*</span></label>
-                        <input type="number" class="form-control" name="litros" id="ab-litros-input" required placeholder="Ex: 50" step="0.01" min="0" value="${isEdit ? ab.litros : ''}">
+                        <input type="text" class="form-control" name="litros" id="ab-litros-input" required placeholder="Ex: 104,776" pattern="^\d+(,\d{1,3})?$" title="Informe um número inteiro ou com até 3 casas decimais separadas por vírgula (ex: 104,776)" value="${isEdit ? window.movixApp.formatDecimal(ab.litros) : ''}">
                     </div>
 
                     <div class="form-group">
@@ -380,7 +380,8 @@
 
             function autoCalculate() {
                 const active = document.activeElement;
-                const litros = parseFloat(litrosInput.value) || 0;
+                const litrosVal = (litrosInput.value || '').trim().replace(',', '.');
+                const litros = parseFloat(litrosVal) || 0;
                 const total = window.movixApp.cleanCurrency(totalInput.value);
                 const litro = window.movixApp.cleanCurrency(litroInput.value);
 
@@ -394,13 +395,15 @@
                     if (litros > 0) {
                         totalInput.value = window.movixApp.formatCurrency(litros * litro);
                     } else if (total > 0 && litro > 0) {
-                        litrosInput.value = (total / litro).toFixed(2);
+                        const calculated = total / litro;
+                        litrosInput.value = calculated.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
                     }
                 } else if (active === totalInput) {
                     if (litros > 0) {
                         litroInput.value = window.movixApp.formatCurrency(total / litros);
                     } else if (litro > 0) {
-                        litrosInput.value = (total / litro).toFixed(2);
+                        const calculated = total / litro;
+                        litrosInput.value = calculated.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
                     }
                 }
             }
@@ -417,7 +420,8 @@
             document.getElementById('btn-salvar-modal').addEventListener('click', async () => {
                 const form = document.getElementById('form-abastecimento');
                 
-                const litros = parseFloat(litrosInput.value) || 0;
+                const litrosVal = (litrosInput.value || '').trim().replace(',', '.');
+                const litros = parseFloat(litrosVal) || 0;
                 const litro = window.movixApp.cleanCurrency(litroInput.value);
                 if (!window.movixApp.cleanCurrency(totalInput.value) && litros > 0 && litro > 0) {
                     totalInput.value = window.movixApp.formatCurrency(litros * litro);
@@ -491,7 +495,7 @@
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Categoria do Condutor</span><strong>${ab.motoristaCategoria || (m ? m.categoria : 'Motorista Efetivo')}</strong></li>
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Data</span><strong>${ab.data.split('-').reverse().join('/')}</strong></li>
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Combustível</span><strong>${ab.combustivel}</strong></li>
-                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Volume Abastecido</span><strong>${ab.litros} Litros</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Volume Abastecido</span><strong>${window.movixApp.formatDecimal(ab.litros)} Litros</strong></li>
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Valor por Litro</span><strong>R$ ${(parseFloat(ab.valorLitro) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 3 })}</strong></li>
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Custo Total</span><strong style="font-size:1.05rem; color:var(--text-main);">R$ ${(parseFloat(ab.valorTotal) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></li>
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Quilometragem (KM)</span><strong>${parseFloat(ab.kmAtual || 0).toLocaleString('pt-BR')} km</strong></li>

@@ -864,7 +864,7 @@
                     </div>
                     <div class="reports-summary-card" style="--card-accent-color: #3b82f6;">
                         <span class="reports-summary-title">Total Abastecido</span>
-                        <span class="reports-summary-value">${totalLitros.toLocaleString('pt-BR', {maximumFractionDigits:1})} L</span>
+                        <span class="reports-summary-value">${window.movixApp.formatDecimal(totalLitros)} L</span>
                         <span class="reports-summary-sub">Volume total acumulado</span>
                     </div>
                     <div class="reports-summary-card" style="--card-accent-color: #f59e0b;">
@@ -889,7 +889,7 @@
                         veiculo: v ? v.placa : 'Veículo',
                         motorista: d ? d.nome : 'Motorista',
                         combustivel: a.combustivel,
-                        litros: `${a.litros.toFixed(1)} L`,
+                        litros: `${window.movixApp.formatDecimal(a.litros)} L`,
                         valorLitro: `R$ ${a.valorLitro.toFixed(2)}`,
                         valorTotal: `R$ ${a.valorTotal.toFixed(2)}`,
                         posto: a.posto || '-',
@@ -1901,7 +1901,7 @@
                         data: a.data,
                         dataFormatted: a.data.split('-').reverse().join('/'),
                         categoria: 'Abastecimento',
-                        detalhe: `${a.combustivel} - ${a.litros.toFixed(1)}L no posto ${a.posto || '-'}`,
+                        detalhe: `${a.combustivel} - ${window.movixApp.formatDecimal(a.litros)}L no posto ${a.posto || '-'}`,
                         valor: `R$ ${a.valorTotal.toFixed(2)}`,
                         km: `${(parseFloat(a.kmAtual) || 0).toLocaleString('pt-BR')} km`,
                         _rawDate: a.data,

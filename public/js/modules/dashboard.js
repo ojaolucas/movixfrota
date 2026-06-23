@@ -544,7 +544,7 @@
                             <div class="stat-icon primary" style="width:22px; height:22px; font-size:0.7rem; border-radius:50%;"><i class="fa-solid fa-gas-pump"></i></div>
                             <div style="display: flex; flex-direction: column;">
                                 <span style="font-size: 0.62rem; color: var(--text-muted); font-weight: 600;">Litros</span>
-                                <span style="font-size: 0.75rem; font-weight: 700; color:var(--text-main);">${totalFuelLiters.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} L</span>
+                                <span style="font-size: 0.75rem; font-weight: 700; color:var(--text-main);">${window.movixApp.formatDecimal(totalFuelLiters)} L</span>
                             </div>
                         </div>
                         <!-- Valor -->

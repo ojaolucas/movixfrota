@@ -195,6 +195,20 @@ class MovixStore {
                 }
             }
         });
+        
+        if ('litros' in clean) {
+            if (typeof clean.litros === 'string') {
+                const val = clean.litros.trim();
+                if (val === '') {
+                    clean.litros = null;
+                } else {
+                    const cleaned = val.replace(',', '.');
+                    const num = parseFloat(cleaned);
+                    clean.litros = isNaN(num) ? 0 : num;
+                }
+            }
+        }
+
         return clean;
     }
 

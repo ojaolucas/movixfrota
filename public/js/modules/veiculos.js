@@ -1696,7 +1696,7 @@
                 date: f.data,
                 type: 'abastecimento',
                 title: 'Abastecimento Registrado',
-                desc: `Registrado R$ ${f.valorTotal.toFixed(2)} (${f.litros}L a R$ ${f.valorLitro.toFixed(2)}/L). Média: ${f.kmL} KM/L. Posto: ${f.posto}.`,
+                desc: `Registrado R$ ${f.valorTotal.toFixed(2)} (${window.movixApp.formatDecimal(f.litros)}L a R$ ${f.valorLitro.toFixed(2)}/L). Média: ${window.movixApp.formatDecimal(f.kmL)} KM/L. Posto: ${f.posto}.`,
                 icon: '<i class="fa-solid fa-gas-pump" style="color:var(--success)"></i>'
             });
         });
@@ -2247,9 +2247,9 @@
                                             ${fuel.length === 0 ? '<tr><td colspan="5" style="text-align:center;">Sem registros</td></tr>' : fuel.map(f => `
                                                 <tr>
                                                     <td>${f.data.split('-').reverse().join('/')}</td>
-                                                    <td>${f.litros} L</td>
+                                                    <td>${window.movixApp.formatDecimal(f.litros)} L</td>
                                                     <td style="font-weight:600;">R$ ${f.valorTotal.toFixed(2)}</td>
-                                                    <td class="text-success" style="font-weight:700;">${f.kmL} km/L</td>
+                                                    <td class="text-success" style="font-weight:700;">${window.movixApp.formatDecimal(f.kmL)} km/L</td>
                                                     <td>${f.posto}</td>
                                                 </tr>
                                             `).join('')}

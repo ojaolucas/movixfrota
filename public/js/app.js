@@ -14,6 +14,7 @@ class MovixApp {
         this.setupModalControls();
         this.setupLoginHandler();
         this.setupCurrencyMasks();
+        this.setupLitrosInputHandler();
         this.setupScrollTracking();
         this.setupPrintThemeSwap();
         
@@ -865,6 +866,42 @@ class MovixApp {
     }
 
     // --- CURRENCY UTILITIES AND MASKS ---
+    formatDecimal(val) {
+        if (val === null || val === undefined || val === '') return '';
+        const num = typeof val === 'string' ? parseFloat(val.replace(',', '.')) : val;
+        if (isNaN(num)) return '';
+        return num.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 3 });
+    }
+
+    setupLitrosInputHandler() {
+        document.addEventListener('input', (e) => {
+            const target = e.target;
+            if (target.tagName === 'INPUT' && target.name === 'litros') {
+                let val = target.value;
+                let cleaned = val.replace(/\./g, ',');
+                cleaned = cleaned.replace(/[^\d,]/g, '');
+                const firstCommaIndex = cleaned.indexOf(',');
+                if (firstCommaIndex !== -1) {
+                    cleaned = cleaned.substring(0, firstCommaIndex + 1) + 
+                              cleaned.substring(firstCommaIndex + 1).replace(/,/g, '');
+                    const parts = cleaned.split(',');
+                    if (parts[1].length > 3) {
+                        cleaned = parts[0] + ',' + parts[1].substring(0, 3);
+                    }
+                }
+                if (target.value !== cleaned) {
+                    const selectionStart = target.selectionStart;
+                    target.value = cleaned;
+                    if (selectionStart !== null) {
+                        try {
+                            target.setSelectionRange(selectionStart, selectionStart);
+                        } catch (err) {}
+                    }
+                }
+            }
+        });
+    }
+
     formatCurrency(val) {
         if (val === null || val === undefined || val === '') return '';
         
