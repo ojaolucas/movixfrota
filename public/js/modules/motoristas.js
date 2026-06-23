@@ -31,13 +31,13 @@
         container.innerHTML = `
             <div class="page-header">
                 <div class="page-title-group">
-                    <h1 class="page-title">Gestão de Motoristas</h1>
-                    <p class="page-subtitle">Monitore a regularidade de habilitações (CNH) e desempenho de condução</p>
+                    <h1 class="page-title">Gestão de Motoristas / Condutores</h1>
+                    <p class="page-subtitle">Controle e monitore qualquer pessoa autorizada a conduzir veículos da frota, controle CNHs e vencimentos</p>
                 </div>
                 <div class="page-actions">
                     ${!isVisualizador ? `
                         <button class="btn btn-primary" id="btn-novo-motorista">
-                            <i class="fa-solid fa-plus"></i> Novo Motorista
+                            <i class="fa-solid fa-plus"></i> Novo Motorista/Condutor
                         </button>
                     ` : ''}
                 </div>
@@ -47,7 +47,7 @@
             <div class="filters-card">
                 <div class="filters-row">
                     <div class="filter-group">
-                        <label>Buscar Nome / CNH / E-mail</label>
+                        <label>Buscar Motorista / Condutor (Nome, CNH, E-mail)</label>
                         <input type="text" class="filter-input" id="search-motoristas" placeholder="Buscar..." value="${state.filters.search || ''}">
                     </div>
                     <div class="filter-group">
@@ -371,7 +371,7 @@
         const modalBody = document.getElementById('modal-body-content');
         const modalFooter = document.getElementById('modal-footer-actions');
         
-        modalTitle.innerText = isEdit ? `Editar Motorista: ${m.nome}` : 'Cadastrar Novo Motorista';
+        modalTitle.innerText = isEdit ? `Editar Motorista/Condutor: ${m.nome}` : 'Cadastrar Novo Motorista/Condutor';
 
         modalBody.innerHTML = `
             <form id="form-motorista" class="form-grid">
@@ -649,7 +649,7 @@
         const modalBody = document.getElementById('modal-body-content');
         const modalFooter = document.getElementById('modal-footer-actions');
 
-        modalTitle.innerText = `Detalhes do Motorista: ${m.nome}`;
+        modalTitle.innerText = `Detalhes do Motorista/Condutor: ${m.nome}`;
 
         modalBody.innerHTML = `
             <div style="padding: 10px;">
@@ -721,7 +721,7 @@
         const modalBody = document.getElementById('modal-body-content');
         const modalFooter = document.getElementById('modal-footer-actions');
 
-        modalTitle.innerText = 'Excluir Motorista';
+        modalTitle.innerText = 'Excluir Motorista/Condutor';
         modalBody.innerHTML = `
             <div style="text-align: center; padding: 16px;">
                 <i class="fa-solid fa-triangle-exclamation text-danger" style="font-size: 3rem; margin-bottom: 16px;"></i>

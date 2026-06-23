@@ -67,7 +67,7 @@
         // Active vehicles, motoristas, O.S. and multas
         const vAtivos = metrics.veiculosAtivosCount;
         const implCount = metrics.implementosCount;
-        const motCount = motoristas.filter(m => !m.categoria || m.categoria === 'Motorista Efetivo').length;
+        const motCount = motoristas.length;
         const emManutCount = metrics.veiculosEmManutencao;
         const multasRegCount = metrics.totalMultas;
 
@@ -383,7 +383,7 @@
                 <div class="card stat-card">
                     <div class="stat-icon success"><i class="fa-solid fa-user"></i></div>
                     <div class="stat-info">
-                        <span class="stat-label">Motoristas</span>
+                        <span class="stat-label">Motoristas / Condutores</span>
                         <span class="stat-value">${motCount}</span>
                         <span class="stat-delta text-success"><i class="fa-solid fa-arrow-trend-up"></i> Cadastrados</span>
                     </div>
@@ -575,7 +575,7 @@
 
                         <!-- Motoristas -->
                         <div class="horizontal-progress-list" style="overflow-y: auto;">
-                            <span style="font-size: 0.68rem; font-weight: 700; color: var(--text-muted); display: block; border-bottom: 1px solid var(--border-light); padding-bottom: 4px; text-transform: uppercase;">Motoristas Menor KM/L</span>
+                            <span style="font-size: 0.68rem; font-weight: 700; color: var(--text-muted); display: block; border-bottom: 1px solid var(--border-light); padding-bottom: 4px; text-transform: uppercase;">Motoristas / Condutores Menor KM/L</span>
                             ${driversRankHTML}
                         </div>
                     </div>
