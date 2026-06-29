@@ -326,7 +326,7 @@
                         <label>Veículo Alvo <span class="required">*</span></label>
                         <select class="form-control" name="veiculoId" id="man-veic-sel" required ${isEdit ? 'disabled' : ''}>
                             <option value="" disabled ${!isEdit ? 'selected' : ''}>Selecione um veículo</option>
-                            ${vehicles.map(v => `<option value="${v.id}" data-km="${v.kmAtual}">${v.placa} - ${v.marca} ${v.modelo} (KM: ${v.kmAtual})</option>`).join('')}
+                            ${vehicles.map(v => `<option value="${v.id}" data-km="${v.kmAtual}" ${isEdit && m.veiculoId === v.id ? 'selected' : ''}>${v.placa} - ${v.marca} ${v.modelo} (KM: ${v.kmAtual})</option>`).join('')}
                         </select>
                     </div>
 
