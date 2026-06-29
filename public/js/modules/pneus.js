@@ -271,6 +271,8 @@
             </div>
         `;
 
+        window.movixApp.initAutocomplete(document.getElementById('axle-vehicle-sel'), 'Selecione o veículo...');
+
         function updateList() {
             const tbody = document.getElementById('tbody-pneus');
             if (!tbody) return;
@@ -677,6 +679,8 @@
 
             const pneuVeicSel = document.getElementById('pneu-veic-sel');
             const pneuPosSel = document.getElementById('pneu-pos-sel');
+
+            window.movixApp.initAutocomplete(pneuVeicSel, 'Selecione o veículo...');
 
             const handlePneuVeicChange = () => {
                 const veicId = pneuVeicSel.value;

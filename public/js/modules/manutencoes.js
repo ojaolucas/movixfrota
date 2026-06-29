@@ -271,16 +271,27 @@
             }, 0);
         }
 
+        // Initialize Autocompletes
+        window.movixApp.initAutocomplete(document.getElementById('filter-veiculo-manut'), 'Filtrar veículo...');
+
         // Filters events hooks
         document.getElementById('filter-veiculo-manut').addEventListener('change', () => { currentPage = 1; updateTable(); });
         document.getElementById('filter-tipo-manut').addEventListener('change', () => { currentPage = 1; updateTable(); });
         document.getElementById('filter-cat-manut').addEventListener('change', () => { currentPage = 1; updateTable(); });
         document.getElementById('filter-status-manut').addEventListener('change', () => { currentPage = 1; updateTable(); });
         document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
-            document.getElementById('filter-veiculo-manut').value = '';
-            document.getElementById('filter-tipo-manut').value = '';
-            document.getElementById('filter-cat-manut').value = '';
-            document.getElementById('filter-status-manut').value = '';
+            const fV = document.getElementById('filter-veiculo-manut');
+            const fT = document.getElementById('filter-tipo-manut');
+            const fC = document.getElementById('filter-cat-manut');
+            const fS = document.getElementById('filter-status-manut');
+            fV.value = '';
+            fT.value = '';
+            fC.value = '';
+            fS.value = '';
+            fV.dispatchEvent(new Event('change'));
+            fT.dispatchEvent(new Event('change'));
+            fC.dispatchEvent(new Event('change'));
+            fS.dispatchEvent(new Event('change'));
             currentPage = 1;
             updateTable();
         });
@@ -418,6 +429,8 @@
             const veicSel = document.getElementById('man-veic-sel');
             const kmInput = document.getElementById('man-km-input');
             const catSel = document.getElementById('man-cat-sel');
+
+            window.movixApp.initAutocomplete(veicSel, 'Selecione o veículo...');
 
             const handleVehicleChange = () => {
                 const selectedOption = veicSel.options[veicSel.selectedIndex];

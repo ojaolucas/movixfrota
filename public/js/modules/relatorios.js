@@ -680,6 +680,17 @@
                 }
             }
 
+            // Initialize Autocompletes on large select filters
+            const fVeiculo = document.getElementById('filter-veiculo');
+            const fMotorista = document.getElementById('filter-motorista');
+            const fImplemento = document.getElementById('filter-implemento');
+            const fPneu = document.getElementById('filter-pneu');
+
+            if (fVeiculo) window.movixApp.initAutocomplete(fVeiculo, 'Filtrar veículo...');
+            if (fMotorista) window.movixApp.initAutocomplete(fMotorista, 'Filtrar motorista...');
+            if (fImplemento) window.movixApp.initAutocomplete(fImplemento, 'Filtrar implemento...');
+            if (fPneu) window.movixApp.initAutocomplete(fPneu, 'Filtrar pneu...');
+
             // Hook dates visibility toggling
             const periodFilter = document.getElementById('report-period-filter');
             const customDatesContainer = document.getElementById('report-custom-dates-container');
@@ -771,6 +782,9 @@
                             input.value = '';
                         }
                         state.filters[input.id] = input.value;
+                        if (input.tagName === 'SELECT') {
+                            input.dispatchEvent(new Event('change'));
+                        }
                     });
                     
                     const customDatesContainer = document.getElementById('report-custom-dates-container');
@@ -1287,16 +1301,33 @@
 
                 activeHeaders = ['Placa', 'Marca / Modelo', 'Ano', 'Tipo Unidade', 'KM Atual', 'Combustível', 'Seguro?', 'Rastreador?', 'Status'];
 
+                const activeTrips = window.movixStore.getViagens().filter(t => t.status && t.status.toLowerCase() === 'em andamento');
+                const vehiclesInUseIds = new Set(activeTrips.map(t => t.veiculoId));
+
                 const filtered = vehicles.filter(v => {
                     const matchTipo = !filterTipo || v.tipoUnidade === filterTipo;
-                    const matchStatus = !filterStatus || v.status === filterStatus;
+                    
+                    let actualStatus = v.status;
+                    if (v.status === 'disponivel' && vehiclesInUseIds.has(v.id)) {
+                        actualStatus = 'em_viagem';
+                    } else if (v.status === 'em_manutencao') {
+                        actualStatus = 'manutencao';
+                    }
+
+                    const matchStatus = !filterStatus || actualStatus === filterStatus;
                     const matchFuel = !filterFuel || (v.combustivel || '').toLowerCase().includes(filterFuel.toLowerCase());
                     return matchTipo && matchStatus && matchFuel;
                 });
 
                 const totalVeic = filtered.length;
-                const ativos = filtered.filter(v => v.status === 'disponivel').length;
-                const manutencoesCount = filtered.filter(v => v.status === 'manutencao').length;
+                const ativos = filtered.filter(v => {
+                    let actualStatus = v.status;
+                    if (v.status === 'disponivel' && vehiclesInUseIds.has(v.id)) {
+                        actualStatus = 'em_viagem';
+                    }
+                    return actualStatus === 'disponivel';
+                }).length;
+                const manutencoesCount = filtered.filter(v => v.status === 'manutencao' || v.status === 'em_manutencao').length;
                 const avgKM = filtered.length > 0 ? (filtered.reduce((acc, v) => acc + (parseFloat(v.kmAtual) || 0), 0) / filtered.length) : 0;
 
                 summaryContainer.innerHTML = `
@@ -1323,6 +1354,12 @@
                 `;
 
                 activeReportData = filtered.map(v => {
+                    let actualStatus = v.status;
+                    if (v.status === 'disponivel' && vehiclesInUseIds.has(v.id)) {
+                        actualStatus = 'em_viagem';
+                    } else if (v.status === 'em_manutencao') {
+                        actualStatus = 'manutencao';
+                    }
                     return {
                         id: v.id,
                         placa: v.placa,
@@ -1333,7 +1370,7 @@
                         combustivel: v.combustivel || 'Diesel',
                         seguro: v.possuiSeguro || 'Não',
                         rastreador: v.possuiRastreador || 'Não',
-                        status: v.status || 'disponivel',
+                        status: actualStatus || 'disponivel',
                         _rawTotal: parseFloat(v.kmAtual) || 0
                     };
                 });
@@ -2326,11 +2363,16 @@
                         const text = String(val).toLowerCase();
                         if (text === 'pago' || text === 'realizada' || text === 'regular' || text === 'disponivel' || text === 'vigente' || text === 'ativo' || text === 'válido' || text === 'ok') {
                             badgeClass = 'ok';
+                            if (text === 'disponivel') displayVal = 'Disponível';
                         } else if (text === 'não pago' || text === 'corretiva' || text === 'vencido' || text === 'vencida' || text === 'crítico' || text === 'desativado' || text === 'inativo') {
                             badgeClass = 'vencido';
-                        } else if (text === 'recorrendo' || text === 'em andamento' || text === 'agendada' || text === 'manutencao' || text === 'em_manutencao' || text === 'vence em breve' || text === 'atenção') {
+                            if (text === 'inativo') displayVal = 'Inativo';
+                        } else if (text === 'recorrendo' || text === 'em andamento' || text === 'agendada' || text === 'manutencao' || text === 'em_manutencao' || text === 'vence em breve' || text === 'atenção' || text === 'em_viagem') {
                             badgeClass = 'em_manutencao';
-                            if (text === 'em_manutencao') {
+                            if (text === 'em_viagem') {
+                                badgeClass = 'em_andamento';
+                                displayVal = 'Em Viagem';
+                            } else if (text === 'em_manutencao' || text === 'manutencao') {
                                 displayVal = 'Em Oficina';
                             }
                         }

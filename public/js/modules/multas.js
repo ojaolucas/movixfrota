@@ -362,6 +362,10 @@
             }, 0);
         }
 
+        // Initialize Autocompletes
+        window.movixApp.initAutocomplete(document.getElementById('filter-veiculo-multa'), 'Filtrar veículo...');
+        window.movixApp.initAutocomplete(document.getElementById('filter-motorista-multa'), 'Filtrar motorista...');
+
         // Attach filter listeners
         document.getElementById('search-multas').addEventListener('input', () => { state.currentPage = 1; updateTable(); });
         document.getElementById('filter-veiculo-multa').addEventListener('change', () => { state.currentPage = 1; updateTable(); });
@@ -371,12 +375,25 @@
         document.getElementById('filter-data-ate').addEventListener('change', () => { state.currentPage = 1; updateTable(); });
         document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
             document.getElementById('search-multas').value = '';
-            document.getElementById('filter-veiculo-multa').value = '';
-            document.getElementById('filter-motorista-multa').value = '';
-            document.getElementById('filter-status-multa').value = '';
-            document.getElementById('filter-periodo-multa').value = 'tudo';
-            document.getElementById('filter-data-de').value = '';
-            document.getElementById('filter-data-ate').value = '';
+            const fV = document.getElementById('filter-veiculo-multa');
+            const fM = document.getElementById('filter-motorista-multa');
+            const fS = document.getElementById('filter-status-multa');
+            const fP = document.getElementById('filter-periodo-multa');
+            const fD = document.getElementById('filter-data-de');
+            const fA = document.getElementById('filter-data-ate');
+            
+            fV.value = '';
+            fM.value = '';
+            fS.value = '';
+            fP.value = 'tudo';
+            fD.value = '';
+            fA.value = '';
+            
+            fV.dispatchEvent(new Event('change'));
+            fM.dispatchEvent(new Event('change'));
+            fS.dispatchEvent(new Event('change'));
+            fP.dispatchEvent(new Event('change'));
+            
             document.getElementById('custom-date-container').style.display = 'none';
             currentSort = { column: 'data', direction: 'desc' };
             state.currentSort = currentSort;
@@ -730,6 +747,11 @@
             const dataInput = document.querySelector('[name="data"]');
             const horarioInput = document.querySelector('[name="horario"]');
             const driverSelect = document.querySelector('[name="motoristaId"]');
+
+            window.movixApp.initAutocomplete(veiculoSelect, 'Selecione o veículo...');
+            if (driverSelect) {
+                window.movixApp.initAutocomplete(driverSelect, 'Selecione o motorista...');
+            }
 
             if (veiculoSelect && dataInput && horarioInput) {
                 veiculoSelect.addEventListener('change', runDriverSuggestionEngine);

@@ -850,6 +850,229 @@ class MovixApp {
         onValid();
     }
 
+    // --- CENTRALIZED AUTOCOMPLETE SELECT COMPONENT SERVICE ---
+    initAutocomplete(selectEl, placeholder = 'Selecione ou digite para buscar...') {
+        if (!selectEl || selectEl.dataset.autocompleteInitialized) return;
+        selectEl.dataset.autocompleteInitialized = 'true';
+
+        // 1. Hide the original select
+        selectEl.style.display = 'none';
+
+        // 2. Create the container structure
+        const container = document.createElement('div');
+        container.className = 'movix-autocomplete-container';
+        if (selectEl.id) container.id = selectEl.id + '-autocomplete';
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'movix-autocomplete-wrapper';
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = selectEl.className; // inherit form-control / filter-input styles
+        input.placeholder = placeholder;
+        input.autocomplete = 'off';
+        if (selectEl.disabled) input.disabled = true;
+
+        const chevron = document.createElement('i');
+        chevron.className = 'fa-solid fa-chevron-down autocomplete-chevron';
+
+        const dropdown = document.createElement('div');
+        dropdown.className = 'movix-autocomplete-dropdown';
+
+        const noResults = document.createElement('div');
+        noResults.className = 'movix-autocomplete-no-results';
+        noResults.innerText = 'Nenhum registro foi encontrado.';
+        noResults.style.display = 'none';
+
+        const list = document.createElement('ul');
+        list.className = 'movix-autocomplete-list';
+
+        dropdown.appendChild(noResults);
+        dropdown.appendChild(list);
+        wrapper.appendChild(input);
+        wrapper.appendChild(chevron);
+        container.appendChild(wrapper);
+        container.appendChild(dropdown);
+
+        selectEl.parentNode.insertBefore(container, selectEl);
+
+        let options = [];
+        let focusedIndex = -1;
+
+        // Function to rebuild options list from select options dynamically
+        const syncOptions = () => {
+            list.innerHTML = '';
+            options = Array.from(selectEl.options).map((opt, index) => {
+                const text = opt.text;
+                const value = opt.value;
+                const isSelected = opt.selected;
+                const isDisabled = opt.disabled;
+
+                if (value === "" && isDisabled) return null; // skip default placeholder option
+
+                const li = document.createElement('li');
+                li.className = 'movix-autocomplete-item';
+                if (isSelected) {
+                    li.classList.add('selected');
+                    input.value = text;
+                }
+                li.innerText = text;
+                li.dataset.value = value;
+                li.dataset.index = index;
+
+                li.addEventListener('click', () => {
+                    selectOption(opt);
+                });
+
+                list.appendChild(li);
+                return { element: li, text, value, selectOpt: opt };
+            }).filter(x => x !== null);
+        };
+
+        const selectOption = (opt) => {
+            selectEl.value = opt.value;
+            input.value = opt.text;
+            closeDropdown();
+            // Dispatch native change event
+            selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+            syncOptions();
+        };
+
+        const filterOptions = () => {
+            const query = input.value.toLowerCase().trim();
+            let matches = 0;
+            options.forEach(opt => {
+                const match = opt.text.toLowerCase().includes(query);
+                if (match) {
+                    opt.element.style.display = 'block';
+                    opt.element.classList.remove('focused');
+                    matches++;
+                    
+                    if (query) {
+                        const regex = new RegExp(`(${query.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi');
+                        opt.element.innerHTML = opt.text.replace(regex, '<strong style="color: var(--primary); text-decoration: underline;">$1</strong>');
+                    } else {
+                        opt.element.innerText = opt.text;
+                    }
+                } else {
+                    opt.element.style.display = 'none';
+                    opt.element.classList.remove('focused');
+                }
+            });
+            noResults.style.display = matches === 0 ? 'block' : 'none';
+            focusedIndex = -1;
+        };
+
+        const openDropdown = () => {
+            if (selectEl.disabled) return;
+            container.classList.add('active');
+            filterOptions();
+        };
+
+        const closeDropdown = () => {
+            container.classList.remove('active');
+            focusedIndex = -1;
+            // Restore input text to selected option text if left unmatched
+            const selectedOpt = Array.from(selectEl.options).find(o => o.selected);
+            if (selectedOpt && selectedOpt.value !== "") {
+                input.value = selectedOpt.text;
+            } else {
+                input.value = '';
+            }
+        };
+
+        // Event listeners
+        input.addEventListener('focus', openDropdown);
+        input.addEventListener('input', () => {
+            if (!container.classList.contains('active')) {
+                container.classList.add('active');
+            }
+            filterOptions();
+        });
+
+        // Click outside handler
+        document.addEventListener('click', (e) => {
+            if (!container.contains(e.target)) {
+                closeDropdown();
+            }
+        });
+
+        // Keyboard navigation
+        input.addEventListener('keydown', (e) => {
+            if (!container.classList.contains('active')) {
+                if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter') {
+                    openDropdown();
+                    e.preventDefault();
+                }
+                return;
+            }
+
+            const visibleItems = options.filter(opt => opt.element.style.display !== 'none');
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (visibleItems.length === 0) return;
+                focusedIndex = (focusedIndex + 1) % visibleItems.length;
+                updateFocus(visibleItems);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (visibleItems.length === 0) return;
+                focusedIndex = (focusedIndex - 1 + visibleItems.length) % visibleItems.length;
+                updateFocus(visibleItems);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (focusedIndex >= 0 && focusedIndex < visibleItems.length) {
+                    selectOption(visibleItems[focusedIndex].selectOpt);
+                } else if (visibleItems.length > 0) {
+                    selectOption(visibleItems[0].selectOpt);
+                }
+            } else if (e.key === 'Escape') {
+                closeDropdown();
+                input.blur();
+            }
+        });
+
+        const updateFocus = (visibleItems) => {
+            visibleItems.forEach((item, idx) => {
+                if (idx === focusedIndex) {
+                    item.element.classList.add('focused');
+                    item.element.scrollIntoView({ block: 'nearest' });
+                } else {
+                    item.element.classList.remove('focused');
+                }
+            });
+        };
+
+        // Listen for programmatic updates
+        const observer = new MutationObserver((mutations) => {
+            let optionsChanged = false;
+            let disabledChanged = false;
+            mutations.forEach(m => {
+                if (m.type === 'childList') optionsChanged = true;
+                if (m.type === 'attributes' && m.attributeName === 'disabled') disabledChanged = true;
+            });
+            if (optionsChanged) syncOptions();
+            if (disabledChanged) {
+                input.disabled = selectEl.disabled;
+            }
+        });
+        observer.observe(selectEl, { childList: true, attributes: true, attributeFilter: ['disabled'] });
+
+        // Listen to native change event (sync from other modules or edits)
+        selectEl.addEventListener('change', () => {
+            const selectedOpt = Array.from(selectEl.options).find(o => o.selected);
+            input.value = selectedOpt ? selectedOpt.text : '';
+            if (selectEl.disabled) {
+                input.disabled = true;
+            } else {
+                input.disabled = false;
+            }
+            syncOptions();
+        });
+
+        syncOptions();
+    }
+
     // --- CENTRALIZED LOADING INDICATOR SERVICE ---
     startLoading(button, loadingText = "Processando...") {
         if (!button) return { stop: () => {} };

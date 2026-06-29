@@ -880,10 +880,10 @@ app.post('/api/manutencoes', requireAuth, async (req, res) => {
         const valor = parseFloat(m.valor) || 0;
         const km = parseFloat(m.km) || 0;
 
-        // Atualizar KM do veículo se necessário
+        // Atualizar KM do veículo se necessário (apenas se a situação for 'Realizada')
         const veicRes = await db.query('SELECT "kmAtual", "historicoKM" FROM veiculos WHERE id = $1', [m.veiculoId]);
         const veic = veicRes.rows[0];
-        if (veic && km > parseFloat(veic.kmAtual)) {
+        if (veic && m.status === 'Realizada' && km > parseFloat(veic.kmAtual)) {
             let historicoKM = veic.historicoKM || [];
             historicoKM.push({ data: new Date().toISOString().split('T')[0], km });
             await db.query('UPDATE veiculos SET "kmAtual" = $1, "historicoKM" = $2 WHERE id = $3', [km, JSON.stringify(historicoKM), m.veiculoId]);
@@ -917,10 +917,11 @@ app.put('/api/manutencoes/:id', requireAuth, async (req, res) => {
         const valor = parseFloat(m.valor) || 0;
         const km = parseFloat(m.km) || 0;
 
-        // Atualizar KM do veículo se necessário
+        // Atualizar KM do veículo se necessário (apenas se a situação for 'Realizada')
         const veicRes = await db.query('SELECT "kmAtual", "historicoKM" FROM veiculos WHERE id = $1', [m.veiculoId || original.veiculoId]);
         const veic = veicRes.rows[0];
-        if (veic && km > parseFloat(veic.kmAtual)) {
+        const statusAtual = m.status || original.status;
+        if (veic && statusAtual === 'Realizada' && km > parseFloat(veic.kmAtual)) {
             let historicoKM = veic.historicoKM || [];
             historicoKM.push({ data: new Date().toISOString().split('T')[0], km });
             await db.query('UPDATE veiculos SET "kmAtual" = $1, "historicoKM" = $2 WHERE id = $3', [km, JSON.stringify(historicoKM), m.veiculoId || original.veiculoId]);

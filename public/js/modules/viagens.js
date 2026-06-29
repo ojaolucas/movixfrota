@@ -398,6 +398,9 @@
         const filterDe = document.getElementById('filter-viagem-de');
         const filterAte = document.getElementById('filter-viagem-ate');
 
+        if (filterVeiculo) window.movixApp.initAutocomplete(filterVeiculo, 'Filtrar veículo...');
+        if (filterMotorista) window.movixApp.initAutocomplete(filterMotorista, 'Filtrar motorista...');
+
         if (filterBusca) filterBusca.addEventListener('input', () => { currentPage = 1; updateTable(); });
         if (filterVeiculo) filterVeiculo.addEventListener('change', () => { currentPage = 1; updateTable(); });
         if (filterMotorista) filterMotorista.addEventListener('change', () => { currentPage = 1; updateTable(); });
@@ -419,8 +422,14 @@
         }
         document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
             if (filterBusca) filterBusca.value = '';
-            if (filterVeiculo) filterVeiculo.value = '';
-            if (filterMotorista) filterMotorista.value = '';
+            if (filterVeiculo) {
+                filterVeiculo.value = '';
+                filterVeiculo.dispatchEvent(new Event('change'));
+            }
+            if (filterMotorista) {
+                filterMotorista.value = '';
+                filterMotorista.dispatchEvent(new Event('change'));
+            }
             if (filterPeriodo) filterPeriodo.value = 'tudo';
             if (filterDe) filterDe.value = '';
             if (filterAte) filterAte.value = '';
@@ -637,6 +646,12 @@
 
             const veicSel = document.getElementById('via-veic-sel');
             const kmInput = document.getElementById('via-km-input');
+            const driverSel = modalBody.querySelector('select[name="motoristaId"]');
+
+            window.movixApp.initAutocomplete(veicSel, 'Selecione o veículo...');
+            if (driverSel) {
+                window.movixApp.initAutocomplete(driverSel, 'Selecione o motorista...');
+            }
 
             function syncKM() {
                 if (veicSel.options.length > 0) {

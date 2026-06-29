@@ -224,14 +224,24 @@
             }, 0);
         }
 
+        // Initialize Autocompletes
+        window.movixApp.initAutocomplete(document.getElementById('filter-veiculo'), 'Filtrar veículo...');
+        window.movixApp.initAutocomplete(document.getElementById('filter-motorista'), 'Filtrar motorista...');
+
         // Filters events hooks
         document.getElementById('filter-veiculo').addEventListener('change', () => { currentPage = 1; updateTable(); });
         document.getElementById('filter-motorista').addEventListener('change', () => { currentPage = 1; updateTable(); });
         document.getElementById('filter-fuel-type').addEventListener('change', () => { currentPage = 1; updateTable(); });
         document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
-            document.getElementById('filter-veiculo').value = '';
-            document.getElementById('filter-motorista').value = '';
-            document.getElementById('filter-fuel-type').value = '';
+            const fV = document.getElementById('filter-veiculo');
+            const fM = document.getElementById('filter-motorista');
+            const fF = document.getElementById('filter-fuel-type');
+            fV.value = '';
+            fM.value = '';
+            fF.value = '';
+            fV.dispatchEvent(new Event('change'));
+            fM.dispatchEvent(new Event('change'));
+            fF.dispatchEvent(new Event('change'));
             currentPage = 1;
             updateTable();
         });
@@ -357,6 +367,10 @@
             const litrosInput = document.getElementById('ab-litros-input');
             const totalInput = document.getElementById('ab-total-input');
             const litroInput = document.getElementById('ab-litro-input');
+
+            window.movixApp.initAutocomplete(veicSel, 'Selecione o veículo...');
+            const motSel = modalBody.querySelector('select[name="motoristaId"]');
+            window.movixApp.initAutocomplete(motSel, 'Selecione o motorista...');
 
             function syncVehicle() {
                 if (isEdit) return;

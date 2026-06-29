@@ -470,6 +470,8 @@
             const kmInput = document.getElementById('oil-km-input');
             const nextKmInput = document.getElementById('oil-next-km');
 
+            window.movixApp.initAutocomplete(veicSel, 'Selecione o veículo...');
+
             function syncKM() {
                 const opt = veicSel.options[veicSel.selectedIndex];
                 if (!opt || opt.value === "") {

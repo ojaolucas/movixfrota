@@ -1,0 +1,93 @@
+/* MovixFrota - Autocomplete Component Styles */
+
+.movix-autocomplete-container {
+    position: relative;
+    width: 100%;
+}
+
+.movix-autocomplete-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.movix-autocomplete-wrapper input {
+    padding-right: 32px !important;
+    cursor: text;
+}
+
+.movix-autocomplete-wrapper .autocomplete-chevron {
+    position: absolute;
+    right: 12px;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    pointer-events: none;
+    transition: transform var(--transition-fast);
+}
+
+.movix-autocomplete-container.active .autocomplete-chevron {
+    transform: rotate(180deg);
+}
+
+.movix-autocomplete-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    width: 100%;
+    max-height: 240px;
+    overflow-y: auto;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    box-shadow: var(--shadow-md);
+    z-index: 1000;
+    display: none;
+}
+
+/* Light / Dark Mode dynamic adjustments */
+.theme-dark .movix-autocomplete-dropdown {
+    background-color: var(--bg-surface);
+    border-color: var(--border-color);
+}
+
+.movix-autocomplete-container.active .movix-autocomplete-dropdown {
+    display: block;
+}
+
+.movix-autocomplete-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.movix-autocomplete-item {
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    color: var(--text-main);
+    cursor: pointer;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.movix-autocomplete-item:hover,
+.movix-autocomplete-item.focused {
+    background-color: var(--bg-surface-hover);
+    color: var(--primary);
+}
+
+.movix-autocomplete-item.selected {
+    background-color: var(--primary-light);
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.movix-autocomplete-no-results {
+    padding: 12px 14px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-align: center;
+    font-style: italic;
+}
