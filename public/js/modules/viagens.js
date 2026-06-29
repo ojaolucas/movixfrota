@@ -578,8 +578,8 @@
                         <select class="form-control" name="veiculoId" id="via-veic-sel" required>
                             <option value="" disabled ${!isEdit ? 'selected' : ''}>Selecione um veículo</option>
                             ${isEdit 
-                                ? vehicles.map(v => `<option value="${v.id}" data-km="${v.kmAtual}" ${t.veiculoId === v.id ? 'selected' : ''}>${v.placa} - ${v.marca} ${v.modelo} (KM: ${v.kmAtual})</option>`).join('')
-                                : vehicles.filter(v => v.status === 'disponivel').map(v => `<option value="${v.id}" data-km="${v.kmAtual}">${v.placa} - ${v.marca} ${v.modelo} (KM: ${v.kmAtual})</option>`).join('')}
+                                ? vehicles.map(v => `<option value="${v.id}" data-km="${v.kmAtual}" ${t.veiculoId === v.id ? 'selected' : ''}>${v.placa} - ${v.marca} ${v.modelo} (KM: ${v.kmAtual})${v.status === 'em_manutencao' ? ' [Em Oficina]' : ''}</option>`).join('')
+                                : vehicles.filter(v => v.status !== 'inativo').map(v => `<option value="${v.id}" data-km="${v.kmAtual}">${v.placa} - ${v.marca} ${v.modelo} (KM: ${v.kmAtual})${v.status === 'em_manutencao' ? ' [Em Oficina]' : ''}</option>`).join('')}
                         </select>
                     </div>
 
@@ -685,24 +685,44 @@
                     const veiculoId = veicSel.value;
                     if (!veiculoId) return;
 
+                    const vehicle = vehicles.find(v => v.id === veiculoId);
+                    if (!vehicle) return;
+
                     const activeTrips = window.movixStore.getViagens().filter(t => t.status && t.status.toLowerCase() === 'em andamento');
                     const conflictTrip = activeTrips.find(t => t.veiculoId === veiculoId);
 
                     if (conflictTrip) {
-                        const vehicle = vehicles.find(v => v.id === veiculoId);
-                        const placa = vehicle ? vehicle.placa : 'N/A';
+                        const placa = vehicle.placa || 'N/A';
                         const dateFormatted = conflictTrip.dataSaida.split('-').reverse().join('/');
                         const timeFormatted = conflictTrip.horaSaida || 'N/A';
                         window.movixApp.showConfirmModal(
                             `O veículo de placa ${placa} já está vinculado à viagem em andamento de ${conflictTrip.origem} para ${conflictTrip.destino}, iniciada em ${dateFormatted} às ${timeFormatted}. Deseja utilizar este veículo mesmo assim?`,
                             () => {
-                                // keep selection
+                                checkMaintenance();
                             },
                             () => {
                                 veicSel.value = "";
                                 syncKM();
                             }
                         );
+                    } else {
+                        checkMaintenance();
+                    }
+
+                    function checkMaintenance() {
+                        if (vehicle.status === 'em_manutencao') {
+                            const placa = vehicle.placa || 'N/A';
+                            window.movixApp.showConfirmModal(
+                                `O veículo de placa ${placa} está com o status "Em Oficina" (Em Manutenção). Deseja iniciar a viagem mesmo assim?`,
+                                () => {
+                                    // keep selection
+                                },
+                                () => {
+                                    veicSel.value = "";
+                                    syncKM();
+                                }
+                            );
+                        }
                     }
                 });
 
