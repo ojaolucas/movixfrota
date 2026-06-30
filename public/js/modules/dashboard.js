@@ -141,9 +141,12 @@
             const dObj = motoristas.find(item => item.id === dId);
             return {
                 name: dObj ? dObj.nome : 'Motorista',
-                avg: data.sum / data.count
+                avg: data.sum / data.count,
+                status: dObj ? dObj.status : 'inativo'
             };
-        }).sort((a, b) => a.avg - b.avg); // Lowest km/l first
+        })
+        .filter(item => item.status !== 'inativo')
+        .sort((a, b) => a.avg - b.avg); // Lowest km/l first
 
         // Render fuel vehicles ranking HTML
         let vehiclesRankHTML = '';
