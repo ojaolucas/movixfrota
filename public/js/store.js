@@ -700,6 +700,7 @@ class MovixStore {
 
         // 2. Oil Change Alerts (Vehicles)
         this.state.veiculos.forEach(v => {
+            if (v.tipoUnidade === 'Implemento/Reboque') return;
             const kmRemaining = this.getKMRemainingForOil(v.id);
             const daysRemaining = this.getDaysRemainingForOil(v.id);
             

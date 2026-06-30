@@ -4,7 +4,7 @@
     
     function renderOleo(container) {
         const oleos = window.movixStore.getOleos();
-        const vehicles = window.movixStore.getVeiculos();
+        const vehicles = window.movixStore.getVeiculos().filter(v => v.tipoUnidade !== 'Implemento/Reboque');
         const activeUser = window.movixStore.getActiveUser();
         const isVisualizador = activeUser.perfil === 'Visualizador';
 
