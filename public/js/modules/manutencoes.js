@@ -457,7 +457,7 @@
                         <option value="Lubrificação" ${curVal === 'Lubrificação' ? 'selected' : ''}>Lubrificação</option>
                     `;
                     kmInput.removeAttribute('required');
-                    if (!isEdit) kmInput.value = '0';
+                    if (!isEdit || veicId !== m.veiculoId) kmInput.value = '0';
                     kmInput.closest('.form-group').querySelector('label').innerHTML = 'KM Programado / Executado';
                 } else {
                     catSel.innerHTML = `
@@ -468,7 +468,7 @@
                         <option value="Freios" ${curVal === 'Freios' ? 'selected' : ''}>Freios / Segurança</option>
                     `;
                     kmInput.setAttribute('required', '');
-                    if (!isEdit) kmInput.value = selectedOption.getAttribute('data-km') || '0';
+                    if (!isEdit || veicId !== m.veiculoId) kmInput.value = selectedOption.getAttribute('data-km') || '0';
                     kmInput.closest('.form-group').querySelector('label').innerHTML = 'KM Programado / Executado <span class="required">*</span>';
                 }
             };
