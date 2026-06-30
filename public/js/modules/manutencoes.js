@@ -335,7 +335,7 @@
 
                     <div class="form-group">
                         <label>Veículo Alvo <span class="required">*</span></label>
-                        <select class="form-control" name="veiculoId" id="man-veic-sel" required ${isEdit ? 'disabled' : ''}>
+                        <select class="form-control" name="veiculoId" id="man-veic-sel" required>
                             <option value="" disabled ${!isEdit ? 'selected' : ''}>Selecione um veículo</option>
                             ${vehicles.map(v => `<option value="${v.id}" data-km="${v.kmAtual}" ${isEdit && m.veiculoId === v.id ? 'selected' : ''}>${v.placa} - ${v.marca} ${v.modelo} (KM: ${v.kmAtual})</option>`).join('')}
                         </select>
@@ -554,9 +554,9 @@
                 const data = {};
                 formData.forEach((value, key) => data[key] = value);
 
-                const veiculoId = isEdit ? m.veiculoId : veicSel.value;
+                const veiculoId = veicSel.value;
                 const enteredKM = parseFloat(data.km) || 0;
-                const originalKM = isEdit ? parseFloat(m.km) || 0 : 0;
+                const originalKM = (isEdit && veiculoId === m.veiculoId) ? parseFloat(m.km) || 0 : 0;
 
                 const selectedVeh = vehicles.find(v => v.id === veiculoId);
                 const isTrailer = selectedVeh && selectedVeh.tipoUnidade === 'Implemento/Reboque';
@@ -569,7 +569,7 @@
                      const loader = window.movixApp.startLoading(saveBtn, isEdit ? "Atualizando..." : "Salvando...");
                      try {
                          if (isEdit) {
-                             data.veiculoId = m.veiculoId;
+                             data.veiculoId = veiculoId;
                              await window.movixStore.updateMaintenance(id, data);
                              window.movixApp.showToast('Ordem de serviço atualizada!', 'success');
                          } else {
