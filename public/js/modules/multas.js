@@ -118,7 +118,13 @@
                         <label>Período Temporal</label>
                         <select class="filter-input" id="filter-periodo-multa">
                             <option value="tudo" ${state.filters.periodo === 'tudo' ? 'selected' : ''}>Todo o histórico</option>
-                            <option value="personalizado" ${state.filters.periodo === 'personalizado' ? 'selected' : ''}>Personalizado (Por data)</option>
+                            <option value="hoje" ${state.filters.periodo === 'hoje' ? 'selected' : ''}>Hoje</option>
+                            <option value="ontem" ${state.filters.periodo === 'ontem' ? 'selected' : ''}>Ontem</option>
+                            <option value="7dias" ${state.filters.periodo === '7dias' ? 'selected' : ''}>Últimos 7 dias</option>
+                            <option value="30dias" ${state.filters.periodo === '30dias' ? 'selected' : ''}>Últimos 30 dias</option>
+                            <option value="este_mes" ${state.filters.periodo === 'este_mes' ? 'selected' : ''}>Este mês</option>
+                            <option value="mes_anterior" ${state.filters.periodo === 'mes_anterior' ? 'selected' : ''}>Mês anterior</option>
+                            <option value="personalizado" ${state.filters.periodo === 'personalizado' ? 'selected' : ''}>Personalizado...</option>
                         </select>
                     </div>
                     <div id="custom-date-container" style="display: ${state.filters.periodo === 'personalizado' ? 'flex' : 'none'}; flex-wrap: wrap; gap: 16px; align-items: flex-end; flex-grow: 1;">
@@ -237,15 +243,40 @@
 
                 // Date period matching
                 let matchDate = true;
-                if (periodSel.value === 'personalizado') {
-                    const multaDate = new Date(m.data + 'T00:00:00');
-                    if (dataDeVal) {
-                        const de = new Date(dataDeVal + 'T00:00:00');
-                        if (multaDate < de) matchDate = false;
-                    }
-                    if (dataAteVal) {
-                        const ate = new Date(dataAteVal + 'T23:59:59');
-                        if (multaDate > ate) matchDate = false;
+                const periodVal = periodSel.value;
+                if (periodVal !== 'tudo') {
+                    const multaDateStr = m.data; // YYYY-MM-DD
+                    const localNow = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
+                    const todayStr = localNow.toISOString().split('T')[0];
+
+                    if (periodVal === 'hoje') {
+                        if (multaDateStr !== todayStr) matchDate = false;
+                    } else if (periodVal === 'ontem') {
+                        const yesterday = new Date(localNow);
+                        yesterday.setDate(yesterday.getDate() - 1);
+                        const yesterdayStr = yesterday.toISOString().split('T')[0];
+                        if (multaDateStr !== yesterdayStr) matchDate = false;
+                    } else if (periodVal === '7dias') {
+                        const limit = new Date(localNow);
+                        limit.setDate(limit.getDate() - 7);
+                        const limitStr = limit.toISOString().split('T')[0];
+                        if (multaDateStr < limitStr || multaDateStr > todayStr) matchDate = false;
+                    } else if (periodVal === '30dias') {
+                        const limit = new Date(localNow);
+                        limit.setDate(limit.getDate() - 30);
+                        const limitStr = limit.toISOString().split('T')[0];
+                        if (multaDateStr < limitStr || multaDateStr > todayStr) matchDate = false;
+                    } else if (periodVal === 'este_mes') {
+                        const yearMonth = todayStr.substring(0, 7); // "YYYY-MM"
+                        if (!multaDateStr.startsWith(yearMonth)) matchDate = false;
+                    } else if (periodVal === 'mes_anterior') {
+                        const prevMonthDate = new Date(localNow);
+                        prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
+                        const prevYearMonth = prevMonthDate.toISOString().split('T')[0].substring(0, 7);
+                        if (!multaDateStr.startsWith(prevYearMonth)) matchDate = false;
+                    } else if (periodVal === 'personalizado') {
+                        if (dataDeVal && multaDateStr < dataDeVal) matchDate = false;
+                        if (dataAteVal && multaDateStr > dataAteVal) matchDate = false;
                     }
                 }
 
