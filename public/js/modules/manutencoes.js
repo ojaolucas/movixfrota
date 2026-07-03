@@ -344,6 +344,7 @@
                     <div class="form-group">
                         <label>Tipo de Manutenção <span class="required">*</span></label>
                         <select class="form-control" name="tipo" required>
+                            <option value="" disabled ${!isEdit ? 'selected' : ''}>Selecione o tipo de manutenção</option>
                             <option value="Preventiva" ${isEdit && m.tipo === 'Preventiva' ? 'selected' : ''}>Preventiva (Programada)</option>
                             <option value="Corretiva" ${isEdit && m.tipo === 'Corretiva' ? 'selected' : ''}>Corretiva (Avaria/Quebra)</option>
                         </select>
@@ -379,6 +380,7 @@
                     <div class="form-group">
                         <label>Situação da O.S. <span class="required">*</span></label>
                         <select class="form-control" name="status" required>
+                            <option value="" disabled ${!isEdit ? 'selected' : ''}>Selecione a situação da O.S.</option>
                             <option value="Programada" ${isEdit && m.status === 'Programada' ? 'selected' : ''}>Programada</option>
                             <option value="Em andamento" ${isEdit && m.status === 'Em andamento' ? 'selected' : ''}>Em andamento</option>
                             <option value="Realizada" ${isEdit && m.status === 'Realizada' ? 'selected' : ''}>Realizada (Concluída)</option>

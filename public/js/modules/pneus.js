@@ -606,7 +606,7 @@
                     </div>
                     <div class="form-group">
                         <label>Vida Útil Estimada (KM) <span class="required">*</span></label>
-                        <input type="number" class="form-control" name="vidaEstimada" required min="0" value="${isEdit ? p.vidaEstimada : '70000'}">
+                        <input type="number" class="form-control" name="vidaEstimada" required min="0" value="${isEdit ? p.vidaEstimada : ''}">
                     </div>
                     <div class="form-group">
                         <label>Custo Unitário (R$)</label>
@@ -618,11 +618,12 @@
                     </div>
                     <div class="form-group">
                         <label>KM de Instalação (Inicial) <span class="required">*</span></label>
-                        <input type="number" class="form-control" name="kmInicial" id="pneu-kminicial-input" required min="0" value="${isEdit ? p.kmInicial : '0'}">
+                        <input type="number" class="form-control" name="kmInicial" id="pneu-kminicial-input" required min="0" value="${isEdit ? p.kmInicial : ''}">
                     </div>
                     <div class="form-group">
-                        <label>Pneu Recapado?</label>
-                        <select class="form-control" name="recapado">
+                        <label>Pneu Recapado? <span class="required">*</span></label>
+                        <select class="form-control" name="recapado" required>
+                            <option value="" disabled ${!isEdit ? 'selected' : ''}>Selecione...</option>
                             <option value="false" ${isEdit && !p.recapado ? 'selected' : ''}>Não (Original)</option>
                             <option value="true" ${isEdit && p.recapado ? 'selected' : ''}>Sim (Recapado)</option>
                         </select>
@@ -683,14 +684,21 @@
             window.movixApp.initAutocomplete(pneuVeicSel, 'Selecione o veículo...');
 
             const handlePneuVeicChange = () => {
-                const veicId = pneuVeicSel.value;
-                if (!veicId) {
-                    pneuPosSel.innerHTML = '<option value="">Estoque (Sem Posição)</option>';
-                    return;
-                }
-                const selectedVeh = vehicles.find(v => v.id === veicId);
-                const positions = getPositionsForVehicle(selectedVeh);
-                pneuPosSel.innerHTML = positions.map(pos => `<option value="${pos}" ${((isEdit && p.posicao === pos) || (defaultPos === pos)) ? 'selected' : ''}>${pos}</option>`).join('');
+                 const veicId = pneuVeicSel.value;
+                 if (!veicId) {
+                     pneuPosSel.innerHTML = '<option value="">Estoque (Sem Posição)</option>';
+                     if (!isEdit) {
+                         document.getElementById('pneu-kminicial-input').value = '';
+                     }
+                     return;
+                 }
+                 const selectedVeh = vehicles.find(v => v.id === veicId);
+                 const positions = getPositionsForVehicle(selectedVeh);
+                 pneuPosSel.innerHTML = positions.map(pos => `<option value="${pos}" ${((isEdit && p.posicao === pos) || (defaultPos === pos)) ? 'selected' : ''}>${pos}</option>`).join('');
+                 
+                 if (!isEdit && selectedVeh) {
+                     document.getElementById('pneu-kminicial-input').value = parseFloat(selectedVeh.kmAtual || 0);
+                 }
             };
 
             if (pneuVeicSel && pneuPosSel) {

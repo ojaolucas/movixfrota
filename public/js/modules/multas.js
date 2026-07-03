@@ -489,7 +489,7 @@
 
                     <div class="form-group">
                         <label>Horário da Infração <span class="required">*</span></label>
-                        <input type="time" class="form-control" name="horario" required value="${isEdit ? multa.horario : '12:00'}">
+                        <input type="time" class="form-control" name="horario" required value="${isEdit ? multa.horario : ''}">
                     </div>
 
                     <div class="form-group">
@@ -500,6 +500,7 @@
                     <div class="form-group">
                         <label>Situação da Multa <span class="required">*</span></label>
                         <select class="form-control" name="status" required>
+                            <option value="" disabled ${!isEdit ? 'selected' : ''}>Selecione a situação da multa</option>
                             <option value="Não Pago" ${isEdit && multa.status === 'Não Pago' ? 'selected' : ''}>Não Pago</option>
                             <option value="Pago" ${isEdit && multa.status === 'Pago' ? 'selected' : ''}>Pago</option>
                             <option value="Recorrendo" ${isEdit && multa.status === 'Recorrendo' ? 'selected' : ''}>Recorrendo (Autuada)</option>
