@@ -222,6 +222,7 @@ body {
     flex-direction: column;
     min-height: 100vh;
     transition: margin-left var(--transition-normal);
+    min-width: 0;
 }
 
 body.sidebar-collapsed-body .app-container {
@@ -652,6 +653,8 @@ body.sidebar-collapsed-body .app-container {
     display: flex;
     flex-direction: column;
     gap: 32px;
+    min-width: 0;
+    width: 100%;
 }
 
 /* Page Headers */
@@ -910,6 +913,12 @@ body.sidebar-collapsed-body .app-container {
 .text-info { color: var(--info) !important; }
 
 /* Responsive Adjustments */
+@media (max-width: 1200px) {
+    .header-search {
+        width: 200px;
+    }
+}
+
 @media (max-width: 992px) {
     .sidebar {
         left: -100%;

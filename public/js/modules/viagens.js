@@ -109,17 +109,17 @@
                             <option value="personalizado" ${state.filters.periodo === 'personalizado' ? 'selected' : ''}>Personalizado...</option>
                         </select>
                     </div>
-                    <div id="custom-date-container-viagem" style="display: ${state.filters.periodo === 'personalizado' ? 'flex' : 'none'}; gap: 16px; align-items: flex-end;">
-                        <div class="filter-group" style="width: 140px;">
+                    <div id="custom-date-container-viagem" style="display: ${state.filters.periodo === 'personalizado' ? 'flex' : 'none'}; flex-wrap: wrap; gap: 16px; align-items: flex-end;">
+                        <div class="filter-group" style="width: 140px; flex: 1 1 120px;">
                             <label>De</label>
                             <input type="date" class="filter-input" id="filter-viagem-de" value="${state.filters.de || ''}">
                         </div>
-                        <div class="filter-group" style="width: 140px;">
+                        <div class="filter-group" style="width: 140px; flex: 1 1 120px;">
                             <label>Até</label>
                             <input type="date" class="filter-input" id="filter-viagem-ate" value="${state.filters.ate || ''}">
                         </div>
                     </div>
-                    <div class="filter-group" style="display: flex; align-items: flex-end;">
+                    <div class="filter-group" style="display: flex; align-items: flex-end; flex-shrink: 0;">
                         <button class="btn btn-secondary" id="btn-limpar-filtros" style="height: 38px; white-space: nowrap;">
                             <i class="fa-solid fa-filter-circle-xmark"></i> Limpar Filtros
                         </button>

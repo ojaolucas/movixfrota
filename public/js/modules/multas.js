@@ -113,25 +113,25 @@
                 </div>
 
                 <!-- Custom date range inside filters row -->
-                <div class="filters-row" style="margin-top: 12px; border-top: 1px solid var(--border-color); padding-top: 12px; display: flex; gap: 16px; align-items: flex-end;">
-                    <div class="filter-group" style="max-width: 220px;">
+                <div class="filters-row" style="margin-top: 12px; border-top: 1px solid var(--border-color); padding-top: 12px; display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end;">
+                    <div class="filter-group" style="max-width: 220px; flex: 1 1 200px;">
                         <label>Período Temporal</label>
                         <select class="filter-input" id="filter-periodo-multa">
                             <option value="tudo" ${state.filters.periodo === 'tudo' ? 'selected' : ''}>Todo o histórico</option>
                             <option value="personalizado" ${state.filters.periodo === 'personalizado' ? 'selected' : ''}>Personalizado (Por data)</option>
                         </select>
                     </div>
-                    <div id="custom-date-container" style="display: ${state.filters.periodo === 'personalizado' ? 'flex' : 'none'}; gap: 16px; align-items: flex-end; flex-grow: 1;">
-                        <div class="filter-group" style="max-width: 180px;">
+                    <div id="custom-date-container" style="display: ${state.filters.periodo === 'personalizado' ? 'flex' : 'none'}; flex-wrap: wrap; gap: 16px; align-items: flex-end; flex-grow: 1;">
+                        <div class="filter-group" style="max-width: 180px; flex: 1 1 140px;">
                             <label>De</label>
                             <input type="date" class="filter-input" id="filter-data-de" value="${state.filters.de || ''}">
                         </div>
-                        <div class="filter-group" style="max-width: 180px;">
+                        <div class="filter-group" style="max-width: 180px; flex: 1 1 140px;">
                             <label>Até</label>
                             <input type="date" class="filter-input" id="filter-data-ate" value="${state.filters.ate || ''}">
                         </div>
                     </div>
-                    <div class="filter-group" style="margin-left: auto; display: flex; align-items: flex-end;">
+                    <div class="filter-group" style="margin-left: auto; display: flex; align-items: flex-end; flex-shrink: 0;">
                         <button class="btn btn-secondary" id="btn-limpar-filtros" style="height: 38px; white-space: nowrap;">
                             <i class="fa-solid fa-filter-circle-xmark"></i> Limpar Filtros
                         </button>
