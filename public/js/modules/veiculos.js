@@ -1696,7 +1696,7 @@
                 date: f.data,
                 type: 'abastecimento',
                 title: 'Abastecimento Registrado',
-                desc: `Registrado R$ ${f.valorTotal.toFixed(2)} (${window.movixApp.formatDecimal(f.litros)}L a R$ ${f.valorLitro.toFixed(2)}/L). Média: ${window.movixApp.formatDecimal(f.kmL)} KM/L. Posto: ${f.posto}.`,
+                desc: `Registrado ${window.movixApp.formatCurrency(f.valorTotal)} (${window.movixApp.formatDecimal(f.litros)}L a ${window.movixApp.formatCurrency(f.valorLitro)}/L). Média: ${window.movixApp.formatDecimal(f.kmL)} KM/L. Posto: ${f.posto}.`,
                 icon: '<i class="fa-solid fa-gas-pump" style="color:var(--success)"></i>'
             });
         });
@@ -1705,7 +1705,7 @@
                 date: m.data,
                 type: 'manutencao',
                 title: `Manutenção ${m.tipo} - ${m.categoria}`,
-                desc: `Oficina: ${m.oficina}. Valor: R$ ${m.valor.toFixed(2)}. Status: ${m.status}. Detalhes: ${m.descricao}.`,
+                desc: `Oficina: ${m.oficina}. Valor: ${window.movixApp.formatCurrency(m.valor)}. Status: ${m.status}. Detalhes: ${m.descricao}.`,
                 icon: '<i class="fa-solid fa-screwdriver-wrench" style="color:var(--danger)"></i>'
             });
         });
@@ -1731,7 +1731,7 @@
                     date: t.dataRetorno,
                     type: 'viagem',
                     title: `Retorno de Viagem: ${t.destino} → ${t.origem}`,
-                    desc: `KM Final: ${t.kmFinal}. Total rodado: ${t.kmRodado} KM. Custos de viagem: R$ ${t.custos.toFixed(2)}.`,
+                    desc: `KM Final: ${t.kmFinal}. Total rodado: ${t.kmRodado} KM. Custos de viagem: ${window.movixApp.formatCurrency(t.custos)}.`,
                     icon: '<i class="fa-solid fa-route" style="color:var(--info)"></i>'
                 });
             }
@@ -1904,8 +1904,8 @@
                                     <i class="fa-solid fa-coins text-muted"></i>
                                 </div>
                                 <ul class="detail-sidebar-info-list" style="border:none; padding:0; font-size:0.9rem; gap:16px;">
-                                    <li class="detail-sidebar-info-item"><span>Gasto Oficina/Peças</span><strong>R$ ${totalMaintenanceSpent.toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong></li>
-                                    <li class="detail-sidebar-info-item" style="border-top:2px solid var(--border-color); padding-top:16px; font-weight:700;"><span>Total de Custos de Vida</span><strong class="text-danger" style="font-size:1.15rem;">R$ ${totalMaintenanceSpent.toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong></li>
+                                    <li class="detail-sidebar-info-item"><span>Gasto Oficina/Peças</span><strong>${window.movixApp.formatCurrency(totalMaintenanceSpent)}</strong></li>
+                                    <li class="detail-sidebar-info-item" style="border-top:2px solid var(--border-color); padding-top:16px; font-weight:700;"><span>Total de Custos de Vida</span><strong class="text-danger" style="font-size:1.15rem;">${window.movixApp.formatCurrency(totalMaintenanceSpent)}</strong></li>
                                 </ul>
                             </div>
                         ` : `
@@ -1916,9 +1916,9 @@
                                         <i class="fa-solid fa-coins text-muted"></i>
                                     </div>
                                     <ul class="detail-sidebar-info-list" style="border:none; padding:0; font-size:0.9rem; gap:16px;">
-                                        <li class="detail-sidebar-info-item"><span>Gasto Combustível</span><strong>R$ ${totalFuelSpent.toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong></li>
-                                        <li class="detail-sidebar-info-item"><span>Gasto Oficina/Peças</span><strong>R$ ${totalMaintenanceSpent.toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong></li>
-                                        <li class="detail-sidebar-info-item" style="border-top:2px solid var(--border-color); padding-top:16px; font-weight:700;"><span>Total de Custos de Vida</span><strong class="text-danger" style="font-size:1.15rem;">R$ ${combinedVehicleCost.toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong></li>
+                                        <li class="detail-sidebar-info-item"><span>Gasto Combustível</span><strong>${window.movixApp.formatCurrency(totalFuelSpent)}</strong></li>
+                                        <li class="detail-sidebar-info-item"><span>Gasto Oficina/Peças</span><strong>${window.movixApp.formatCurrency(totalMaintenanceSpent)}</strong></li>
+                                        <li class="detail-sidebar-info-item" style="border-top:2px solid var(--border-color); padding-top:16px; font-weight:700;"><span>Total de Custos de Vida</span><strong class="text-danger" style="font-size:1.15rem;">${window.movixApp.formatCurrency(combinedVehicleCost)}</strong></li>
                                     </ul>
                                 </div>
 
@@ -1926,7 +1926,7 @@
                                     <i class="fa-solid fa-calculator text-primary" style="font-size:3rem; margin-bottom:12px;"></i>
                                     <h3>Custo médio por KM Rodado</h3>
                                     <p style="font-size:2rem; font-weight:800; font-family:var(--font-heading); margin:12px 0; color:var(--text-main);">
-                                        R$ ${(vehicle.kmAtual > 0 ? (combinedVehicleCost / vehicle.kmAtual) : 0).toFixed(2)} / km
+                                        ${window.movixApp.formatCurrency(vehicle.kmAtual > 0 ? (combinedVehicleCost / vehicle.kmAtual) : 0)} / km
                                     </p>
                                     <p style="font-size:0.8rem; color:var(--text-muted);">Estimado dividindo o total gasto acumulado pela quilometragem atual do odômetro.</p>
                                 </div>
@@ -1985,7 +1985,7 @@
                                                     })()}
                                                 </strong>
                                             </li>
-                                            <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Custo Mensal</span><strong>R$ ${(parseFloat(vehicle.valorMensalSeguro) || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong></li>
+                                            <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Custo Mensal</span><strong>${window.movixApp.formatCurrency(parseFloat(vehicle.valorMensalSeguro) || 0)}</strong></li>
                                         </ul>
                                     </div>
 
@@ -2064,7 +2064,7 @@
                                     <div>
                                         <h4 style="font-size:0.95rem; font-family:var(--font-heading); color:var(--text-main); border-bottom:1px solid var(--border-color); padding-bottom:8px; margin-bottom:12px;">Dados do Contrato</h4>
                                         <ul class="detail-sidebar-info-list" style="border:none; padding:0; gap:12px; font-size:0.9rem;">
-                                            <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Valor Mensal</span><strong>R$ ${(parseFloat(vehicle.valorMensalRastreador) || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong></li>
+                                            <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Valor Mensal</span><strong>${window.movixApp.formatCurrency(parseFloat(vehicle.valorMensalRastreador) || 0)}</strong></li>
                                             <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Início Cobertura</span><strong>${vehicle.inicioContratoRastreador ? vehicle.inicioContratoRastreador.split('-').reverse().join('/') : '-'}</strong></li>
                                             <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Vencimento</span><strong>${vehicle.validadeContratoRastreador ? vehicle.validadeContratoRastreador.split('-').reverse().join('/') : '-'}</strong></li>
                                         </ul>
@@ -2248,7 +2248,7 @@
                                                 <tr>
                                                     <td>${f.data.split('-').reverse().join('/')}</td>
                                                     <td>${window.movixApp.formatDecimal(f.litros)} L</td>
-                                                    <td style="font-weight:600;">R$ ${f.valorTotal.toFixed(2)}</td>
+                                                    <td style="font-weight:600;">${window.movixApp.formatCurrency(f.valorTotal)}</td>
                                                     <td class="text-success" style="font-weight:700;">${window.movixApp.formatDecimal(f.kmL)} km/L</td>
                                                     <td>${f.posto}</td>
                                                 </tr>
@@ -2277,7 +2277,7 @@
                                                 <td>${m.data.split('-').reverse().join('/')}</td>
                                                 <td style="font-weight:600;">${m.tipo} (${m.categoria})</td>
                                                 <td><span style="font-size:0.8rem; white-space:normal; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden;">${m.descricao}</span></td>
-                                                <td style="font-weight:600;">R$ ${m.valor.toFixed(2)}</td>
+                                                <td style="font-weight:600;">${window.movixApp.formatCurrency(m.valor)}</td>
                                                 <td><span class="status-pill ${m.status.toLowerCase()}">${m.status}</span></td>
                                             </tr>
                                         `).join('')}

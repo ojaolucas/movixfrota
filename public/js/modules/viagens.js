@@ -315,7 +315,7 @@
                                 <span>Retorno: ${t.kmFinal > 0 ? `${parseFloat(t.kmFinal).toLocaleString('pt-BR')} km` : '-'}</span>
                             </div>
                         </td>
-                        <td style="font-weight:700;">R$ ${parseFloat(t.custos || 0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                        <td style="font-weight:700;">${window.movixApp.formatCurrency(t.custos)}</td>
                         <td><span class="status-pill ${statusClass}">${t.status}</span></td>
                         <td style="text-align: center;">
                             ${t.status && t.status.toLowerCase() === 'em andamento' && !isVisualizador ? `
@@ -518,7 +518,7 @@
                             <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>KM Inicial</span><strong>${parseFloat(t.kmInicial).toLocaleString('pt-BR')} km</strong></li>
                             <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>KM Final</span><strong>${t.kmFinal > 0 ? `${parseFloat(t.kmFinal).toLocaleString('pt-BR')} km` : '-'}</strong></li>
                             <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>KM Rodados</span><strong>${t.kmRodado > 0 ? `${parseFloat(t.kmRodado).toLocaleString('pt-BR')} km` : '-'}</strong></li>
-                            <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Custos de Viagem</span><strong>R$ ${(parseFloat(t.custos) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></li>
+                            <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Custos de Viagem</span><strong>${window.movixApp.formatCurrency(t.custos)}</strong></li>
                             <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Situação</span>
                                 <span class="status-pill ${t.status && t.status.toLowerCase() === 'realizada' ? 'realizada' : 'em_andamento'}">${t.status}</span>
                             </li>

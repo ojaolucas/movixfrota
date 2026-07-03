@@ -224,7 +224,7 @@
                     <div class="horizontal-progress-item">
                         <div class="horizontal-progress-meta">
                             <span class="horizontal-progress-name">${i + 1}. ${item.name}</span>
-                            <span class="horizontal-progress-val">R$ ${item.cost.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span class="horizontal-progress-val">${window.movixApp.formatCurrency(item.cost)}</span>
                         </div>
                         <div class="horizontal-progress-track">
                             <div class="horizontal-progress-bar red" style="width: ${barWidth}%;"></div>
@@ -417,7 +417,7 @@
                     <div class="stat-icon success"><i class="fa-solid fa-sack-dollar"></i></div>
                     <div class="stat-info">
                         <span class="stat-label">Custo Operacional</span>
-                        <span class="stat-value" style="font-size: 1.15rem; font-weight: 800;">R$ ${totalCustoVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <span class="stat-value" style="font-size: 1.15rem; font-weight: 800;">${window.movixApp.formatCurrency(totalCustoVal)}</span>
                         <span class="stat-delta text-success"><i class="fa-solid fa-arrow-trend-down"></i> Acumulado</span>
                     </div>
                 </div>
@@ -450,7 +450,7 @@
                             <div class="stat-icon success" style="width:46px; height:46px; font-size: 1.2rem; border-radius: 50%;"><i class="fa-solid fa-dollar-sign"></i></div>
                             <div style="display: flex; flex-direction: column;">
                                 <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Total Gasto</span>
-                                <span style="font-size: 1.4rem; font-weight: 800; color: var(--text-main); line-height: 1.1;">R$ ${totalCustoVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span style="font-size: 1.4rem; font-weight: 800; color: var(--text-main); line-height: 1.1;">${window.movixApp.formatCurrency(totalCustoVal)}</span>
                             </div>
                         </div>
                         
@@ -463,7 +463,7 @@
                                 <div class="stat-icon warning" style="width:36px; height:36px; font-size: 0.95rem; border-radius: 50%;"><i class="fa-solid fa-receipt"></i></div>
                                 <div style="display: flex; flex-direction: column;">
                                     <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">Média Diária</span>
-                                    <span style="font-size: 1.1rem; font-weight: 700; color: var(--text-main);">R$ ${dailyAverage.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    <span style="font-size: 1.1rem; font-weight: 700; color: var(--text-main);">${window.movixApp.formatCurrency(dailyAverage)}</span>
                                 </div>
                             </div>
                             
@@ -472,7 +472,7 @@
                                 <div class="stat-icon primary" style="width:36px; height:36px; font-size: 0.95rem; border-radius: 50%; background-color: rgba(59, 130, 246, 0.15);"><i class="fa-solid fa-chart-simple"></i></div>
                                 <div style="display: flex; flex-direction: column;">
                                     <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">Projeção Mensal</span>
-                                    <span style="font-size: 1.1rem; font-weight: 700; color: var(--text-main);">R$ ${monthlyProjection.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    <span style="font-size: 1.1rem; font-weight: 700; color: var(--text-main);">${window.movixApp.formatCurrency(monthlyProjection)}</span>
                                 </div>
                             </div>
                         </div>
@@ -555,7 +555,7 @@
                             <div class="stat-icon warning" style="width:22px; height:22px; font-size:0.7rem; border-radius:50%;"><i class="fa-solid fa-calculator"></i></div>
                             <div style="display: flex; flex-direction: column;">
                                 <span style="font-size: 0.62rem; color: var(--text-muted); font-weight: 600;">Total</span>
-                                <span style="font-size: 0.75rem; font-weight: 700; color:var(--text-main);">R$ ${totalFuelSpent.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</span>
+                                <span style="font-size: 0.75rem; font-weight: 700; color:var(--text-main);">${window.movixApp.formatCurrency(totalFuelSpent)}</span>
                             </div>
                         </div>
                         <!-- KM/L -->
@@ -629,7 +629,7 @@
                         <div class="horizontal-progress-item" style="gap: 2px;">
                             <div class="horizontal-progress-meta">
                                 <span style="font-weight:600;">Combustível</span>
-                                <span style="font-weight:700;">${fuelPercent}% (R$ ${totalFuelSpent.toLocaleString('pt-BR', { maximumFractionDigits: 0 })})</span>
+                                <span style="font-weight:700;">${fuelPercent}% (${window.movixApp.formatCurrency(totalFuelSpent)})</span>
                             </div>
                             <div class="horizontal-progress-track" style="height:6px;">
                                 <div class="horizontal-progress-bar blue" style="width: ${fuelPercent}%;"></div>
@@ -639,7 +639,7 @@
                         <div class="horizontal-progress-item" style="gap: 2px;">
                             <div class="horizontal-progress-meta">
                                 <span style="font-weight:600;">Manutenção</span>
-                                <span style="font-weight:700;">${maintPercent}% (R$ ${totalMaintSpent.toLocaleString('pt-BR', { maximumFractionDigits: 0 })})</span>
+                                <span style="font-weight:700;">${maintPercent}% (${window.movixApp.formatCurrency(totalMaintSpent)})</span>
                             </div>
                             <div class="horizontal-progress-track" style="height:6px;">
                                 <div class="horizontal-progress-bar green" style="width: ${maintPercent}%;"></div>
@@ -649,7 +649,7 @@
                         <div class="horizontal-progress-item" style="gap: 2px;">
                             <div class="horizontal-progress-meta">
                                 <span style="font-weight:600;">Pneus</span>
-                                <span style="font-weight:700;">${tirePercent}% (R$ ${tireCost.toLocaleString('pt-BR', { maximumFractionDigits: 0 })})</span>
+                                <span style="font-weight:700;">${tirePercent}% (${window.movixApp.formatCurrency(tireCost)})</span>
                             </div>
                             <div class="horizontal-progress-track" style="height:6px;">
                                 <div class="horizontal-progress-bar orange" style="width: ${tirePercent}%;"></div>
@@ -659,7 +659,7 @@
                         <div class="horizontal-progress-item" style="gap: 2px;">
                             <div class="horizontal-progress-meta">
                                 <span style="font-weight:600;">Seguros</span>
-                                <span style="font-weight:700;">${insurancePercent}% (R$ ${insuranceCost.toLocaleString('pt-BR', { maximumFractionDigits: 0 })})</span>
+                                <span style="font-weight:700;">${insurancePercent}% (${window.movixApp.formatCurrency(insuranceCost)})</span>
                             </div>
                             <div class="horizontal-progress-track" style="height:6px;">
                                 <div class="horizontal-progress-bar purple" style="width: ${insurancePercent}%;"></div>
@@ -669,7 +669,7 @@
                         <div class="horizontal-progress-item" style="gap: 2px;">
                             <div class="horizontal-progress-meta">
                                 <span style="font-weight:600;">Rastreamento</span>
-                                <span style="font-weight:700;">${trackerPercent}% (R$ ${trackerCost.toLocaleString('pt-BR', { maximumFractionDigits: 0 })})</span>
+                                <span style="font-weight:700;">${trackerPercent}% (${window.movixApp.formatCurrency(trackerCost)})</span>
                             </div>
                             <div class="horizontal-progress-track" style="height:6px;">
                                 <div class="horizontal-progress-bar teal" style="width: ${trackerPercent}%;"></div>
@@ -708,7 +708,7 @@
                         </div>
                         <div style="background-color: var(--bg-surface-hover); padding: 8px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-light); text-align: center; margin-top: 8px;">
                             <span style="font-size: 0.65rem; color: var(--text-muted); display: block; font-weight: 500;">Mensal Total</span>
-                            <span style="font-size: 0.88rem; font-weight: 800; color: var(--text-main);">R$ ${insuranceCost.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span style="font-size: 0.88rem; font-weight: 800; color: var(--text-main);">${window.movixApp.formatCurrency(insuranceCost)}</span>
                         </div>
                     </div>
                 </div>
@@ -743,7 +743,7 @@
                         </div>
                         <div style="background-color: var(--bg-surface-hover); padding: 8px; border-radius: var(--border-radius-sm); border: 1px solid var(--border-light); text-align: center; margin-top: 8px;">
                             <span style="font-size: 0.65rem; color: var(--text-muted); display: block; font-weight: 500;">Mensal Total</span>
-                            <span style="font-size: 0.88rem; font-weight: 800; color: var(--text-main);">R$ ${trackerCost.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span style="font-size: 0.88rem; font-weight: 800; color: var(--text-main);">${window.movixApp.formatCurrency(trackerCost)}</span>
                         </div>
                     </div>
                 </div>

@@ -148,7 +148,7 @@
                         </div>
                         <div>
                             <span style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; display:block;">Custo Instalado</span>
-                            <strong style="font-size: 1.25rem; color: var(--text-main); font-family: var(--font-heading);">R$ ${vehTiresCost.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                            <strong style="font-size: 1.25rem; color: var(--text-main); font-family: var(--font-heading);">${window.movixApp.formatCurrency(vehTiresCost)}</strong>
                         </div>
                     </div>
                     <div class="card" style="padding: 16px; display: flex; align-items: center; gap: 14px; margin-bottom:0; box-shadow: var(--shadow-sm);">
@@ -166,7 +166,7 @@
                         </div>
                         <div>
                             <span style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; display:block;">Custo por KM</span>
-                            <strong style="font-size: 1.25rem; color: var(--text-main); font-family: var(--font-heading);">R$ ${avgCustoKM.toLocaleString('pt-BR', { minimumFractionDigits: 4, maximumFractionDigits: 4 })}</strong>
+                            <strong style="font-size: 1.25rem; color: var(--text-main); font-family: var(--font-heading);">R$ ${avgCustoKM.toFixed(4).replace('.', ',')}</strong>
                         </div>
                     </div>
                     <div class="card" style="padding: 16px; display: flex; align-items: center; gap: 14px; margin-bottom:0; box-shadow: var(--shadow-sm);">

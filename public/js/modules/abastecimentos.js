@@ -167,15 +167,15 @@
                         <td>
                             <div style="display:flex; flex-direction:column;">
                                 <span style="font-weight:600;">${window.movixApp.formatDecimal(a.litros)} L</span>
-                                <span style="font-size:0.75rem; color:var(--text-muted);">${a.combustivel} • R$ ${a.valorLitro.toFixed(2)}/L</span>
+                                <span style="font-size:0.75rem; color:var(--text-muted);">${a.combustivel} • R$ ${a.valorLitro.toFixed(2).replace('.', ',')}/L</span>
                             </div>
                         </td>
-                        <td style="font-weight:700;">R$ ${a.valorTotal.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
+                        <td style="font-weight:700;">${window.movixApp.formatCurrency(a.valorTotal)}</td>
                         <td class="text-success" style="font-weight:700; font-size:0.95rem;">
                             ${a.kmL > 0 ? `${a.kmL} km/L` : 'N/A'}
                         </td>
                         <td style="font-weight:600; color:var(--text-muted);">
-                            ${a.custoKM > 0 ? `R$ ${a.custoKM.toFixed(2)}/km` : 'N/A'}
+                            ${a.custoKM > 0 ? `R$ ${a.custoKM.toFixed(2).replace('.', ',')}/km` : 'N/A'}
                         </td>
                         <td style="text-align: center; display: flex; justify-content: center; gap: 8px;">
                             <button class="btn-icon-only btn-view" data-id="${a.id}" title="Visualizar Detalhes">
@@ -500,8 +500,8 @@
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Data</span><strong>${ab.data.split('-').reverse().join('/')}</strong></li>
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Combustível</span><strong>${ab.combustivel}</strong></li>
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Volume Abastecido</span><strong>${window.movixApp.formatDecimal(ab.litros)} Litros</strong></li>
-                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Valor por Litro</span><strong>R$ ${(parseFloat(ab.valorLitro) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 3 })}</strong></li>
-                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Custo Total</span><strong style="font-size:1.05rem; color:var(--text-main);">R$ ${(parseFloat(ab.valorTotal) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Valor por Litro</span><strong>R$ ${(parseFloat(ab.valorLitro) || 0).toFixed(3).replace('.', ',')}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Custo Total</span><strong style="font-size:1.05rem; color:var(--text-main);">${window.movixApp.formatCurrency(ab.valorTotal)}</strong></li>
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Quilometragem (KM)</span><strong>${parseFloat(ab.kmAtual || 0).toLocaleString('pt-BR')} km</strong></li>
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Posto de Combustível</span><strong>${ab.posto || '-'}</strong></li>
                 </ul>
@@ -509,7 +509,7 @@
                 <h4 style="font-family:var(--font-heading); color:var(--primary); margin-top:20px; margin-bottom:12px;"><i class="fa-solid fa-chart-line"></i> Indicadores de Eficiência</h4>
                 <ul class="detail-sidebar-info-list" style="border:none; padding:0; font-size:0.85rem; display:flex; flex-direction:column; gap:10px;">
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Consumo Médio</span><strong class="text-success">${ab.kmL > 0 ? `${ab.kmL} km/L` : 'N/A'}</strong></li>
-                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Custo por KM Rodado</span><strong>${ab.custoKM > 0 ? `R$ ${ab.custoKM.toFixed(2)}/km` : 'N/A'}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Custo por KM Rodado</span><strong>${ab.custoKM > 0 ? `R$ ${ab.custoKM.toFixed(2).replace('.', ',')}/km` : 'N/A'}</strong></li>
                 </ul>
 
                 ${ab.observacoes ? `

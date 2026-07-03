@@ -1131,8 +1131,9 @@ class MovixApp {
         if (val === null || val === undefined || val === '') return '';
         
         let numericString = '';
-        if (typeof val === 'number') {
-            numericString = val.toFixed(2).replace(/\D/g, '');
+        let num = typeof val === 'number' ? val : parseFloat(val);
+        if (!isNaN(num)) {
+            numericString = num.toFixed(2).replace(/\D/g, '');
         } else {
             numericString = val.toString().replace(/\D/g, '');
         }

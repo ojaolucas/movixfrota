@@ -312,7 +312,7 @@
                                 ${m.anexo ? `<span style="font-size:0.7rem; color:var(--info); font-weight:600;"><i class="fa-solid fa-paperclip"></i> Comprovante Anexo</span>` : ''}
                             </div>
                         </td>
-                        <td style="font-weight: 700; text-align: right;">R$ ${(parseFloat(m.valor) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                        <td style="font-weight: 700; text-align: right;">${window.movixApp.formatCurrency(m.valor)}</td>
                         <td>
                             ${d ? `<span style="font-weight:600;">${d.nome}</span><span style="font-size:0.75rem; color:var(--text-muted); display:block; margin-top:2px;">(${m.motoristaCategoria || d.categoria || 'Motorista Efetivo'})</span>` : '<span style="color:var(--text-muted); font-style:italic;">Sem motorista</span>'}
                         </td>
@@ -884,7 +884,7 @@
                             <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Data</span><strong>${m.data.split('-').reverse().join('/')}</strong></li>
                             <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Horário</span><strong>${m.horario || '-'}</strong></li>
                             <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Veículo</span><strong style="color:var(--primary);">${v ? `${v.placa} (${v.marca} ${v.modelo})` : '-'}</strong></li>
-                            <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Valor da Multa</span><strong style="font-size:1rem; color:var(--text-main);">R$ ${(parseFloat(m.valor) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></li>
+                            <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Valor da Multa</span><strong style="font-size:1rem; color:var(--text-main);">${window.movixApp.formatCurrency(m.valor)}</strong></li>
                             <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Responsável</span><strong>${d ? d.nome : '<span style="color:var(--text-muted); font-style:italic;">Sem motorista</span>'}</strong></li>
                             ${d ? `<li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Categoria do Condutor</span><strong>${m.motoristaCategoria || d.categoria || 'Motorista Efetivo'}</strong></li>` : ''}
                             <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Associação do Motorista</span>
@@ -970,7 +970,7 @@
             modalBody.innerHTML = `
                 <div style="text-align: center; padding: 16px;">
                     <i class="fa-solid fa-triangle-exclamation text-danger" style="font-size: 3rem; margin-bottom: 16px;"></i>
-                    <p style="font-size: 1.05rem; font-weight: 600;">Deseja permanentemente remover a multa no valor de <strong>R$ ${(parseFloat(m.valor) || 0).toFixed(2)}</strong>?</p>
+                    <p style="font-size: 1.05rem; font-weight: 600;">Deseja permanentemente remover a multa no valor de <strong>${window.movixApp.formatCurrency(m.valor)}</strong>?</p>
                     <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 8px;">Esta ação removerá permanentemente o histórico e custos com a infração de toda auditoria corporativa.</p>
                 </div>
             `;

@@ -149,7 +149,7 @@
             const prevCount = filteredData.filter(m => m.tipo === 'Preventiva' && m.status === 'Realizada').length;
             const corrCount = filteredData.filter(m => m.tipo === 'Corretiva').length;
 
-            document.getElementById('val-total-manut').innerText = `R$ ${totalCusto.toLocaleString('pt-BR', {minimumFractionDigits:2})}`;
+            document.getElementById('val-total-manut').innerText = window.movixApp.formatCurrency(totalCusto);
             document.getElementById('val-prev-count').innerText = prevCount;
             document.getElementById('val-corr-count').innerText = corrCount;
         }
@@ -222,7 +222,7 @@
                         <td>${m.data.split('-').reverse().join('/')}</td>
                         <td style="font-weight:600;">${parseFloat(m.km).toLocaleString('pt-BR')} km</td>
                         <td>${m.oficina}</td>
-                        <td style="font-weight:700;">R$ ${m.valor.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
+                        <td style="font-weight:700;">${window.movixApp.formatCurrency(m.valor)}</td>
                         <td><span class="status-pill ${statusClass}">${m.status}</span></td>
                         <td style="text-align: center; display: flex; justify-content: center; gap: 8px;">
                             <button class="btn-icon-only btn-view" data-id="${m.id}" title="Visualizar OS">
@@ -619,7 +619,7 @@
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Quilometragem (KM)</span><strong>${parseFloat(m.km || 0).toLocaleString('pt-BR')} km</strong></li>
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Oficina / Estabelecimento</span><strong>${m.oficina || '-'}</strong></li>
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Fornecedor de Peças</span><strong>${m.fornecedor || '-'}</strong></li>
-                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Valor da Manutenção</span><strong style="font-size:1.05rem; color:var(--text-main);">R$ ${(parseFloat(m.valor) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Valor da Manutenção</span><strong style="font-size:1.05rem; color:var(--text-main);">${window.movixApp.formatCurrency(m.valor)}</strong></li>
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Status da OS</span><strong><span class="status-pill ${statusClass}">${m.status}</span></strong></li>
                 </ul>
 
