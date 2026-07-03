@@ -606,7 +606,7 @@
                     </div>
                     <div class="form-group">
                         <label>Vida Útil Estimada (KM) <span class="required">*</span></label>
-                        <input type="number" class="form-control" name="vidaEstimada" required min="0" value="${isEdit ? p.vidaEstimada : ''}">
+                        <input type="number" class="form-control" name="vidaEstimada" required min="0" placeholder="Ex: 80000" value="${isEdit ? p.vidaEstimada : ''}">
                     </div>
                     <div class="form-group">
                         <label>Custo Unitário (R$)</label>
@@ -618,7 +618,7 @@
                     </div>
                     <div class="form-group">
                         <label>KM de Instalação (Inicial) <span class="required">*</span></label>
-                        <input type="number" class="form-control" name="kmInicial" id="pneu-kminicial-input" required min="0" value="${isEdit ? p.kmInicial : ''}">
+                        <input type="number" class="form-control" name="kmInicial" id="pneu-kminicial-input" required min="0" placeholder="Ex: 0" value="${isEdit ? p.kmInicial : ''}">
                     </div>
                     <div class="form-group">
                         <label>Pneu Recapado? <span class="required">*</span></label>

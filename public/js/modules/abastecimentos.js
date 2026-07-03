@@ -332,6 +332,7 @@
                     <div class="form-group">
                         <label>Combustível <span class="required">*</span></label>
                         <select class="form-control" name="combustivel" id="ab-fuel-sel" required>
+                            <option value="" disabled ${!isEdit ? 'selected' : ''}>Selecione o tipo de combustível</option>
                             <option value="Diesel" ${isEdit && ab.combustivel === 'Diesel' ? 'selected' : ''}>Diesel</option>
                             <option value="Diesel S10" ${isEdit && ab.combustivel === 'Diesel S10' ? 'selected' : ''}>Diesel S10</option>
                             <option value="Gasolina" ${isEdit && ab.combustivel === 'Gasolina' ? 'selected' : ''}>Gasolina</option>
