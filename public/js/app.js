@@ -250,8 +250,33 @@ class MovixApp {
             const logoutBtn = document.getElementById('btn-logout');
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', () => {
-                    window.movixStore.logout();
-                    this.showToast('Sessão encerrada com sucesso.', 'info');
+                    const modal = document.getElementById('global-modal');
+                    const modalTitle = document.getElementById('modal-title');
+                    const modalBody = document.getElementById('modal-body-content');
+                    const modalFooter = document.getElementById('modal-footer-actions');
+
+                    modalTitle.innerText = 'Confirmar Encerramento';
+                    modalBody.innerHTML = `
+                        <div style="text-align: center; padding: 16px;">
+                            <i class="fa-solid fa-right-from-bracket text-warning" style="font-size: 3rem; margin-bottom: 16px;"></i>
+                            <p style="font-size: 1.05rem; font-weight: 600;">Deseja realmente sair do sistema?</p>
+                            <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 8px;">Isso encerrará a sua sessão de trabalho atual e você precisará fazer login novamente.</p>
+                        </div>
+                    `;
+
+                    modalFooter.innerHTML = `
+                        <button class="btn btn-secondary" id="btn-cancelar-logout">Cancelar</button>
+                        <button class="btn btn-primary" id="btn-confirmar-logout" style="background-color: var(--primary); color: #fff;">Sair do Sistema</button>
+                    `;
+
+                    modal.classList.add('active');
+
+                    document.getElementById('btn-cancelar-logout').addEventListener('click', () => modal.classList.remove('active'));
+                    document.getElementById('btn-confirmar-logout').addEventListener('click', () => {
+                        modal.classList.remove('active');
+                        window.movixStore.logout();
+                        this.showToast('Sessão encerrada com sucesso.', 'info');
+                    });
                 });
             }
         }
