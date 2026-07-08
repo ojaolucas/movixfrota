@@ -613,14 +613,6 @@
                         <input type="text" class="form-control" name="custo" placeholder="Ex: R$ 2.400,00" value="${isEdit && p.custo ? window.movixApp.formatCurrency(p.custo) : ''}">
                     </div>
                     <div class="form-group">
-                        <label>Data de Instalação <span class="required">*</span></label>
-                        <input type="date" class="form-control" name="dataInstalacao" required value="${isEdit ? p.dataInstalacao : ''}">
-                    </div>
-                    <div class="form-group">
-                        <label>KM de Instalação (Inicial) <span class="required">*</span></label>
-                        <input type="number" class="form-control" name="kmInicial" id="pneu-kminicial-input" required min="0" placeholder="Ex: 0" value="${isEdit ? p.kmInicial : ''}">
-                    </div>
-                    <div class="form-group">
                         <label>Pneu Recapado? <span class="required">*</span></label>
                         <select class="form-control" name="recapado" required>
                             <option value="" disabled ${!isEdit ? 'selected' : ''}>Selecione...</option>
@@ -656,6 +648,16 @@
                         </select>
                     </div>
 
+                    <div class="form-group" id="pneu-datainstalacao-group">
+                        <label>Data de Instalação <span class="required">*</span></label>
+                        <input type="date" class="form-control" name="dataInstalacao" id="pneu-datainstalacao-input" required value="${isEdit ? p.dataInstalacao || '' : ''}">
+                    </div>
+
+                    <div class="form-group" id="pneu-kminicial-group">
+                        <label>KM de Instalação (Inicial) <span class="required">*</span></label>
+                        <input type="number" class="form-control" name="kmInicial" id="pneu-kminicial-input" required min="0" placeholder="Ex: 0" value="${isEdit ? p.kmInicial : ''}">
+                    </div>
+
                     <!-- History logs -->
                     ${isEdit ? `
                         <div class="form-group full-width" style="margin-top:10px;">
@@ -683,17 +685,32 @@
 
             window.movixApp.initAutocomplete(pneuVeicSel, 'Selecione o veículo...');
 
-            const toggleKmInicialField = (isStock) => {
+            const toggleInstallFields = (isStock) => {
                  const kmInput = document.getElementById('pneu-kminicial-input');
-                 if (!kmInput) return;
-                 const kmGroup = kmInput.closest('.form-group');
+                 const dateInput = document.getElementById('pneu-datainstalacao-input');
+                 const kmGroup = document.getElementById('pneu-kminicial-group');
+                 const dateGroup = document.getElementById('pneu-datainstalacao-group');
+
                  if (isStock) {
                      if (kmGroup) kmGroup.style.display = 'none';
-                     kmInput.removeAttribute('required');
-                     kmInput.value = '';
+                     if (dateGroup) dateGroup.style.display = 'none';
+                     if (kmInput) {
+                         kmInput.removeAttribute('required');
+                         kmInput.value = '';
+                     }
+                     if (dateInput) {
+                         dateInput.removeAttribute('required');
+                         dateInput.value = '';
+                     }
                  } else {
                      if (kmGroup) kmGroup.style.display = '';
-                     kmInput.setAttribute('required', 'required');
+                     if (dateGroup) dateGroup.style.display = '';
+                     if (kmInput) {
+                         kmInput.setAttribute('required', 'required');
+                     }
+                     if (dateInput) {
+                         dateInput.setAttribute('required', 'required');
+                     }
                  }
             };
 
@@ -702,9 +719,12 @@
                  if (!veicId) {
                      pneuPosSel.innerHTML = '<option value="">Estoque (Sem Posição)</option>';
                      if (!isEdit) {
-                         document.getElementById('pneu-kminicial-input').value = '';
+                         const kmInput = document.getElementById('pneu-kminicial-input');
+                         if (kmInput) kmInput.value = '';
+                         const dateInput = document.getElementById('pneu-datainstalacao-input');
+                         if (dateInput) dateInput.value = '';
                      }
-                     toggleKmInicialField(true);
+                     toggleInstallFields(true);
                      return;
                  }
                  const selectedVeh = vehicles.find(v => v.id === veicId);
@@ -712,9 +732,14 @@
                  pneuPosSel.innerHTML = positions.map(pos => `<option value="${pos}" ${((isEdit && p.posicao === pos) || (defaultPos === pos)) ? 'selected' : ''}>${pos}</option>`).join('');
                  
                  if (!isEdit && selectedVeh) {
-                     document.getElementById('pneu-kminicial-input').value = parseFloat(selectedVeh.kmAtual || 0);
+                     const kmInput = document.getElementById('pneu-kminicial-input');
+                     if (kmInput) kmInput.value = parseFloat(selectedVeh.kmAtual || 0);
+                     const dateInput = document.getElementById('pneu-datainstalacao-input');
+                     if (dateInput && !dateInput.value) {
+                         dateInput.value = new Date().toISOString().split('T')[0];
+                     }
                  }
-                 toggleKmInicialField(false);
+                 toggleInstallFields(false);
             };
 
             if (pneuVeicSel && pneuPosSel) {
@@ -727,7 +752,8 @@
                     pneuVeicSel.value = activeVehId;
                     const selectedVeh = vehicles.find(v => v.id === activeVehId);
                     if (selectedVeh) {
-                        document.getElementById('pneu-kminicial-input').value = parseFloat(selectedVeh.kmAtual || 0);
+                        const kmInput = document.getElementById('pneu-kminicial-input');
+                        if (kmInput) kmInput.value = parseFloat(selectedVeh.kmAtual || 0);
                     }
                 }
             }
@@ -749,12 +775,13 @@
 
                 if (data.veiculoAtual) {
                     const selectedVeh = vehicles.find(v => v.id === data.veiculoAtual);
-                    data.kmInicial = isEdit ? parseFloat(data.kmInicial) : parseFloat(selectedVeh.kmAtual || 0);
+                    data.kmInicial = parseFloat(data.kmInicial) || 0;
                     data.status = isEdit ? data.status : 'ok';
                 } else {
-                    data.kmInicial = isEdit ? parseFloat(data.kmInicial) : 0;
+                    data.kmInicial = 0;
                     data.status = isEdit ? data.status : 'ok';
                     data.posicao = '';
+                    data.dataInstalacao = '';
                 }
 
                 const veiculoId = data.veiculoAtual || null;
