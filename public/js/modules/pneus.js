@@ -683,6 +683,20 @@
 
             window.movixApp.initAutocomplete(pneuVeicSel, 'Selecione o veículo...');
 
+            const toggleKmInicialField = (isStock) => {
+                 const kmInput = document.getElementById('pneu-kminicial-input');
+                 if (!kmInput) return;
+                 const kmGroup = kmInput.closest('.form-group');
+                 if (isStock) {
+                     if (kmGroup) kmGroup.style.display = 'none';
+                     kmInput.removeAttribute('required');
+                     kmInput.value = '';
+                 } else {
+                     if (kmGroup) kmGroup.style.display = '';
+                     kmInput.setAttribute('required', 'required');
+                 }
+            };
+
             const handlePneuVeicChange = () => {
                  const veicId = pneuVeicSel.value;
                  if (!veicId) {
@@ -690,6 +704,7 @@
                      if (!isEdit) {
                          document.getElementById('pneu-kminicial-input').value = '';
                      }
+                     toggleKmInicialField(true);
                      return;
                  }
                  const selectedVeh = vehicles.find(v => v.id === veicId);
@@ -699,6 +714,7 @@
                  if (!isEdit && selectedVeh) {
                      document.getElementById('pneu-kminicial-input').value = parseFloat(selectedVeh.kmAtual || 0);
                  }
+                 toggleKmInicialField(false);
             };
 
             if (pneuVeicSel && pneuPosSel) {
