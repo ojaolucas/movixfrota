@@ -12,9 +12,14 @@
         if (!state) {
             state = {
                 selectedVehicleId: vehicles.length > 0 ? vehicles[0].id : '',
+                currentPage: 1,
+                itemsPerPage: 10,
                 scroll: 0
             };
             window.movixApp.saveListState('pneus', state);
+        } else {
+            if (state.currentPage === undefined) state.currentPage = 1;
+            if (state.itemsPerPage === undefined) state.itemsPerPage = 10;
         }
 
         function createMovementLog(posOld, posNew, vehOldId, vehNewId, kmVal) {
@@ -244,7 +249,7 @@
                 <div class="card" style="min-height: 480px;">
                     <div class="card-header-simple">
                         <h3>Pneus Registrados na Frota</h3>
-                        <span class="status-pill ok" style="font-size:0.75rem;">${tires.length} pneus</span>
+                        <span class="status-pill ok" id="total-tires-count" style="font-size:0.75rem;">${tires.length} pneus</span>
                     </div>
 
                     <div class="table-responsive" style="border:none; box-shadow:none; margin-top:12px;">
@@ -264,6 +269,7 @@
                             </tbody>
                         </table>
                     </div>
+                    <div class="table-pagination" id="pagination-pneus"></div>
                 </div>
 
                 <!-- VISUAL VEHICLE AXLES MAP (CONTROL DE RODÍZIO) -->
@@ -297,7 +303,24 @@
 
             tbody.innerHTML = '';
             const currentTires = window.movixStore.getPneus();
-            currentTires.forEach(p => {
+            
+            // Pagination logic
+            const totalItems = currentTires.length;
+            const itemsPerPageNum = state.itemsPerPage === 'Todos' ? Infinity : parseInt(state.itemsPerPage);
+            const totalPages = Math.ceil(totalItems / itemsPerPageNum) || 1;
+            let validPage = Math.min(Math.max(1, state.currentPage), totalPages);
+            state.currentPage = validPage;
+
+            const start = (validPage - 1) * itemsPerPageNum;
+            const end = itemsPerPageNum === Infinity ? totalItems : start + itemsPerPageNum;
+            const paginatedTires = currentTires.slice(start, end);
+
+            const totalCountSpan = document.getElementById('total-tires-count');
+            if (totalCountSpan) {
+                totalCountSpan.textContent = `${totalItems} pneus`;
+            }
+
+            paginatedTires.forEach(p => {
                 const v = vehicles.find(item => item.id === p.veiculoAtual);
                 const kmLeft = window.movixStore.getRemainingKMForTire(p.id);
                 const percent = p.vidaEstimada > 0 ? (kmLeft / p.vidaEstimada) * 100 : 0;
@@ -359,6 +382,26 @@
                         ` : ''}
                     </tr>
                 `;
+            });
+
+            // Render pagination links using central helper
+            window.movixApp.renderPagination({
+                containerId: 'pagination-pneus',
+                currentPage: state.currentPage,
+                totalItems: totalItems,
+                itemsPerPage: state.itemsPerPage,
+                noun: 'pneus',
+                onPageChange: (newPage) => {
+                    state.currentPage = newPage;
+                    window.movixApp.saveListState('pneus', state);
+                    updateList();
+                },
+                onItemsPerPageChange: (newLimit) => {
+                    state.itemsPerPage = newLimit;
+                    state.currentPage = 1;
+                    window.movixApp.saveListState('pneus', state);
+                    updateList();
+                }
             });
 
             // Restore scroll position
