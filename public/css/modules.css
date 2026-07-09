@@ -671,7 +671,7 @@ textarea.form-control {
 /* Detail view sheet (Ficha de Vida Útil) */
 .detail-sheet-grid {
     display: grid;
-    grid-template-columns: 280px 1fr;
+    grid-template-columns: 280px minmax(0, 1fr);
     gap: 24px;
 }
 
@@ -740,6 +740,28 @@ textarea.form-control {
     border-bottom: 1px solid var(--border-color);
     gap: 16px;
     overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) transparent;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px; /* Space for the scrollbar */
+}
+
+/* Custom premium scrollbar for webkit */
+.detail-tab-menu::-webkit-scrollbar {
+    height: 4px;
+}
+
+.detail-tab-menu::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.detail-tab-menu::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+.detail-tab-menu::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
 }
 
 .detail-tab-btn {
@@ -754,6 +776,7 @@ textarea.form-control {
     cursor: pointer;
     transition: all var(--transition-fast);
     white-space: nowrap;
+    flex-shrink: 0; /* Prevent text shrinking */
 }
 
 .detail-tab-btn:hover {
