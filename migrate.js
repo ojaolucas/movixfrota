@@ -87,7 +87,7 @@ async function migrate() {
                         "seloExtintor", "dataFabricacaoExtintor", "dataRecargaExtintor", "validadeExtintor", "proximaRecargaExtintor", "statusExtintor", 
                         "extintorCertificadoAnexo", "extintorComprovanteAnexo", "extintorLaudoAnexo", "extintorNotaFiscalAnexo", "observacoesExtintor", 
                         "possuiTacografo", "marcaTacografo", "modeloTacografo", "numSerieTacografo", "dataInstalacaoTacografo", "dataUltimaAfericaoTacografo", 
-                        "validadeAfericaoTacografo", "empresaAfericaoTacografo", "anexoComprovanteTacografo", "observacoesTacografo"
+                        "validadeAfericaoTacografo", "empresaAfericaoTacografo", "anexoComprovanteTacografo", "observacoesTacografo", "qtdEstepes"
                     ) VALUES (
                         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 
                         $16, $17, $18, $19, $20, $21, $22, $23, $24, 
@@ -98,7 +98,7 @@ async function migrate() {
                         $49, $50, $51, $52, $53, $54, 
                         $55, $56, $57, $58, $59, 
                         $60, $61, $62, $63, $64, $65, 
-                        $66, $67, $68, $69
+                        $66, $67, $68, $69, $70
                     ) ON CONFLICT (id) DO NOTHING
                 `, [
                     v.id, v.marca, v.modelo, v.ano, v.cor, v.tipo, v.renavam, v.chassi, v.placa, v.combustivel, safeNum(v.kmAtual), v.dataAquisicao, v.status || 'disponivel', v.observacoes, safeJson(v.historicoKM),
@@ -110,7 +110,7 @@ async function migrate() {
                     v.seloExtintor, v.dataFabricacaoExtintor, v.dataRecargaExtintor, v.validadeExtintor, v.proximaRecargaExtintor, v.statusExtintor,
                     v.extintorCertificadoAnexo, v.extintorComprovanteAnexo, v.extintorLaudoAnexo, v.extintorNotaFiscalAnexo, v.observacoesExtintor,
                     v.possuiTacografo || 'Não', v.marcaTacografo, v.modeloTacografo, v.numSerieTacografo, v.dataInstalacaoTacografo, v.dataUltimaAfericaoTacografo,
-                    v.validadeAfericaoTacografo, v.empresaAfericaoTacografo, v.anexoComprovanteTacografo, v.observacoesTacografo
+                    v.validadeAfericaoTacografo, v.empresaAfericaoTacografo, v.anexoComprovanteTacografo, v.observacoesTacografo, safeNum(v.qtdEstepes, 1)
                 ]);
             }
         }

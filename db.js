@@ -93,6 +93,7 @@ async function initDB() {
                 "qtdEixos" VARCHAR(10),
                 "tipoImplemento" VARCHAR(50),
                 "qtdPneus" VARCHAR(10),
+                "qtdEstepes" INTEGER DEFAULT 1,
                 "capacidadeCarga" VARCHAR(50),
                 "configRodagem" VARCHAR(50) DEFAULT 'Personalizado',
                 "configEixos" JSONB DEFAULT '[]'::jsonb,
@@ -309,6 +310,7 @@ async function initDB() {
         await query(`ALTER TABLE viagens ADD COLUMN IF NOT EXISTS "motoristaCategoria" VARCHAR(50) DEFAULT 'Motorista Efetivo'`);
         await query(`ALTER TABLE abastecimentos ADD COLUMN IF NOT EXISTS "motoristaCategoria" VARCHAR(50) DEFAULT 'Motorista Efetivo'`);
         await query(`ALTER TABLE multas ADD COLUMN IF NOT EXISTS "motoristaCategoria" VARCHAR(50) DEFAULT 'Motorista Efetivo'`);
+        await query(`ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS "qtdEstepes" INTEGER DEFAULT 1`);
 
         // 10. Logs Table
         await query(`

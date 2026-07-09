@@ -635,6 +635,9 @@ class MovixStore {
         const p = this.state.pneus.find(item => item.id === pneuId);
         if (!p) return 0;
         if (!p.veiculoAtual) return p.vidaEstimada;
+        if (p.posicao && p.posicao.startsWith('Estepe')) {
+            return p.vidaEstimada;
+        }
         
         const v = this.getVeiculo(p.veiculoAtual);
         if (!v) return p.vidaEstimada;

@@ -17,62 +17,80 @@
             window.movixApp.saveListState('pneus', state);
         }
 
+        function createMovementLog(posOld, posNew, vehOldId, vehNewId, kmVal) {
+            const userName = activeUser ? activeUser.nome : 'Usuário';
+            const vOld = vehicles.find(item => item.id === vehOldId)?.placa || 'Estoque';
+            const vNew = vehicles.find(item => item.id === vehNewId)?.placa || 'Estoque';
+            
+            const locOld = vehOldId ? `${vOld} - ${posOld || 'Estoque'}` : 'Estoque';
+            const locNew = vehNewId ? `${vNew} - ${posNew || 'Estoque'}` : 'Estoque';
+            
+            const nowStr = new Date().toLocaleDateString('pt-BR');
+            const timeStr = new Date().toLocaleTimeString('pt-BR');
+            const kmStr = kmVal !== undefined && kmVal !== null && kmVal > 0 ? ` | KM: ${parseFloat(kmVal).toLocaleString('pt-BR')}` : '';
+            
+            return `Movimentação: [${locOld}] para [${locNew}] por ${userName} em ${nowStr} às ${timeStr}${kmStr}`;
+        }
+
         function getPositionsForVehicle(vehicle) {
             if (!vehicle) return [];
             
             const tipo = vehicle.tipo || 'Passeio';
+            let positions = [];
             
             if (tipo === 'Moto') {
-                return ['Dianteiro', 'Traseiro'];
-            }
-            
-            if (tipo === 'Passeio') {
-                return [
+                positions = ['Dianteiro', 'Traseiro'];
+            } else if (tipo === 'Passeio') {
+                positions = [
                     'Dianteiro Esquerdo', 'Dianteiro Direito',
                     'Traseiro Esquerdo', 'Traseiro Direito'
                 ];
-            }
-            
-            let configEixos = vehicle.configEixos;
-            if (typeof configEixos === 'string') {
-                try {
-                    configEixos = JSON.parse(configEixos);
-                } catch(e) {
-                    configEixos = [];
+            } else {
+                let configEixos = vehicle.configEixos;
+                if (typeof configEixos === 'string') {
+                    try {
+                        configEixos = JSON.parse(configEixos);
+                    } catch(e) {
+                        configEixos = [];
+                    }
+                }
+
+                if (configEixos && Array.isArray(configEixos) && configEixos.length > 0) {
+                    configEixos.forEach(ax => {
+                        const axleNum = ax.eixo;
+                        if (ax.tipo === 'Simples') {
+                            positions.push(`Eixo ${axleNum} - Esquerdo`);
+                            positions.push(`Eixo ${axleNum} - Direito`);
+                        } else if (ax.tipo === 'Dupla') {
+                            positions.push(`Eixo ${axleNum} - Esquerdo Externo`);
+                            positions.push(`Eixo ${axleNum} - Esquerdo Interno`);
+                            positions.push(`Eixo ${axleNum} - Direito Interno`);
+                            positions.push(`Eixo ${axleNum} - Direito Externo`);
+                        }
+                    });
+                } else {
+                    // Fallback for legacy vehicles
+                    if (tipo === 'Utilitário') {
+                        positions = [
+                            'Dianteiro Esquerdo', 'Dianteiro Direito',
+                            'Traseiro Esquerdo', 'Traseiro Direito'
+                        ];
+                    } else {
+                        const qtdEixos = parseInt(vehicle.qtdEixos) || 2;
+                        for (let i = 1; i <= qtdEixos; i++) {
+                            positions.push(`Eixo ${i} - Esquerdo`);
+                            positions.push(`Eixo ${i} - Direito`);
+                        }
+                    }
                 }
             }
 
-            if (configEixos && Array.isArray(configEixos) && configEixos.length > 0) {
-                const positions = [];
-                configEixos.forEach(ax => {
-                    const axleNum = ax.eixo;
-                    if (ax.tipo === 'Simples') {
-                        positions.push(`Eixo ${axleNum} - Esquerdo`);
-                        positions.push(`Eixo ${axleNum} - Direito`);
-                    } else if (ax.tipo === 'Dupla') {
-                        positions.push(`Eixo ${axleNum} - Esquerdo Externo`);
-                        positions.push(`Eixo ${axleNum} - Esquerdo Interno`);
-                        positions.push(`Eixo ${axleNum} - Direito Interno`);
-                        positions.push(`Eixo ${axleNum} - Direito Externo`);
-                    }
-                });
-                return positions;
+            // Append Estepes according to vehicle.qtdEstepes
+            const numEstepes = vehicle.qtdEstepes !== undefined && vehicle.qtdEstepes !== null ? parseInt(vehicle.qtdEstepes) : 1;
+            for (let i = 1; i <= numEstepes; i++) {
+                positions.push(`Estepe ${i}`);
             }
-
-            // Fallback for legacy vehicles
-            if (tipo === 'Utilitário') {
-                return [
-                    'Dianteiro Esquerdo', 'Dianteiro Direito',
-                    'Traseiro Esquerdo', 'Traseiro Direito'
-                ];
-            }
-
-            const qtdEixos = parseInt(vehicle.qtdEixos) || 2;
-            const positions = [];
-            for (let i = 1; i <= qtdEixos; i++) {
-                positions.push(`Eixo ${i} - Esquerdo`);
-                positions.push(`Eixo ${i} - Direito`);
-            }
+            
             return positions;
         }
         
@@ -516,9 +534,28 @@
                 }
             }
 
+            // Render estepes / reserve tyres at the bottom
+            const numEstepes = selectedVeh.qtdEstepes !== undefined && selectedVeh.qtdEstepes !== null ? parseInt(selectedVeh.qtdEstepes) : 1;
+            let estepesHTML = '';
+            if (numEstepes > 0) {
+                estepesHTML += `
+                    <div style="margin-top: 20px; width: 100%; border-top: 1px dashed var(--border-color); padding-top: 15px;">
+                        <h4 style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 10px; text-align: center;">Pneus Reserva (Estepe)</h4>
+                        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; width: 100%;">
+                `;
+                for (let j = 1; j <= numEstepes; j++) {
+                    estepesHTML += renderSingleTireCard(activeTires, `Estepe ${j}`, `Estepe ${j}`);
+                }
+                estepesHTML += `
+                        </div>
+                    </div>
+                `;
+            }
+
             container.innerHTML = `
                 <div class="tires-visual-grid" style="width:100%; max-width:420px; min-height:300px; display:flex; flex-direction:column; gap:12px; align-items:center; justify-content:center; padding: 20px 0;">
                     ${axlesHTML}
+                    ${estepesHTML}
                 </div>
             `;
             
@@ -729,7 +766,19 @@
                  }
                  const selectedVeh = vehicles.find(v => v.id === veicId);
                  const positions = getPositionsForVehicle(selectedVeh);
-                 pneuPosSel.innerHTML = positions.map(pos => `<option value="${pos}" ${((isEdit && p.posicao === pos) || (defaultPos === pos)) ? 'selected' : ''}>${pos}</option>`).join('');
+                 
+                 // Get active tires on this vehicle, excluding current tire if editing
+                 const activeTires = window.movixStore.getPneus().filter(tire => tire.veiculoAtual === veicId && (!isEdit || tire.id !== p.id));
+                 const occupiedPositions = activeTires.map(tire => tire.posicao);
+
+                 pneuPosSel.innerHTML = positions.map(pos => {
+                     const isOccupied = occupiedPositions.includes(pos);
+                     const isSelected = ((isEdit && p.posicao === pos) || (defaultPos === pos));
+                     if (isOccupied) {
+                         return `<option value="${pos}" disabled style="color:var(--text-muted);">${pos} (Ocupada)</option>`;
+                     }
+                     return `<option value="${pos}" ${isSelected ? 'selected' : ''}>${pos}</option>`;
+                 }).join('');
                  
                  if (!isEdit && selectedVeh) {
                      const kmInput = document.getElementById('pneu-kminicial-input');
@@ -799,19 +848,25 @@
                              });
                          }
                          if (p.posicao !== data.posicao || p.veiculoAtual !== data.veiculoAtual) {
-                             const vOld = vehicles.find(item => item.id === p.veiculoAtual)?.placa || 'Estoque';
-                             const vNew = vehicles.find(item => item.id === data.veiculoAtual)?.placa || 'Estoque';
+                             const currentVeh = vehicles.find(v => v.id === data.veiculoAtual);
+                             const kmVal = currentVeh ? currentVeh.kmAtual : 0;
+                             const logMsg = createMovementLog(p.posicao, data.posicao, p.veiculoAtual, data.veiculoAtual, kmVal);
                              historico.push({
                                  data: new Date().toISOString(),
-                                 detalhes: `Rodízio/Remanejamento manual de [${vOld} - ${p.posicao || 'Estoque'}] para [${vNew} - ${data.posicao || 'Estoque'}]`
+                                 detalhes: logMsg
                              });
                          }
                          data.historico = historico;
                      } else {
+                         const currentVeh = vehicles.find(v => v.id === veiculoId);
+                         const kmVal = currentVeh ? currentVeh.kmAtual : 0;
+                         const logMsg = veiculoId 
+                             ? createMovementLog('Estoque', data.posicao, null, veiculoId, kmVal) 
+                             : 'Cadastro inicial em estoque';
                          data.historico = [
                              {
                                  data: new Date().toISOString(),
-                                 detalhes: 'Instalação inicial na frota'
+                                 detalhes: logMsg
                              }
                          ];
                      }
@@ -921,24 +976,30 @@
                     const pOldPos = p.posicao || 'Estoque';
                     const targetPosLabel = newPos || 'Estoque';
                     
+                    const veh = vehicles.find(v => v.id === p.veiculoAtual);
+                    const kmVal = veh ? veh.kmAtual : 0;
+
                     const historicoP = p.historico || [];
                     if (otherP) {
+                        const logMsgP = createMovementLog(pOldPos, targetPosLabel, p.veiculoAtual, p.veiculoAtual, kmVal);
                         historicoP.push({
                             data: new Date().toISOString(),
-                            detalhes: `Permuta de posição com pneu ${otherP.codigo}. Alterou de [${pOldPos}] para [${targetPosLabel}]${obs ? `. OBS: ${obs}` : ''}`
+                            detalhes: `Permuta de posição com pneu ${otherP.codigo}: ${logMsgP}${obs ? `. OBS: ${obs}` : ''}`
                         });
                         
+                        const logMsgOther = createMovementLog(targetPosLabel, pOldPos, otherP.veiculoAtual, otherP.veiculoAtual, kmVal);
                         const historicoOther = otherP.historico || [];
                         historicoOther.push({
                             data: new Date().toISOString(),
-                            detalhes: `Permuta de posição com pneu ${p.codigo}. Alterou de [${targetPosLabel}] para [${pOldPos}]`
+                            detalhes: `Permuta de posição com pneu ${p.codigo}: ${logMsgOther}`
                         });
                         
                         await window.movixStore.updatePneu(otherP.id, { ...otherP, posicao: pOldPos, historico: historicoOther });
                     } else {
+                        const logMsg = createMovementLog(pOldPos, targetPosLabel, p.veiculoAtual, p.veiculoAtual, kmVal);
                         historicoP.push({
                             data: new Date().toISOString(),
-                            detalhes: `Rodízio: Alterou de [${pOldPos}] para [${targetPosLabel}]${obs ? `. OBS: ${obs}` : ''}`
+                            detalhes: `${logMsg}${obs ? `. OBS: ${obs}` : ''}`
                         });
                     }
                     

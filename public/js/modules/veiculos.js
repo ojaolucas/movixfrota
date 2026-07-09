@@ -427,6 +427,10 @@
                     <label>Quantidade de Pneus (Calculado)</label>
                     <input type="number" class="form-control" name="qtdPneus" id="veh-qtdpneus" readonly value="${isEdit ? (vehicle.qtdPneus || '') : ''}" placeholder="Automático">
                 </div>
+                <div class="form-group">
+                    <label>Quantidade de Estepes <span class="required">*</span></label>
+                    <input type="number" class="form-control" name="qtdEstepes" id="veh-qtd-estepes" required min="0" value="${isEdit ? (vehicle.qtdEstepes !== undefined ? vehicle.qtdEstepes : 1) : 1}">
+                </div>
                 <div class="form-group" id="veh-tipo-implemento-group" style="display: none;">
                     <label>Tipo do Implemento <span class="required">*</span></label>
                     <select class="form-control" name="tipoImplemento" id="veh-tipo-implemento">
@@ -1151,6 +1155,19 @@
 
             configEixos = axles;
             renderEixosList(axles, false);
+
+            const estepesInput = document.getElementById('veh-qtd-estepes');
+            if (estepesInput && !isEdit) {
+                if (impType === 'Carreta' || impType === 'Semirreboque') {
+                    estepesInput.value = 1;
+                } else if (impType === 'Carrocinha') {
+                    estepesInput.value = 0;
+                } else if (impType === 'Reboque' || impType === 'Trailer') {
+                    estepesInput.value = 1;
+                } else {
+                    estepesInput.value = 0;
+                }
+            }
         };
 
         const handleTipoToggle = (isFirstLoad = false) => {
@@ -1268,6 +1285,27 @@
                     configRodagemSel.value = 'Personalizado';
                 }
                 updateEixosUI();
+            }
+
+            if (!isEdit && !isFirstLoad) {
+                const estepesInput = document.getElementById('veh-qtd-estepes');
+                if (estepesInput) {
+                    if (tipo === 'Moto') {
+                        estepesInput.value = 0;
+                    } else if (tipo === 'Passeio') {
+                        estepesInput.value = 1;
+                    } else if (tipo === 'Utilitário') {
+                        estepesInput.value = 1;
+                    } else if (tipo === 'Caminhão' || tipo === 'Cavalo Mecânico') {
+                        estepesInput.value = 1;
+                    } else if (tipo === 'Implemento') {
+                        estepesInput.value = 0;
+                    } else if (tipo === 'Reboque') {
+                        estepesInput.value = 1;
+                    } else {
+                        estepesInput.value = 1;
+                    }
+                }
             }
         };
 
@@ -1764,6 +1802,40 @@
             timelineHTML += `</div>`;
         }
 
+        // Pneus vinculados ao veículo
+        const vehicleTires = window.movixStore.getPneus().filter(p => p.veiculoAtual === veiculoId);
+        const rodagemTires = vehicleTires.filter(p => !p.posicao || !p.posicao.startsWith('Estepe'));
+        const reserveTires = vehicleTires.filter(p => p.posicao && p.posicao.startsWith('Estepe'));
+
+        const tiresRodagemHTML = rodagemTires.length === 0 
+            ? '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Nenhum pneu de rodagem instalado.</td></tr>' 
+            : rodagemTires.map(p => {
+                const kmLeft = window.movixStore.getRemainingKMForTire(p.id);
+                const percent = p.vidaEstimada > 0 ? (kmLeft / p.vidaEstimada) * 100 : 0;
+                return `
+                    <tr>
+                        <td style="font-weight:700; color:var(--primary); cursor:pointer;" onclick="window.movixRouter.navigateTo('pneus')">${p.codigo}</td>
+                        <td>${p.marca} ${p.modelo}</td>
+                        <td>${p.medida || p.modelo || '-'}</td>
+                        <td style="font-weight:600;">${p.posicao}</td>
+                        <td>${parseFloat(kmLeft).toLocaleString('pt-BR')} km (${percent.toFixed(0)}%)</td>
+                        <td><span class="status-pill ${p.status === 'vencido' ? 'vencido' : (p.status === 'atencao' ? 'atencao' : 'ok')}">${p.status === 'vencido' ? 'Vencido' : (p.status === 'atencao' ? 'Atenção' : 'Regular (OK)')}</span></td>
+                    </tr>
+                `;
+            }).join('');
+
+        const tiresReservaHTML = reserveTires.length === 0 
+            ? '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Nenhum pneu reserva (estepe) instalado.</td></tr>' 
+            : reserveTires.map(p => `
+                <tr>
+                    <td style="font-weight:700; color:var(--primary); cursor:pointer;" onclick="window.movixRouter.navigateTo('pneus')">${p.codigo}</td>
+                    <td>${p.marca} ${p.modelo}</td>
+                    <td>${p.medida || p.modelo || '-'}</td>
+                    <td style="font-weight:600;">${p.posicao}</td>
+                    <td><span class="status-pill ${p.status === 'vencido' ? 'vencido' : (p.status === 'atencao' ? 'atencao' : 'ok')}">${p.status === 'vencido' ? 'Vencido' : (p.status === 'atencao' ? 'Atenção' : 'Regular (OK)')}</span></td>
+                </tr>
+            `).join('');
+
         // Financial totals specifically for this vehicle
         const totalFuelSpent = fuel.reduce((acc, a) => acc + a.valorTotal, 0);
         const totalMaintenanceSpent = maintenance.reduce((acc, m) => acc + m.valor, 0);
@@ -1806,11 +1878,13 @@
                             <li class="detail-sidebar-info-item"><span>Tipo Implemento</span><strong>${vehicle.tipoImplemento || 'Reboque'}</strong></li>
                             <li class="detail-sidebar-info-item"><span>Qtd. Eixos</span><strong>${vehicle.qtdEixos || 2}</strong></li>
                             <li class="detail-sidebar-info-item"><span>Qtd. Pneus</span><strong>${vehicle.qtdPneus || '-'}</strong></li>
+                            <li class="detail-sidebar-info-item"><span>Qtd. Estepes</span><strong>${vehicle.qtdEstepes !== undefined ? vehicle.qtdEstepes : 1}</strong></li>
                             <li class="detail-sidebar-info-item"><span>Capacidade</span><strong>${vehicle.capacidadeCarga ? `${parseFloat(vehicle.capacidadeCarga).toLocaleString('pt-BR')} kg` : '-'}</strong></li>
                         ` : `
                             <li class="detail-sidebar-info-item"><span>Combustível</span><strong>${vehicle.combustivel || '-'}</strong></li>
                             <li class="detail-sidebar-info-item"><span>KM Atual</span><strong>${parseFloat(vehicle.kmAtual || 0).toLocaleString('pt-BR')} km</strong></li>
                             <li class="detail-sidebar-info-item"><span>Qtd. Eixos</span><strong>${vehicle.qtdEixos || 2}</strong></li>
+                            <li class="detail-sidebar-info-item"><span>Qtd. Estepes</span><strong>${vehicle.qtdEstepes !== undefined ? vehicle.qtdEstepes : 1}</strong></li>
                         `}
                         <li class="detail-sidebar-info-item"><span>Ano/Modelo</span><strong>${vehicle.ano}</strong></li>
                         <li class="detail-sidebar-info-item"><span>Cor</span><strong>${vehicle.cor}</strong></li>
@@ -1880,6 +1954,7 @@
                         ${vehicle.possuiTacografo === 'Sim' ? `
                             <button class="detail-tab-btn" data-tab="tab-tacografo"><i class="fa-solid fa-gauge"></i> Tacógrafo</button>
                         ` : ''}
+                        <button class="detail-tab-btn" data-tab="tab-pneus"><i class="fa-solid fa-circle-notch"></i> Pneus do Veículo</button>
                     </div>
 
                     <!-- TIMELINE PANE -->
@@ -2283,6 +2358,55 @@
                                         `).join('')}
                                     </tbody>
                                 </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PNEUS PANE -->
+                    <div class="detail-tab-pane" id="tab-pneus">
+                        <div class="card">
+                            <div class="card-header-simple">
+                                <h3>Pneus Vinculados ao Veículo</h3>
+                                <i class="fa-solid fa-circle-dot text-muted"></i>
+                            </div>
+                            
+                            <div style="margin-top: 16px;">
+                                <h4 style="font-family:var(--font-heading); color:var(--text-main); margin-bottom:12px; border-left:3px solid var(--primary); padding-left:8px;">Pneus de Rodagem</h4>
+                                <div class="table-responsive" style="margin-top:8px;">
+                                    <table class="smart-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Código</th>
+                                                <th>Marca / Modelo</th>
+                                                <th>Medida</th>
+                                                <th>Posição</th>
+                                                <th>Vida Útil (KM Restante)</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${tiresRodagemHTML}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <h4 style="font-family:var(--font-heading); color:var(--text-main); margin-top:24px; margin-bottom:12px; border-left:3px solid var(--warning); padding-left:8px;">Pneus Reserva (Estepe)</h4>
+                                <div class="table-responsive" style="margin-top:8px;">
+                                    <table class="smart-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Código</th>
+                                                <th>Marca / Modelo</th>
+                                                <th>Medida</th>
+                                                <th>Posição</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${tiresReservaHTML}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>

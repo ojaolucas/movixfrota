@@ -299,7 +299,7 @@ app.post('/api/veiculos', requireAuth, async (req, res) => {
                 "seloExtintor", "dataFabricacaoExtintor", "dataRecargaExtintor", "validadeExtintor", "proximaRecargaExtintor", "statusExtintor", 
                 "extintorCertificadoAnexo", "extintorComprovanteAnexo", "extintorLaudoAnexo", "extintorNotaFiscalAnexo", "observacoesExtintor", 
                 "possuiTacografo", "marcaTacografo", "modeloTacografo", "numSerieTacografo", "dataInstalacaoTacografo", "dataUltimaAfericaoTacografo", 
-                "validadeAfericaoTacografo", "empresaAfericaoTacografo", "anexoComprovanteTacografo", "observacoesTacografo", "configRodagem", "configEixos"
+                "validadeAfericaoTacografo", "empresaAfericaoTacografo", "anexoComprovanteTacografo", "observacoesTacografo", "configRodagem", "configEixos", "qtdEstepes"
             ) VALUES (
                 $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 
                 $16, $17, $18, $19, $20, $21, $22, $23, $24, 
@@ -310,7 +310,7 @@ app.post('/api/veiculos', requireAuth, async (req, res) => {
                 $49, $50, $51, $52, $53, $54, 
                 $55, $56, $57, $58, $59, 
                 $60, $61, $62, $63, $64, $65, 
-                $66, $67, $68, $69, $70, $71
+                $66, $67, $68, $69, $70, $71, $72
             ) RETURNING *
         `, [
             id, v.marca, v.modelo, v.ano, v.cor, v.tipo, v.renavam, v.chassi, v.placa, v.combustivel, kmVal, v.dataAquisicao, v.status || 'disponivel', v.observacoes, JSON.stringify(historicoKM),
@@ -322,7 +322,8 @@ app.post('/api/veiculos', requireAuth, async (req, res) => {
             v.seloExtintor, v.dataFabricacaoExtintor, v.dataRecargaExtintor, v.validadeExtintor, v.proximaRecargaExtintor, v.statusExtintor,
             v.extintorCertificadoAnexo, v.extintorComprovanteAnexo, v.extintorLaudoAnexo, v.extintorNotaFiscalAnexo, v.observacoesExtintor,
             v.possuiTacografo || 'Não', v.marcaTacografo, v.modeloTacografo, v.numSerieTacografo, v.dataInstalacaoTacografo, v.dataUltimaAfericaoTacografo,
-            v.validadeAfericaoTacografo, v.empresaAfericaoTacografo, v.anexoComprovanteTacografo, v.observacoesTacografo, v.configRodagem || 'Personalizado', JSON.stringify(configEixos || [])
+            v.validadeAfericaoTacografo, v.empresaAfericaoTacografo, v.anexoComprovanteTacografo, v.observacoesTacografo, v.configRodagem || 'Personalizado', JSON.stringify(configEixos || []),
+            parseInt(v.qtdEstepes) >= 0 ? parseInt(v.qtdEstepes) : 1
         ]);
 
         await addLog(req.session.nome, req.session.perfil, 'Cadastro', 'Veículo', `Cadastrou veículo ${v.marca} ${v.modelo} (${v.placa})`);
@@ -336,6 +337,7 @@ app.post('/api/veiculos', requireAuth, async (req, res) => {
 app.put('/api/veiculos/:id', requireAuth, async (req, res) => {
     try {
         const v = req.body;
+        console.log("PUT /api/veiculos/ " + req.params.id + " body:", v);
         const originalRes = await db.query('SELECT * FROM veiculos WHERE id = $1', [req.params.id]);
         if (originalRes.rowCount === 0) {
             return res.status(404).json({ error: 'Veículo não encontrado.' });
@@ -368,8 +370,8 @@ app.put('/api/veiculos/:id', requireAuth, async (req, res) => {
                 "extintorCertificadoAnexo" = $54, "extintorComprovanteAnexo" = $55, "extintorLaudoAnexo" = $56, "extintorNotaFiscalAnexo" = $57, "observacoesExtintor" = $58,
                 "possuiTacografo" = $59, "marcaTacografo" = $60, "modeloTacografo" = $61, "numSerieTacografo" = $62, "dataInstalacaoTacografo" = $63, "dataUltimaAfericaoTacografo" = $64,
                 "validadeAfericaoTacografo" = $65, "empresaAfericaoTacografo" = $66, "anexoComprovanteTacografo" = $67, "observacoesTacografo" = $68,
-                "configRodagem" = $69, "configEixos" = $70
-            WHERE id = $71
+                "configRodagem" = $69, "configEixos" = $70, "qtdEstepes" = $71
+            WHERE id = $72
             RETURNING *
         `, [
             v.marca, v.modelo, v.ano, v.cor, v.tipo, v.renavam, v.chassi, v.placa, v.combustivel, newKM, v.dataAquisicao, v.status || 'disponivel', v.observacoes, JSON.stringify(historicoKM),
@@ -383,6 +385,7 @@ app.put('/api/veiculos/:id', requireAuth, async (req, res) => {
             v.possuiTacografo || 'Não', v.marcaTacografo, v.modeloTacografo, v.numSerieTacografo, v.dataInstalacaoTacografo, v.dataUltimaAfericaoTacografo,
             v.validadeAfericaoTacografo, v.empresaAfericaoTacografo, v.anexoComprovanteTacografo, v.observacoesTacografo,
             v.configRodagem || 'Personalizado', JSON.stringify(configEixos || []),
+            parseInt(v.qtdEstepes) >= 0 ? parseInt(v.qtdEstepes) : (original.qtdEstepes !== undefined ? original.qtdEstepes : 1),
             req.params.id
         ]);
 
