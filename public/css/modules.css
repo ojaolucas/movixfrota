@@ -735,14 +735,54 @@ textarea.form-control {
     gap: 24px;
 }
 
+.detail-tab-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.detail-tab-wrapper::before,
+.detail-tab-wrapper::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 40px;
+    z-index: 2;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    opacity: 0; /* Hidden by default, controlled via JS */
+}
+
+.detail-tab-wrapper::before {
+    left: 0;
+    background: linear-gradient(to right, var(--bg-main) 10%, transparent);
+}
+
+.detail-tab-wrapper::after {
+    right: 0;
+    background: linear-gradient(to left, var(--bg-main) 10%, transparent);
+}
+
+.detail-tab-wrapper.show-left-fade::before {
+    opacity: 1;
+}
+
+.detail-tab-wrapper.show-right-fade::after {
+    opacity: 1;
+}
+
 .detail-tab-menu {
     display: flex;
     border-bottom: 1px solid var(--border-color);
     gap: 16px;
     overflow-x: auto;
-    scrollbar-width: thin;
+    scrollbar-width: none; /* Firefox */
     -webkit-overflow-scrolling: touch;
-    padding-bottom: 4px; /* Space for the scrollbar */
+    padding-bottom: 2px;
+}
+
+.detail-tab-menu::-webkit-scrollbar {
+    display: none; /* Safari and Chrome */
 }
 
 .detail-tab-btn {

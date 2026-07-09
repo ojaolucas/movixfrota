@@ -1938,23 +1938,25 @@
                 <section class="detail-sheet-content">
                     
                     <!-- TAB MENU -->
-                    <div class="detail-tab-menu">
-                        <button class="detail-tab-btn active" data-tab="tab-timeline"><i class="fa-solid fa-timeline"></i> Timeline da Vida Útil</button>
-                        <button class="detail-tab-btn" data-tab="tab-financeiro"><i class="fa-solid fa-file-invoice-dollar"></i> Balanço Financeiro</button>
-                        <button class="detail-tab-btn" data-tab="tab-historicos"><i class="fa-solid fa-clock-rotate-left"></i> Histórico Detalhado</button>
-                        ${vehicle.possuiSeguro === 'Sim' ? `
-                            <button class="detail-tab-btn" data-tab="tab-seguro"><i class="fa-solid fa-shield-halved"></i> Cobertura de Seguro</button>
-                        ` : ''}
-                        ${vehicle.possuiRastreador === 'Sim' ? `
-                            <button class="detail-tab-btn" data-tab="tab-rastreador"><i class="fa-solid fa-satellite-dish"></i> Rastreador</button>
-                        ` : ''}
-                        ${vehicle.possuiExtintor === 'Sim' ? `
-                            <button class="detail-tab-btn" data-tab="tab-extintor"><i class="fa-solid fa-fire-extinguisher"></i> Extintor</button>
-                        ` : ''}
-                        ${vehicle.possuiTacografo === 'Sim' ? `
-                            <button class="detail-tab-btn" data-tab="tab-tacografo"><i class="fa-solid fa-gauge"></i> Tacógrafo</button>
-                        ` : ''}
-                        <button class="detail-tab-btn" data-tab="tab-pneus"><i class="fa-solid fa-circle-notch"></i> Pneus do Veículo</button>
+                    <div class="detail-tab-wrapper">
+                        <div class="detail-tab-menu">
+                            <button class="detail-tab-btn active" data-tab="tab-timeline"><i class="fa-solid fa-timeline"></i> Timeline da Vida Útil</button>
+                            <button class="detail-tab-btn" data-tab="tab-financeiro"><i class="fa-solid fa-file-invoice-dollar"></i> Balanço Financeiro</button>
+                            <button class="detail-tab-btn" data-tab="tab-historicos"><i class="fa-solid fa-clock-rotate-left"></i> Histórico Detalhado</button>
+                            ${vehicle.possuiSeguro === 'Sim' ? `
+                                <button class="detail-tab-btn" data-tab="tab-seguro"><i class="fa-solid fa-shield-halved"></i> Cobertura de Seguro</button>
+                            ` : ''}
+                            ${vehicle.possuiRastreador === 'Sim' ? `
+                                <button class="detail-tab-btn" data-tab="tab-rastreador"><i class="fa-solid fa-satellite-dish"></i> Rastreador</button>
+                            ` : ''}
+                            ${vehicle.possuiExtintor === 'Sim' ? `
+                                <button class="detail-tab-btn" data-tab="tab-extintor"><i class="fa-solid fa-fire-extinguisher"></i> Extintor</button>
+                            ` : ''}
+                            ${vehicle.possuiTacografo === 'Sim' ? `
+                                <button class="detail-tab-btn" data-tab="tab-tacografo"><i class="fa-solid fa-gauge"></i> Tacógrafo</button>
+                            ` : ''}
+                            <button class="detail-tab-btn" data-tab="tab-pneus"><i class="fa-solid fa-circle-notch"></i> Pneus do Veículo</button>
+                        </div>
                     </div>
 
                     <!-- TIMELINE PANE -->
@@ -2426,6 +2428,32 @@
                 document.getElementById(paneId).classList.add('active');
             });
         });
+
+        // Tab scroll fade indicators manager
+        const tabMenu = document.querySelector('.detail-tab-menu');
+        const tabWrapper = document.querySelector('.detail-tab-wrapper');
+        if (tabMenu && tabWrapper) {
+            const updateFades = () => {
+                const scrollLeft = tabMenu.scrollLeft;
+                const maxScroll = tabMenu.scrollWidth - tabMenu.clientWidth;
+                
+                if (scrollLeft > 5) {
+                    tabWrapper.classList.add('show-left-fade');
+                } else {
+                    tabWrapper.classList.remove('show-left-fade');
+                }
+
+                if (maxScroll - scrollLeft > 5) {
+                    tabWrapper.classList.add('show-right-fade');
+                } else {
+                    tabWrapper.classList.remove('show-right-fade');
+                }
+            };
+
+            tabMenu.addEventListener('scroll', updateFades);
+            setTimeout(updateFades, 50);
+            window.addEventListener('resize', updateFades);
+        }
     }
 
     // Register module into routing
