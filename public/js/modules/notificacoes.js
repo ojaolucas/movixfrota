@@ -217,12 +217,12 @@ window.notificacoesModule = {
             this._applyFilters();
         });
 
-        // Clique em cada item para navegar
+        // Clique em cada item para abrir painel de detalhes
         document.querySelectorAll('.notif-item').forEach(item => {
             item.addEventListener('click', (e) => {
                 if (e.target.closest('.btn-go-to')) return; // handled separately
-                const link = item.getAttribute('data-link');
-                if (link) window.movixRouter?.navigateTo(link);
+                const id = item.getAttribute('data-id');
+                this._openNotificationDetail(id);
             });
 
             item.addEventListener('mouseover', () => { item.style.background = 'var(--bg-surface-hover)'; });
@@ -233,13 +233,90 @@ window.notificacoesModule = {
         document.querySelectorAll('.btn-go-to').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const link = btn.getAttribute('data-link');
-                if (link) window.movixRouter?.navigateTo(link);
+                const item = btn.closest('.notif-item');
+                const id = item.getAttribute('data-id');
+                this._openNotificationDetail(id);
             });
 
             btn.addEventListener('mouseover', () => { btn.style.background = 'var(--primary)'; btn.style.color = '#fff'; });
             btn.addEventListener('mouseout', () => { btn.style.background = 'transparent'; btn.style.color = 'var(--primary)'; });
         });
+    },
+
+    _openNotificationDetail(id) {
+        const alerts = window.movixStore.getAlerts();
+        const a = alerts.find(x => x.id === id);
+        if (!a) return;
+
+        const modal = document.getElementById('global-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalBody = document.getElementById('modal-body-content');
+        const modalFooter = document.getElementById('modal-footer-actions');
+
+        modalTitle.innerText = `Detalhes da Notificação`;
+
+        modalBody.innerHTML = `
+            <div style="padding: 10px; display:flex; flex-direction:column; gap:16px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="padding:4px 10px; border-radius:12px; font-size:0.75rem; font-weight:700; background:${this._getPriorityBg(a.prioridade)}; color:${this._getPriorityColor(a.prioridade)};">Prioridade ${a.prioridade}</span>
+                    <span style="padding:4px 10px; border-radius:12px; font-size:0.75rem; font-weight:700; background:var(--bg-surface-hover); color:var(--text-muted);">${a.categoria || 'Geral'}</span>
+                    <span style="padding:4px 10px; border-radius:12px; font-size:0.75rem; font-weight:700; background:var(--bg-surface-hover); color:${a.status === 'Resolvida' ? 'var(--success)' : 'var(--warning)'};">${a.status}</span>
+                </div>
+                
+                <div style="border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; background: var(--bg-surface-hover);">
+                    <h4 style="font-size:0.85rem; color:var(--text-muted); margin-bottom:8px; text-transform:uppercase; font-weight:700; font-family:var(--font-heading);">${a.titulo}</h4>
+                    <p style="font-size:0.95rem; color:var(--text-main); font-weight:500; line-height:1.5; margin:0;">${a.descricao || a.desc || ''}</p>
+                </div>
+
+                <div style="font-size:0.75rem; color:var(--text-muted); display:flex; flex-direction:column; gap:6px;">
+                    <span><strong>Data de Criação:</strong> ${a.dataCriacao ? new Date(a.dataCriacao).toLocaleString('pt-BR') : '-'}</span>
+                    ${a.usuarioResponsavel ? `<span><strong>Responsável Técnico:</strong> ${a.usuarioResponsavel}</span>` : ''}
+                </div>
+            </div>
+        `;
+
+        modalFooter.innerHTML = `
+            <button class="btn btn-secondary" id="btn-fechar-modal-notif">Fechar</button>
+            ${a.link ? `
+                <button class="btn btn-primary" id="btn-agir-notif" style="display:inline-flex; align-items:center; gap:6px;"><i class="fa-solid fa-arrow-up-right-from-square"></i> Agir / Ir para Módulo</button>
+            ` : ''}
+        `;
+
+        modal.classList.add('active');
+
+        // Se a notificação não foi lida, marcamos como Lida no backend automaticamente ao abrir os detalhes
+        if (a.status === 'Não lida') {
+            fetch(`/api/notificacoes/${a.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'Lida' })
+            }).then(res => {
+                if (res.ok) {
+                    window.movixStore.loadData().then(() => {
+                        const updatedAlerts = window.movixStore.getAlerts();
+                        const listContainer = document.getElementById('notif-list-container');
+                        if (listContainer) {
+                            listContainer.innerHTML = this._renderAlertList(updatedAlerts);
+                        }
+                        this._renderStats(updatedAlerts);
+                        window.movixApp?.refreshAlertsCount?.();
+                        this._bindEvents(); // Re-vincular eventos para a nova lista renderizada
+                    });
+                }
+            }).catch(err => console.error(err));
+        }
+
+        document.getElementById('btn-fechar-modal-notif').addEventListener('click', () => modal.classList.remove('active'));
+
+        const agirBtn = document.getElementById('btn-agir-notif');
+        if (agirBtn) {
+            agirBtn.addEventListener('click', () => {
+                modal.classList.remove('active');
+                if (a.link) {
+                    window.movixRouter?.navigateTo(a.link, a.targetId);
+                }
+            });
+        }
     }
 };
 

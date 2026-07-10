@@ -1902,6 +1902,7 @@ app.get('/api/metricas', requireAuth, async (req, res) => {
 // ─── CENTRAL DE NOTIFICAÇÕES E ALERTAS DINÂMICOS ──────────
 
 // Sync Notifications Engine
+// Sync Notifications Engine
 async function syncNotifications(usuarioName = 'sistema') {
     const today = new Date();
 
@@ -1913,6 +1914,7 @@ async function syncNotifications(usuarioName = 'sistema') {
     const pneusRes = await db.query('SELECT * FROM pneus');
     const viagensRes = await db.query('SELECT * FROM viagens');
     const multasRes = await db.query('SELECT * FROM multas');
+    const abastecimentosRes = await db.query('SELECT * FROM abastecimentos');
 
     const veiculos = veiculosRes.rows;
     const motoristas = motoristasRes.rows;
@@ -1921,6 +1923,7 @@ async function syncNotifications(usuarioName = 'sistema') {
     const pneus = pneusRes.rows;
     const viagens = viagensRes.rows;
     const multas = multasRes.rows;
+    const abastecimentos = abastecimentosRes.rows;
 
     const calculatedAlerts = [];
 
@@ -1949,13 +1952,20 @@ async function syncNotifications(usuarioName = 'sistema') {
                 motoristaId: m.id
             });
         } else if (diffDays <= 30) {
+            let prioridade = 'Média';
+            let descStr = `CNH do motorista ${m.nome} vence em ${diffDays} dias (${m.dataVencimentoCNH.split('-').reverse().join('/')}).`;
+            if (diffDays <= 7) {
+                prioridade = 'Alta';
+            } else if (diffDays <= 15) {
+                prioridade = 'Alta';
+            }
             calculatedAlerts.push({
                 id: `CNH-VENCENDO-${m.id}`,
                 tipo: 'CNH vencendo',
                 categoria: 'Motoristas',
                 titulo: `CNH Vencendo: ${m.nome}`,
-                descricao: `CNH do motorista ${m.nome} vence em ${diffDays} dias (${m.dataVencimentoCNH.split('-').reverse().join('/')}).`,
-                prioridade: diffDays <= 7 ? 'Alta' : 'Média',
+                descricao: descStr,
+                prioridade: prioridade,
                 link: 'motoristas',
                 targetId: m.id,
                 motoristaId: m.id
@@ -1990,7 +2000,7 @@ async function syncNotifications(usuarioName = 'sistema') {
                     categoria: 'Veículos',
                     titulo: `Seguro Vencendo: ${v.placa}`,
                     descricao: `O seguro do veículo ${v.placa} vence em ${diffDays} dias (${v.validadeContratoSeguro.split('-').reverse().join('/')}).`,
-                    prioridade: diffDays <= 7 ? 'Alta' : 'Média',
+                    prioridade: 'Média',
                     link: 'veiculos',
                     targetId: v.id,
                     veiculoId: v.id
@@ -2020,37 +2030,7 @@ async function syncNotifications(usuarioName = 'sistema') {
                     categoria: 'Veículos',
                     titulo: `Licenciamento Vencendo: ${v.placa}`,
                     descricao: `O licenciamento do veículo ${v.placa} vence em ${diffDays} dias (${v.validadeLicenciamento.split('-').reverse().join('/')}).`,
-                    prioridade: diffDays <= 7 ? 'Alta' : 'Média',
-                    link: 'veiculos',
-                    targetId: v.id,
-                    veiculoId: v.id
-                });
-            }
-        }
-
-        // IPVA
-        if (v.validadeIPVA) {
-            const diffDays = getDaysDiff(v.validadeIPVA);
-            if (diffDays < 0) {
-                calculatedAlerts.push({
-                    id: `IPVA-VENCIDO-${v.id}`,
-                    tipo: 'IPVA vencido',
-                    categoria: 'Veículos',
-                    titulo: `IPVA Vencido: ${v.placa}`,
-                    descricao: `O IPVA do veículo ${v.placa} venceu em ${v.validadeIPVA.split('-').reverse().join('/')}.`,
-                    prioridade: 'Crítica',
-                    link: 'veiculos',
-                    targetId: v.id,
-                    veiculoId: v.id
-                });
-            } else if (diffDays <= 30) {
-                calculatedAlerts.push({
-                    id: `IPVA-VENCENDO-${v.id}`,
-                    tipo: 'IPVA vencendo',
-                    categoria: 'Veículos',
-                    titulo: `IPVA Vencendo: ${v.placa}`,
-                    descricao: `O IPVA do veículo ${v.placa} vence em ${diffDays} dias (${v.validadeIPVA.split('-').reverse().join('/')}).`,
-                    prioridade: diffDays <= 7 ? 'Alta' : 'Média',
+                    prioridade: 'Média',
                     link: 'veiculos',
                     targetId: v.id,
                     veiculoId: v.id
@@ -2080,7 +2060,7 @@ async function syncNotifications(usuarioName = 'sistema') {
                     categoria: 'Veículos',
                     titulo: `Tacógrafo Vencendo: ${v.placa}`,
                     descricao: `A aferição do tacógrafo do veículo ${v.placa} vence em ${diffDays} dias (${v.validadeAfericaoTacografo.split('-').reverse().join('/')}).`,
-                    prioridade: diffDays <= 7 ? 'Alta' : 'Média',
+                    prioridade: 'Média',
                     link: 'veiculos',
                     targetId: v.id,
                     veiculoId: v.id
@@ -2110,7 +2090,7 @@ async function syncNotifications(usuarioName = 'sistema') {
                     categoria: 'Veículos',
                     titulo: `Extintor Vencendo: ${v.placa}`,
                     descricao: `O extintor do veículo ${v.placa} vence em ${diffDays} dias (${v.validadeExtintor.split('-').reverse().join('/')}).`,
-                    prioridade: diffDays <= 7 ? 'Alta' : 'Média',
+                    prioridade: 'Média',
                     link: 'veiculos',
                     targetId: v.id,
                     veiculoId: v.id
@@ -2127,41 +2107,29 @@ async function syncNotifications(usuarioName = 'sistema') {
         if (m.status === 'Atrasada') {
             calculatedAlerts.push({
                 id: `MAN-ATRASADA-${m.id}`,
-                tipo: 'Manutenção preventiva atrasada',
+                tipo: m.tipo === 'Preventiva' ? 'Manutenção preventiva vencida' : 'Ordem de serviço em atraso',
                 categoria: 'Manutenções',
-                titulo: `Manutenção Atrasada: ${placa}`,
-                descricao: `Manutenção preventiva do tipo ${m.tipo} agendada para ${m.data} está atrasada.`,
-                prioridade: 'Alta',
+                titulo: m.tipo === 'Preventiva' ? 'Manutenção Preventiva Vencida' : 'Ordem de Serviço em Atraso',
+                descricao: `A O.S. de ${m.tipo.toLowerCase()} do veículo ${placa} programada para ${m.data} está em atraso.`,
+                prioridade: 'Crítica',
                 link: 'manutencoes',
                 targetId: m.veiculoId,
                 veiculoId: m.veiculoId
             });
-        } else if (m.status === 'Agendada') {
+        } else if (m.status === 'Agendada' || m.status === 'Programada') {
             const diffDays = getDaysDiff(m.data);
             const kmAtual = v ? parseFloat(v.kmAtual) || 0 : 0;
             const targetKM = parseFloat(m.km) || 0;
             const kmRemaining = targetKM - kmAtual;
 
-            if (diffDays >= 0 && (diffDays <= 10 || kmRemaining <= 500)) {
+            if (diffDays >= 0 && (diffDays <= 15 || kmRemaining <= 500)) {
                 calculatedAlerts.push({
                     id: `MAN-PROXIMA-${m.id}`,
                     tipo: 'Manutenção preventiva próxima',
                     categoria: 'Manutenções',
-                    titulo: `Manutenção Próxima: ${placa}`,
-                    descricao: `Manutenção ${m.tipo} agendada para ${m.data.split('-').reverse().join('/')} ou KM ${targetKM.toLocaleString('pt-BR')} (restam ${diffDays} dias ou ${kmRemaining} km).`,
-                    prioridade: 'Média',
-                    link: 'manutencoes',
-                    targetId: m.veiculoId,
-                    veiculoId: m.veiculoId
-                });
-            } else {
-                calculatedAlerts.push({
-                    id: `MAN-PENDENTE-${m.id}`,
-                    tipo: 'Ordem de serviço pendente',
-                    categoria: 'Manutenções',
-                    titulo: `Ordem de Serviço Pendente: ${placa}`,
-                    descricao: `Manutenção ${m.tipo} está pendente / agendada para ${m.data.split('-').reverse().join('/')}.`,
-                    prioridade: 'Informativa',
+                    titulo: 'Manutenção Preventiva Próxima',
+                    descricao: `Manutenção de ${m.tipo.toLowerCase()} do veículo ${placa} programada para ${m.data.split('-').reverse().join('/')} ou KM ${targetKM.toLocaleString('pt-BR')} (restam ${diffDays} dias ou ${kmRemaining} km).`,
+                    prioridade: 'Alta',
                     link: 'manutencoes',
                     targetId: m.veiculoId,
                     veiculoId: m.veiculoId
@@ -2183,27 +2151,42 @@ async function syncNotifications(usuarioName = 'sistema') {
         if (kmRemaining <= 0 || diffDays < 0) {
             calculatedAlerts.push({
                 id: `OLEO-ATRASADA-${o.id}`,
-                tipo: 'Troca atrasada',
+                tipo: 'Troca de óleo vencida',
                 categoria: 'Troca de Óleo',
-                titulo: `Troca de Óleo Atrasada: ${v.placa}`,
-                descricao: `Troca de óleo vencida por ${Math.abs(kmRemaining).toLocaleString('pt-BR')} km ou ${Math.abs(diffDays)} dias.`,
+                titulo: `Troca de Óleo Vencida: ${v.placa}`,
+                descricao: `A troca de óleo do veículo ${v.placa} está vencida por ${Math.abs(kmRemaining).toLocaleString('pt-BR')} km ou ${Math.abs(diffDays)} dias.`,
                 prioridade: 'Alta',
                 link: 'oleo',
                 targetId: v.id,
                 veiculoId: v.id
             });
-        } else if (kmRemaining <= 500 || diffDays <= 10) {
-            calculatedAlerts.push({
-                id: `OLEO-PROXIMA-${o.id}`,
-                tipo: 'Troca próxima',
-                categoria: 'Troca de Óleo',
-                titulo: `Troca de Óleo Próxima: ${v.placa}`,
-                descricao: `Troca de óleo agendada para KM ${targetKM.toLocaleString('pt-BR')} (restam ${kmRemaining} km ou ${diffDays} dias).`,
-                prioridade: 'Média',
-                link: 'oleo',
-                targetId: v.id,
-                veiculoId: v.id
-            });
+        } else {
+            if (kmRemaining <= 500) {
+                calculatedAlerts.push({
+                    id: `OLEO-PROXIMA-KM-${o.id}`,
+                    tipo: 'Troca de óleo próxima por quilometragem',
+                    categoria: 'Troca de Óleo',
+                    titulo: `Troca de Óleo Próxima (KM): ${v.placa}`,
+                    descricao: `A troca de óleo do veículo ${v.placa} está próxima do limite por quilometragem (restam ${kmRemaining} km).`,
+                    prioridade: 'Média',
+                    link: 'oleo',
+                    targetId: v.id,
+                    veiculoId: v.id
+                });
+            }
+            if (diffDays <= 10) {
+                calculatedAlerts.push({
+                    id: `OLEO-PROXIMA-DIAS-${o.id}`,
+                    tipo: 'Troca de óleo próxima por data',
+                    categoria: 'Troca de Óleo',
+                    titulo: `Troca de Óleo Próxima (Tempo): ${v.placa}`,
+                    descricao: `A troca de óleo do veículo ${v.placa} vence em ${diffDays} dias.`,
+                    prioridade: 'Média',
+                    link: 'oleo',
+                    targetId: v.id,
+                    veiculoId: v.id
+                });
+            }
         }
     });
 
@@ -2224,10 +2207,10 @@ async function syncNotifications(usuarioName = 'sistema') {
         if (percent < 10) {
             calculatedAlerts.push({
                 id: `PNEU-LIMITE-${p.id}`,
-                tipo: 'Vida útil próxima do limite',
+                tipo: 'Pneu com vida útil encerrada',
                 categoria: 'Pneus',
-                titulo: `Pneu Crítico [${p.codigo}]: ${placa}`,
-                descricao: `Pneu na posição ${p.posicao || 'N/A'} atingiu menos de 10% da vida útil estimada (${kmLeft.toFixed(0)} km restantes).`,
+                titulo: `Pneu com Vida Útil Encerrada [${p.codigo}]: ${placa}`,
+                descricao: `O pneu na posição ${p.posicao || 'N/A'} do veículo ${placa} atingiu menos de 10% de vida útil estimada.`,
                 prioridade: 'Crítica',
                 link: 'pneus',
                 targetId: p.id,
@@ -2236,10 +2219,10 @@ async function syncNotifications(usuarioName = 'sistema') {
         } else if (percent < 25) {
             calculatedAlerts.push({
                 id: `PNEU-DESGASTE-${p.id}`,
-                tipo: 'Vida útil próxima do limite',
+                tipo: 'Pneu próximo da vida útil',
                 categoria: 'Pneus',
-                titulo: `Desgaste de Pneu [${p.codigo}]: ${placa}`,
-                descricao: `Pneu na posição ${p.posicao || 'N/A'} atingiu 25% ou menos da vida útil estimada (${kmLeft.toFixed(0)} km restantes).`,
+                titulo: `Pneu Próximo da Vida Útil [${p.codigo}]: ${placa}`,
+                descricao: `O pneu na posição ${p.posicao || 'N/A'} do veículo ${placa} atingiu menos de 25% de vida útil estimada (${kmLeft.toFixed(0)} km restantes).`,
                 prioridade: 'Média',
                 link: 'pneus',
                 targetId: p.id,
@@ -2253,9 +2236,7 @@ async function syncNotifications(usuarioName = 'sistema') {
         if (vi.status !== 'Em Andamento') return;
 
         const v = veiculos.find(item => item.id === vi.veiculoId);
-        const m = motoristas.find(item => item.id === vi.motoristaId);
         const placa = v ? v.placa : 'N/A';
-        const motoristaNome = m ? m.nome : 'N/A';
 
         const departureDateTime = new Date(`${vi.dataSaida}T${vi.horaSaida || '00:00'}:00`);
         const durationHours = Math.abs(today - departureDateTime) / (1000 * 60 * 60);
@@ -2274,67 +2255,169 @@ async function syncNotifications(usuarioName = 'sistema') {
                 motoristaId: vi.motoristaId
             });
         }
-
-        // Veículo em viagem
-        calculatedAlerts.push({
-            id: `VEICULO-VIAGEM-${vi.id}`,
-            tipo: 'Veículo em viagem',
-            categoria: 'Viagens',
-            titulo: `Veículo em Viagem: ${placa}`,
-            descricao: `Veículo está em rota de ${vi.origem} para ${vi.destino}.`,
-            prioridade: 'Informativa',
-            link: 'viagens',
-            targetId: vi.id,
-            veiculoId: vi.veiculoId
-        });
-
-        // Motorista em viagem
-        calculatedAlerts.push({
-            id: `MOTORISTA-VIAGEM-${vi.id}`,
-            tipo: 'Motorista em viagem',
-            categoria: 'Viagens',
-            titulo: `Motorista em Viagem: ${motoristaNome}`,
-            descricao: `Motorista está conduzindo na rota de ${vi.origem} para ${vi.destino}.`,
-            prioridade: 'Informativa',
-            link: 'viagens',
-            targetId: vi.id,
-            motoristaId: vi.motoristaId
-        });
     });
 
     // 7. Multas
     multas.forEach(mu => {
-        if (mu.status !== 'Não Pago') return;
+        if (mu.status === 'Pago') return;
 
         const v = veiculos.find(item => item.id === mu.veiculoId);
         const label = v ? v.placa : 'Frota';
         const daysDiff = getDaysDiff(mu.data);
+        const diffDaysAbs = Math.abs(daysDiff);
 
-        if (Math.abs(daysDiff) > 30) {
-            calculatedAlerts.push({
-                id: `MULTA-VENCIDA-${mu.id}`,
-                tipo: 'Prazo vencido',
-                categoria: 'Multas',
-                titulo: `Prazo de Multa Expirado: ${label}`,
-                descricao: `Multa no valor de R$ ${(parseFloat(mu.valor) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} registrada em ${mu.data.split('-').reverse().join('/')} expirou o prazo de 30 dias de pagamento sem compensação.`,
-                prioridade: 'Alta',
-                link: 'multas',
-                targetId: mu.id,
-                veiculoId: mu.veiculoId,
-                motoristaId: mu.motoristaId
-            });
+        if (mu.associacaoTipo === 'sem_motorista') {
+            if (diffDaysAbs > 15) {
+                calculatedAlerts.push({
+                    id: `MULTA-NIC-${mu.id}`,
+                    tipo: 'Multa sem condutor (NIC)',
+                    categoria: 'Multas',
+                    titulo: `Multa sem Indicação (NIC): ${label}`,
+                    descricao: `A infração de trânsito em ${mu.data.split('-').reverse().join('/')} não possui condutor indicado há mais de 15 dias.`,
+                    prioridade: 'Crítica',
+                    link: 'multas',
+                    targetId: mu.id,
+                    veiculoId: mu.veiculoId,
+                    motoristaId: mu.motoristaId
+                });
+            } else {
+                calculatedAlerts.push({
+                    id: `MULTA-AGUARDANDO-INDICACAO-${mu.id}`,
+                    tipo: 'Multa aguardando indicação',
+                    categoria: 'Multas',
+                    titulo: `Multa Aguardando Indicação: ${label}`,
+                    descricao: `Multa aguardando indicação de condutor (registrada em ${mu.data.split('-').reverse().join('/')}).`,
+                    prioridade: 'Alta',
+                    link: 'multas',
+                    targetId: mu.id,
+                    veiculoId: mu.veiculoId,
+                    motoristaId: mu.motoristaId
+                });
+            }
         } else {
-            calculatedAlerts.push({
-                id: `MULTA-PENDENTE-${mu.id}`,
-                tipo: 'Prazo vencido',
-                categoria: 'Multas',
-                titulo: `Multa Pendente: ${label}`,
-                descricao: `Multa no valor de R$ ${(parseFloat(mu.valor) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} registrada em ${mu.data.split('-').reverse().join('/')}.`,
-                prioridade: 'Média',
-                link: 'multas',
-                targetId: mu.id,
-                veiculoId: mu.veiculoId,
-                motoristaId: mu.motoristaId
+            if (diffDaysAbs > 30) {
+                calculatedAlerts.push({
+                    id: `MULTA-VENCIDA-${mu.id}`,
+                    tipo: 'Multa vencida',
+                    categoria: 'Multas',
+                    titulo: `Multa Vencida: ${label}`,
+                    descricao: `Multa pendente de pagamento há mais de 30 dias (registrada em ${mu.data.split('-').reverse().join('/')}).`,
+                    prioridade: 'Alta',
+                    link: 'multas',
+                    targetId: mu.id,
+                    veiculoId: mu.veiculoId,
+                    motoristaId: mu.motoristaId
+                });
+            } else {
+                calculatedAlerts.push({
+                    id: `MULTA-PENDENTE-${mu.id}`,
+                    tipo: 'Multa próxima do vencimento',
+                    categoria: 'Multas',
+                    titulo: `Multa Próxima do Vencimento: ${label}`,
+                    descricao: `Multa registrada em ${mu.data.split('-').reverse().join('/')} pendente de pagamento.`,
+                    prioridade: 'Média',
+                    link: 'multas',
+                    targetId: mu.id,
+                    veiculoId: mu.veiculoId,
+                    motoristaId: mu.motoristaId
+                });
+            }
+        }
+    });
+
+    // 8. Abastecimentos (Detecção de Inconsistências Operacionais)
+    // Agrupar abastecimentos por veículo e ordenar cronologicamente por data e KM
+    const fuelByVehicle = {};
+    abastecimentos.forEach(ab => {
+        if (!ab.veiculoId) return;
+        if (!fuelByVehicle[ab.veiculoId]) {
+            fuelByVehicle[ab.veiculoId] = [];
+        }
+        fuelByVehicle[ab.veiculoId].push(ab);
+    });
+
+    Object.keys(fuelByVehicle).forEach(veiculoId => {
+        const vehicleFuel = fuelByVehicle[veiculoId];
+        const v = veiculos.find(item => item.id === veiculoId);
+        const placa = v ? v.placa : 'Veículo';
+
+        // Ordenar: primeiro pela data, depois pelo kmAtual
+        vehicleFuel.sort((a, b) => {
+            const dateA = new Date(a.data);
+            const dateB = new Date(b.data);
+            if (dateA - dateB !== 0) return dateA - dateB;
+            return (parseFloat(a.kmAtual) || 0) - (parseFloat(b.kmAtual) || 0);
+        });
+
+        // 8.1 Inconsistência de KM (retroativo / inferior ao anterior)
+        for (let i = 0; i < vehicleFuel.length; i++) {
+            const current = vehicleFuel[i];
+            if (current.combustivel === 'Arla 32') continue; // Pular Arla
+
+            // Verificar se algum abastecimento anterior tem KM maior
+            for (let j = 0; j < i; j++) {
+                const prev = vehicleFuel[j];
+                if (prev.combustivel === 'Arla 32') continue;
+                if (parseFloat(prev.kmAtual) > parseFloat(current.kmAtual)) {
+                    calculatedAlerts.push({
+                        id: `ABS-KM-RETROATIVO-${current.id}`,
+                        tipo: 'Quilometragem inferior ao último abastecimento',
+                        categoria: 'Abastecimentos',
+                        titulo: `Inconsistência de KM: ${placa}`,
+                        descricao: `Abastecimento em ${current.data.split('-').reverse().join('/')} registra KM ${parseFloat(current.kmAtual).toLocaleString('pt-BR')}, inferior ao abastecimento anterior em ${prev.data.split('-').reverse().join('/')} (KM ${parseFloat(prev.kmAtual).toLocaleString('pt-BR')}).`,
+                        prioridade: 'Alta',
+                        link: 'abastecimentos',
+                        targetId: current.id,
+                        veiculoId: veiculoId
+                    });
+                    break;
+                }
+            }
+
+            // 8.2 Inconsistência de KM contra viagens terminadas
+            const vehicleTrips = viagens.filter(t => t.veiculoId === veiculoId && t.status === 'Concluída' && t.dataRetorno && t.kmFinal);
+            for (const trip of vehicleTrips) {
+                if (trip.dataRetorno <= current.data) {
+                    if (parseFloat(trip.kmFinal) > parseFloat(current.kmAtual)) {
+                        calculatedAlerts.push({
+                            id: `ABS-KM-VIAGEM-${current.id}`,
+                            tipo: 'Quilometragem inferior à última viagem registrada',
+                            categoria: 'Abastecimentos',
+                            titulo: `KM Inferior à Viagem: ${placa}`,
+                            descricao: `Abastecimento em ${current.data.split('-').reverse().join('/')} (KM ${parseFloat(current.kmAtual).toLocaleString('pt-BR')}) é inferior ao KM de retorno da viagem para ${trip.destino} finalizada em ${trip.dataRetorno.split('-').reverse().join('/')} (KM ${parseFloat(trip.kmFinal).toLocaleString('pt-BR')}).`,
+                            prioridade: 'Alta',
+                            link: 'abastecimentos',
+                            targetId: current.id,
+                            veiculoId: veiculoId
+                        });
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 8.3 Desvio no Consumo Médio (KM/L)
+        const kmLValidos = vehicleFuel.filter(a => parseFloat(a.kmL) > 0 && a.combustivel !== 'Arla 32');
+        if (kmLValidos.length >= 3) {
+            const sumKmL = kmLValidos.reduce((sum, a) => sum + parseFloat(a.kmL), 0);
+            const mediaKmL = sumKmL / kmLValidos.length;
+
+            kmLValidos.forEach(ab => {
+                const kmL = parseFloat(ab.kmL);
+                const variacao = Math.abs(kmL - mediaKmL) / mediaKmL;
+                if (variacao > 0.4) {
+                    calculatedAlerts.push({
+                        id: `ABS-CONSUMO-ANORMAL-${ab.id}`,
+                        tipo: 'Consumo muito acima ou abaixo da média histórica do veículo',
+                        categoria: 'Abastecimentos',
+                        titulo: `Consumo Fora da Média: ${placa}`,
+                        descricao: `O abastecimento em ${ab.data.split('-').reverse().join('/')} registrou consumo de ${kmL.toFixed(2)} km/L, com desvio de ${(variacao * 100).toFixed(0)}% em relação à média histórica do veículo (${mediaKmL.toFixed(2)} km/L).`,
+                        prioridade: 'Média',
+                        link: 'abastecimentos',
+                        targetId: ab.id,
+                        veiculoId: veiculoId
+                    });
+                }
             });
         }
     });
@@ -2506,7 +2589,7 @@ app.put('/api/notificacoes/:id', requireAuth, async (req, res) => {
         const acao = `marcar como ${status.toLowerCase()}`;
         auditoria.push({
             acao: acao,
-            usuario: req.user.nome,
+            usuario: req.session.nome,
             data: new Date().toISOString()
         });
 
@@ -2515,12 +2598,12 @@ app.put('/api/notificacoes/:id', requireAuth, async (req, res) => {
             SET status = $1, "usuarioResponsavel" = $2, auditoria = $3 
             WHERE id = $4
             RETURNING *
-        `, [status, req.user.nome, JSON.stringify(auditoria), id]);
+        `, [status, req.session.nome, JSON.stringify(auditoria), id]);
 
         await db.query(`
             INSERT INTO logs (usuario, perfil, acao, entidade, detalhes)
             VALUES ($1, $2, $3, $4, $5)
-        `, [req.user.nome, req.user.perfil, `Alteração de status de notificação: ${status}`, 'Notificações', `Notificação ${id} alterada para ${status}`]);
+        `, [req.session.nome, req.session.perfil, `Alteração de status de notificação: ${status}`, 'Notificações', `Notificação ${id} alterada para ${status}`]);
 
         res.json(updateRes.rows[0]);
     } catch (err) {
@@ -2543,7 +2626,7 @@ app.delete('/api/notificacoes/:id', requireAuth, async (req, res) => {
         await db.query(`
             INSERT INTO logs (usuario, perfil, acao, entidade, detalhes)
             VALUES ($1, $2, $3, $4, $5)
-        `, [req.user.nome, req.user.perfil, 'Exclusão de notificação', 'Notificações', `Notificação ${id} excluída permanentemente`]);
+        `, [req.session.nome, req.session.perfil, 'Exclusão de notificação', 'Notificações', `Notificação ${id} excluída permanentemente`]);
 
         res.json({ success: true, message: 'Notificação excluída com sucesso.' });
     } catch (err) {
@@ -2554,7 +2637,7 @@ app.delete('/api/notificacoes/:id', requireAuth, async (req, res) => {
 
 app.post('/api/notificacoes/sync', requireAuth, async (req, res) => {
     try {
-        await syncNotifications(req.user.nome);
+        await syncNotifications(req.session.nome);
         res.json({ success: true, message: 'Notificações sincronizadas com sucesso.' });
     } catch (err) {
         console.error("Erro ao sincronizar notificações:", err);
@@ -2564,10 +2647,10 @@ app.post('/api/notificacoes/sync', requireAuth, async (req, res) => {
 
 app.get('/api/alertas', requireAuth, async (req, res) => {
     try {
-        await syncNotifications(req.user ? req.user.nome : 'sistema');
+        await syncNotifications(req.session ? req.session.nome : 'sistema');
 
         const result = await db.query(`
-            SELECT id, tipo, categoria, titulo, descricao as "desc", prioridade, status, link, "targetId" 
+            SELECT id, tipo, categoria, titulo, descricao as "desc", prioridade, status, link, "targetId", "dataCriacao", "usuarioResponsavel", auditoria 
             FROM notificacoes 
             WHERE status != 'Resolvida'
             ORDER BY 
