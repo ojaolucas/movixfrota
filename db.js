@@ -327,8 +327,28 @@ async function initDB() {
             )
         `);
 
+        // 11. Notificacoes Table
+        await query(`
+            CREATE TABLE IF NOT EXISTS notificacoes (
+                id VARCHAR(150) PRIMARY KEY,
+                tipo VARCHAR(100) NOT NULL,
+                categoria VARCHAR(100) NOT NULL,
+                titulo VARCHAR(255) NOT NULL,
+                descricao TEXT,
+                "dataCriacao" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                prioridade VARCHAR(50) NOT NULL,
+                status VARCHAR(50) DEFAULT 'Não lida',
+                link VARCHAR(255),
+                "targetId" VARCHAR(100),
+                "veiculoId" VARCHAR(50) REFERENCES veiculos(id) ON DELETE SET NULL,
+                "motoristaId" VARCHAR(50) REFERENCES motoristas(id) ON DELETE SET NULL,
+                "usuarioResponsavel" VARCHAR(255),
+                auditoria JSONB DEFAULT '[]'::jsonb
+            )
+        `);
+
         // Enable Row Level Security (RLS) on all tables to prevent unauthorized public REST API access
-        const tables = ['usuarios', 'veiculos', 'motoristas', 'abastecimentos', 'manutencoes', 'pneus', 'oleos', 'viagens', 'multas', 'logs'];
+        const tables = ['usuarios', 'veiculos', 'motoristas', 'abastecimentos', 'manutencoes', 'pneus', 'oleos', 'viagens', 'multas', 'logs', 'notificacoes'];
         for (const table of tables) {
             await query(`ALTER TABLE ${table} ENABLE ROW LEVEL SECURITY`);
         }
