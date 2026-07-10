@@ -25,10 +25,47 @@
             
             return fineTime >= tripStart && fineTime <= tripEnd;
         });
+
+        let suggestedDriver = null;
+        if (matchingTrips.length === 1) {
+            const vi = matchingTrips[0];
+            let driverId = vi.motoristaId;
+
+            let hist = vi.historicoCondutores || [];
+            if (typeof hist === 'string') {
+                hist = JSON.parse(hist);
+            }
+
+            if (hist && hist.length > 0) {
+                let tripEnd;
+                if (vi.status === 'Realizada' || vi.dataRetorno) {
+                    tripEnd = new Date(`${vi.dataRetorno}T${vi.horaRetorno || '23:59'}:00`);
+                } else {
+                    tripEnd = new Date();
+                }
+
+                // Look for entry that matches the fine date/time
+                for (const entry of hist) {
+                    const start = new Date(`${entry.dataInicio}T${entry.horaInicio || '00:00'}:00`);
+                    const end = entry.dataFim 
+                        ? new Date(`${entry.dataFim}T${entry.horaFim || '23:59'}:00`) 
+                        : tripEnd;
+                    
+                    if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+                        if (fineTime >= start && fineTime <= end) {
+                            driverId = entry.motoristaId;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            suggestedDriver = window.movixStore.getMotoristas().find(d => d.id === driverId);
+        }
         
         return {
             trips: matchingTrips,
-            driver: matchingTrips.length === 1 ? window.movixStore.getMotoristas().find(d => d.id === matchingTrips[0].motoristaId) : null
+            driver: suggestedDriver
         };
     }
     

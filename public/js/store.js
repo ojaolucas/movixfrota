@@ -37,7 +37,7 @@ class MovixStore {
                 if (this.onSessionChange) this.onSessionChange(false);
             }
         } catch (e) {
-            console.error("Erro na autenticação de sessão inicial:", e);
+            console.error("Erro na autenticaÃ§Ã£o de sessÃ£o inicial:", e);
             if (this.onSessionChange) this.onSessionChange(false);
         }
     }
@@ -45,7 +45,7 @@ class MovixStore {
     // Load all data collections from REST API
     async loadData() {
         try {
-            const [veiculos, motoristas, multas, abastecimentos, manutencoes, pneus, oleos, viagens, logs] = await Promise.all([
+            const [veiculos, motoristas, multas, abastecimentos, manutencoes, pneus, oleos, viagens, logs, alertas] = await Promise.all([
                 fetch('/api/veiculos').then(r => r.json()),
                 fetch('/api/motoristas').then(r => r.json()),
                 fetch('/api/multas').then(r => r.json()),
@@ -54,7 +54,8 @@ class MovixStore {
                 fetch('/api/pneus').then(r => r.json()),
                 fetch('/api/oleos').then(r => r.json()),
                 fetch('/api/viagens').then(r => r.json()),
-                fetch('/api/logs').then(r => r.json())
+                fetch('/api/logs').then(r => r.json()),
+                fetch('/api/alertas').then(r => r.json()).catch(() => [])
             ]);
 
             this.state.veiculos = (veiculos || []).map(v => ({
@@ -114,6 +115,7 @@ class MovixStore {
                 motoristaCategoria: vi.motoristaCategoria || null
             }));
             this.state.logs = logs || [];
+            this.state.alertas = alertas || [];
 
             // Load users list if logged user is Admin
             if (this.activeUser && this.activeUser.perfil === 'Administrador') {
@@ -136,7 +138,7 @@ class MovixStore {
 
         if (!res.ok) {
             const err = await res.json();
-            throw new Error(err.error || 'Falha na autenticação.');
+            throw new Error(err.error || 'Falha na autenticaÃ§Ã£o.');
         }
 
         const data = await res.json();
@@ -224,7 +226,7 @@ class MovixStore {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(this.cleanPayload(veiculo))
         });
-        if (!res.ok) throw new Error('Erro ao salvar veículo no servidor.');
+        if (!res.ok) throw new Error('Erro ao salvar veÃ­culo no servidor.');
         const newV = await res.json();
         this.state.veiculos.push(newV);
         await this.loadData();
@@ -237,7 +239,7 @@ class MovixStore {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(this.cleanPayload(data))
         });
-        if (!res.ok) throw new Error('Erro ao atualizar veículo no servidor.');
+        if (!res.ok) throw new Error('Erro ao atualizar veÃ­culo no servidor.');
         const updatedV = await res.json();
         const idx = this.state.veiculos.findIndex(v => v.id === id);
         if (idx !== -1) this.state.veiculos[idx] = updatedV;
@@ -247,7 +249,7 @@ class MovixStore {
 
     async deleteVeiculo(id) {
         const res = await fetch(`/api/veiculos/${id}`, { method: 'DELETE' });
-        if (!res.ok) throw new Error('Erro ao excluir veículo.');
+        if (!res.ok) throw new Error('Erro ao excluir veÃ­culo.');
         this.state.veiculos = this.state.veiculos.filter(v => v.id !== id);
         await this.loadData();
         return true;
@@ -301,7 +303,7 @@ class MovixStore {
         });
         if (!res.ok) {
             const err = await res.json();
-            throw new Error(err.error || 'Erro ao criar usuário.');
+            throw new Error(err.error || 'Erro ao criar usuÃ¡rio.');
         }
         const newU = await res.json();
         this.state.usuarios.push(newU);
@@ -317,7 +319,7 @@ class MovixStore {
         });
         if (!res.ok) {
             const err = await res.json();
-            throw new Error(err.error || 'Erro ao editar usuário.');
+            throw new Error(err.error || 'Erro ao editar usuÃ¡rio.');
         }
         const updatedU = await res.json();
         const idx = this.state.usuarios.findIndex(u => u.id === id);
@@ -330,7 +332,7 @@ class MovixStore {
         const res = await fetch(`/api/usuarios/${id}`, { method: 'DELETE' });
         if (!res.ok) {
             const err = await res.json();
-            throw new Error(err.error || 'Erro ao excluir usuário.');
+            throw new Error(err.error || 'Erro ao excluir usuÃ¡rio.');
         }
         this.state.usuarios = this.state.usuarios.filter(u => u.id !== id);
         await this.loadData();
@@ -406,7 +408,7 @@ class MovixStore {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(this.cleanPayload(m))
         });
-        if (!res.ok) throw new Error('Erro ao salvar ordem de serviço.');
+        if (!res.ok) throw new Error('Erro ao salvar ordem de serviÃ§o.');
         const newM = await res.json();
         this.state.manutencoes.unshift(newM);
         await this.loadData();
@@ -419,7 +421,7 @@ class MovixStore {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(this.cleanPayload(data))
         });
-        if (!res.ok) throw new Error('Erro ao atualizar ordem de serviço.');
+        if (!res.ok) throw new Error('Erro ao atualizar ordem de serviÃ§o.');
         const updatedM = await res.json();
         const idx = this.state.manutencoes.findIndex(m => m.id === id);
         if (idx !== -1) this.state.manutencoes[idx] = updatedM;
@@ -482,7 +484,7 @@ class MovixStore {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(this.cleanPayload(o))
         });
-        if (!res.ok) throw new Error('Erro ao salvar registro de troca de óleo.');
+        if (!res.ok) throw new Error('Erro ao salvar registro de troca de Ã³leo.');
         const newO = await res.json();
         this.state.oleos.unshift(newO);
         await this.loadData();
@@ -495,7 +497,7 @@ class MovixStore {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(this.cleanPayload(data))
         });
-        if (!res.ok) throw new Error('Erro ao atualizar registro de troca de óleo.');
+        if (!res.ok) throw new Error('Erro ao atualizar registro de troca de Ã³leo.');
         const updatedO = await res.json();
         const idx = this.state.oleos.findIndex(o => o.id === id);
         if (idx !== -1) this.state.oleos[idx] = updatedO;
@@ -505,7 +507,7 @@ class MovixStore {
 
     async deleteOleo(id) {
         const res = await fetch(`/api/oleos/${id}`, { method: 'DELETE' });
-        if (!res.ok) throw new Error('Erro ao excluir registro de troca de óleo.');
+        if (!res.ok) throw new Error('Erro ao excluir registro de troca de Ã³leo.');
         this.state.oleos = this.state.oleos.filter(o => o.id !== id);
         await this.loadData();
         return true;
@@ -651,7 +653,7 @@ class MovixStore {
 
     getTacografoStatus(v) {
         if (!v || v.possuiTacografo !== 'Sim') return '-';
-        if (v.statusTacografo === 'Em manutenção') return 'Em manutenção';
+        if (v.statusTacografo === 'Em manutenÃ§Ã£o') return 'Em manutenÃ§Ã£o';
         if (!v.validadeAfericaoTacografo) return 'Regular';
 
         const today = new Date();
@@ -662,459 +664,12 @@ class MovixStore {
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
         if (diffDays < 0) return 'Vencido';
-        if (diffDays <= 30) return 'Próximo do vencimento';
+        if (diffDays <= 30) return 'PrÃ³ximo do vencimento';
         return 'Regular';
     }
 
     getAlerts() {
-        const alerts = [];
-        const today = new Date();
-        const tenDaysFromNow = new Date();
-        tenDaysFromNow.setDate(today.getDate() + 10);
-
-        // 1. CNH Expiration Alerts (Drivers)
-        this.state.motoristas.forEach(m => {
-            if (m.status === 'inativo') return;
-            const expDate = new Date(m.dataVencimentoCNH);
-            if (expDate < today) {
-                alerts.push({
-                    id: `ALT-CNH-EXP-${m.id}`,
-                    tipo: 'CNH vencida',
-                    prioridade: 'Alta',
-                    status: 'Atrasado',
-                    titulo: `CNH Vencida: ${m.nome}`,
-                    desc: `Vencimento em ${m.dataVencimentoCNH.split('-').reverse().join('/')} (Categoria ${m.categoriaCNH})`,
-                    link: 'motoristas',
-                    targetId: m.id
-                });
-            } else if (expDate <= tenDaysFromNow) {
-                alerts.push({
-                    id: `ALT-CNH-PROX-${m.id}`,
-                    tipo: 'CNH próxima do vencimento',
-                    prioridade: 'Média',
-                    status: 'Atenção',
-                    titulo: `CNH a vencer: ${m.nome}`,
-                    desc: `Vencerá em ${m.dataVencimentoCNH.split('-').reverse().join('/')}`,
-                    link: 'motoristas',
-                    targetId: m.id
-                });
-            }
-        });
-
-        // 2. Oil Change Alerts (Vehicles)
-        this.state.veiculos.forEach(v => {
-            if (v.tipoUnidade === 'Implemento/Reboque') return;
-            const kmRemaining = this.getKMRemainingForOil(v.id);
-            const daysRemaining = this.getDaysRemainingForOil(v.id);
-            
-            const changes = this.state.oleos.filter(o => o.veiculoId === v.id);
-            if (changes.length === 0) return;
-
-            if (kmRemaining <= 0 || daysRemaining <= 0) {
-                alerts.push({
-                    id: `ALT-OIL-EXP-${v.id}`,
-                    tipo: 'Óleo vencido',
-                    prioridade: 'Alta',
-                    status: 'Óleo Vencido',
-                    titulo: `Troca de Óleo Atrasada: ${v.placa}`,
-                    desc: `Atrasado por ${Math.abs(kmRemaining)} KM ou ${Math.abs(daysRemaining)} dias.`,
-                    link: 'oleo',
-                    targetId: v.id
-                });
-            } else if (kmRemaining < 500 || daysRemaining < 10) {
-                alerts.push({
-                    id: `ALT-OIL-PROX-${v.id}`,
-                    tipo: 'Óleo próximo da troca',
-                    prioridade: 'Média',
-                    status: 'Atenção',
-                    titulo: `Troca de óleo próxima: ${v.placa}`,
-                    desc: `Trocar em ${kmRemaining} KM ou ${daysRemaining} dias.`,
-                    link: 'oleo',
-                    targetId: v.id
-                });
-            }
-        });
-
-        // 3. Maintenance Delay Alerts (Manutencoes)
-        this.state.manutencoes.forEach(m => {
-            if (m.status === 'Atrasada') {
-                const v = this.getVeiculo(m.veiculoId);
-                alerts.push({
-                    id: `ALT-MAN-EXP-${m.id}`,
-                    tipo: 'Manutenção atrasada',
-                    prioridade: 'Alta',
-                    status: 'Atrasado',
-                    titulo: `Manutenção Atrasada: ${v ? v.placa : 'Veículo'}`,
-                    desc: `Manutenção ${m.tipo} agendada para KM ${m.km} está atrasada.`,
-                    link: 'manutencoes',
-                    targetId: m.veiculoId
-                });
-            }
-        });
-
-        // 4. Tire Wear alerts (Pneus)
-        this.state.pneus.forEach(p => {
-            if (p.veiculoAtual) {
-                const kmLeft = this.getRemainingKMForTire(p.id);
-                const percent = (kmLeft / p.vidaEstimada) * 100;
-                const v = this.getVeiculo(p.veiculoAtual);
-
-                if (percent < 10) {
-                    alerts.push({
-                        id: `ALT-PNE-EXP-${p.id}`,
-                        tipo: 'Pneu próximo da troca',
-                        prioridade: 'Alta',
-                        status: 'Atrasado',
-                        titulo: `Trocar Pneu Urgente: ${v ? v.placa : ''}`,
-                        desc: `Pneu [${p.codigo}] (${p.posicao}) restante apenas ${kmLeft.toFixed(0)} KM.`,
-                        link: 'pneus',
-                        targetId: p.id
-                    });
-                } else if (percent < 25) {
-                    alerts.push({
-                        id: `ALT-PNE-PROX-${p.id}`,
-                        tipo: 'Pneu próximo da troca',
-                        prioridade: 'Média',
-                        status: 'Atenção',
-                        titulo: `Pneu com Desgaste: ${v ? v.placa : ''}`,
-                        desc: `Pneu [${p.codigo}] (${p.posicao}) possui apenas ${kmLeft.toFixed(0)} KM restantes.`,
-                        link: 'pneus',
-                        targetId: p.id
-                    });
-                }
-            }
-        });
-
-        // 5. Unpaid Traffic Fine Alerts (Multas)
-        (this.state.multas || []).forEach(m => {
-            const v = this.getVeiculo(m.veiculoId);
-            const label = v ? v.placa : 'Frota';
-            if (m.status === 'Não Pago') {
-                const infraDate = new Date(m.data + 'T00:00:00');
-                const limitDate = new Date();
-                limitDate.setDate(limitDate.getDate() - 30);
-
-                if (infraDate < limitDate) {
-                    alerts.push({
-                        id: `ALT-MUL-EXP-${m.id}`,
-                        tipo: 'Multa vencida',
-                        prioridade: 'Alta',
-                        status: 'Atrasado',
-                        titulo: `Multa Crítica pendente: ${label}`,
-                        desc: `Valor de R$ ${(parseFloat(m.valor) || 0).toFixed(2)} registrado em ${m.data.split('-').reverse().join('/')}`,
-                        link: 'multas',
-                        targetId: m.id
-                    });
-                } else {
-                    alerts.push({
-                        id: `ALT-MUL-PRX-${m.id}`,
-                        tipo: 'Multa próxima do vencimento',
-                        prioridade: 'Média',
-                        status: 'Atenção',
-                        titulo: `Multa pendente de pagamento: ${label}`,
-                        desc: `Valor de R$ ${(parseFloat(m.valor) || 0).toFixed(2)} registrado em ${m.data.split('-').reverse().join('/')}`,
-                        link: 'multas',
-                        targetId: m.id
-                    });
-                }
-            } else if (m.status === 'Recorrendo') {
-                alerts.push({
-                    id: `ALT-MUL-REC-${m.id}`,
-                    tipo: 'Multa em recurso',
-                    prioridade: 'Baixa',
-                    status: 'Atenção',
-                    titulo: `Multa em Recurso: ${label}`,
-                    desc: `Valor de R$ ${(parseFloat(m.valor) || 0).toFixed(2)} sob recurso jurídico (${m.descricao.substring(0, 30)}...)`,
-                    link: 'multas',
-                    targetId: m.id
-                });
-            }
-        });
-
-        // 6. Insurance expiration and bill due alerts (Vehicles)
-        this.state.veiculos.forEach(v => {
-            if (v.possuiSeguro === 'Sim') {
-                if (v.validadeContratoSeguro) {
-                    const valDate = new Date(v.validadeContratoSeguro + 'T23:59:59');
-                    const diffTime = valDate - today;
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    
-                    if (diffDays < 0) {
-                        alerts.push({
-                            id: `ALT-INS-EXP-${v.id}`,
-                            tipo: 'Seguro vencido',
-                            prioridade: 'Alta',
-                            status: 'Atrasado',
-                            titulo: `Contrato de Seguro Expirado: ${v.placa}`,
-                            desc: `A apólice da seguradora ${v.seguradora || ''} venceu em ${v.validadeContratoSeguro.split('-').reverse().join('/')}`,
-                            link: 'veiculos',
-                            targetId: v.id
-                        });
-                    } else if (diffDays <= 30) {
-                        alerts.push({
-                            id: `ALT-INS-PROX-${v.id}`,
-                            tipo: 'Seguro próximo do vencimento',
-                            prioridade: 'Média',
-                            status: 'Atenção',
-                            titulo: `Seguro a vencer: ${v.placa}`,
-                            desc: `A apólice vence em ${diffDays} dias (${v.validadeContratoSeguro.split('-').reverse().join('/')})`,
-                            link: 'veiculos',
-                            targetId: v.id
-                        });
-                    }
-                }
-
-                if (v.vencimentoBoletoSeguro) {
-                    let bolDate;
-                    if (v.vencimentoBoletoSeguro.includes('-')) {
-                        bolDate = new Date(v.vencimentoBoletoSeguro + 'T23:59:59');
-                    } else {
-                        const day = parseInt(v.vencimentoBoletoSeguro) || 1;
-                        const currentYear = today.getFullYear();
-                        const currentMonth = today.getMonth();
-                        bolDate = new Date(currentYear, currentMonth, day, 23, 59, 59);
-                        const rolloverLimit = new Date(bolDate.getTime() + 5 * 24 * 60 * 60 * 1000);
-                        if (today > rolloverLimit) {
-                            bolDate = new Date(currentYear, currentMonth + 1, day, 23, 59, 59);
-                        }
-                    }
-
-                    const diffTime = bolDate - today;
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    const formattedDueDate = `${String(bolDate.getDate()).padStart(2, '0')}/${String(bolDate.getMonth() + 1).padStart(2, '0')}/${bolDate.getFullYear()}`;
-
-                    if (diffDays < 0) {
-                        alerts.push({
-                            id: `ALT-INS-BILL-EXP-${v.id}`,
-                            tipo: 'Boleto de seguro vencido',
-                            prioridade: 'Alta',
-                            status: 'Atrasado',
-                            titulo: `Boleto de Seguro Atrasado: ${v.placa}`,
-                            desc: `Parcela mensal de R$ ${(parseFloat(v.valorMensalSeguro) || 0).toFixed(2)} venceu em ${formattedDueDate}`,
-                            link: 'veiculos',
-                            targetId: v.id
-                        });
-                    } else if (diffDays <= 10) {
-                        alerts.push({
-                            id: `ALT-INS-BILL-PROX-${v.id}`,
-                            tipo: 'Boleto de seguro a vencer',
-                            prioridade: 'Média',
-                            status: 'Atenção',
-                            titulo: `Boleto de seguro a vencer: ${v.placa}`,
-                            desc: `Parcela mensal de R$ ${(parseFloat(v.valorMensalSeguro) || 0).toFixed(2)} vence em ${diffDays} dias (${formattedDueDate})`,
-                            link: 'veiculos',
-                            targetId: v.id
-                        });
-                    }
-                }
-            }
-        });
-
-        // 7. Tracker Alerts (Rastreadores)
-        this.state.veiculos.forEach(v => {
-            const isMotorized = v.tipoUnidade !== 'Implemento/Reboque';
-            const isActive = v.status !== 'inativo';
-            
-            if (isMotorized && isActive && v.possuiRastreador === 'Não') {
-                alerts.push({
-                    id: `ALT-TRA-MISS-${v.id}`,
-                    tipo: 'Veículo sem rastreador',
-                    prioridade: 'Baixa',
-                    status: 'Atenção',
-                    titulo: `Sem Rastreador: ${v.placa}`,
-                    desc: `Veículo motorizado ativo está sem sistema de rastreamento instalado.`,
-                    link: 'veiculos',
-                    targetId: v.id
-                });
-            }
-
-            if (v.possuiRastreador === 'Sim') {
-                if (v.statusRastreador === 'Inativo') {
-                    alerts.push({
-                        id: `ALT-TRA-INAT-${v.id}`,
-                        tipo: 'Rastreador inativo',
-                        prioridade: 'Média',
-                        status: 'Atenção',
-                        titulo: `Rastreador Inativo: ${v.placa}`,
-                        desc: `Dispositivo de rastreamento está inativo para este veículo.`,
-                        link: 'veiculos',
-                        targetId: v.id
-                    });
-                }
-
-                if (v.validadeContratoRastreador) {
-                    const valDate = new Date(v.validadeContratoRastreador + 'T23:59:59');
-                    const diffTime = valDate - today;
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                    if (diffDays < 0) {
-                        alerts.push({
-                            id: `ALT-TRA-EXP-${v.id}`,
-                            tipo: 'Contrato vencido',
-                            prioridade: 'Alta',
-                            status: 'Atrasado',
-                            titulo: `Contrato de Rastreador Expirado: ${v.placa}`,
-                            desc: `O contrato de rastreamento venceu em ${v.validadeContratoRastreador.split('-').reverse().join('/')}`,
-                            link: 'veiculos',
-                            targetId: v.id
-                        });
-                    } else if (diffDays <= 30) {
-                        alerts.push({
-                            id: `ALT-TRA-PROX-${v.id}`,
-                            tipo: 'Contrato próximo do vencimento',
-                            prioridade: 'Média',
-                            status: 'Atenção',
-                            titulo: `Rastreador a vencer: ${v.placa}`,
-                            desc: `O contrato vence em ${diffDays} dias (${v.validadeContratoRastreador.split('-').reverse().join('/')})`,
-                            link: 'veiculos',
-                            targetId: v.id
-                        });
-                    }
-                }
-            }
-        });
-
-        // 8. Fire Extinguisher Alerts (Extintores)
-        this.state.veiculos.forEach(v => {
-            const isMotorized = v.tipoUnidade !== 'Implemento/Reboque';
-            const isActive = v.status !== 'inativo';
-
-            if (isMotorized && isActive && v.possuiExtintor === 'Não') {
-                alerts.push({
-                    id: `ALT-EXT-MISS-${v.id}`,
-                    tipo: 'Veículo sem extintor',
-                    prioridade: 'Média',
-                    status: 'Atenção',
-                    titulo: `Sem Extintor: ${v.placa}`,
-                    desc: `Veículo motorizado ativo está sem extintor de incêndio cadastrado.`,
-                    link: 'veiculos',
-                    targetId: v.id
-                });
-            }
-
-            if (v.possuiExtintor === 'Sim') {
-                if (v.validadeExtintor) {
-                    const valDate = new Date(v.validadeExtintor + 'T23:59:59');
-                    const diffTime = valDate - today;
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                    if (diffDays < 0) {
-                        alerts.push({
-                            id: `ALT-EXT-EXP-${v.id}`,
-                            tipo: 'Extintor vencido',
-                            prioridade: 'Alta',
-                            status: 'Atrasado',
-                            titulo: `Extintor Vencido: ${v.placa}`,
-                            desc: `A validade do extintor expirou em ${v.validadeExtintor.split('-').reverse().join('/')}`,
-                            link: 'veiculos',
-                            targetId: v.id
-                        });
-                    } else if (diffDays <= 30) {
-                        alerts.push({
-                            id: `ALT-EXT-PROX-${v.id}`,
-                            tipo: 'Extintores próximos da validade',
-                            prioridade: 'Média',
-                            status: 'Atenção',
-                            titulo: `Validade de Extintor próxima: ${v.placa}`,
-                            desc: `O extintor vencerá em ${diffDays} dias (${v.validadeExtintor.split('-').reverse().join('/')})`,
-                            link: 'veiculos',
-                            targetId: v.id
-                        });
-                    }
-                }
-
-                if (v.proximaRecargaExtintor) {
-                    const recDate = new Date(v.proximaRecargaExtintor + 'T23:59:59');
-                    const diffTime = recDate - today;
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                    if (diffDays >= 0 && diffDays <= 15) {
-                        alerts.push({
-                            id: `ALT-EXT-REC-${v.id}`,
-                            tipo: 'Recargas próximas',
-                            prioridade: 'Média',
-                            status: 'Atenção',
-                            titulo: `Recarga de Extintor próxima: ${v.placa}`,
-                            desc: `A recarga do extintor está agendada para daqui a ${diffDays} dias (${v.proximaRecargaExtintor.split('-').reverse().join('/')})`,
-                            link: 'veiculos',
-                            targetId: v.id
-                        });
-                    }
-                }
-            }
-        });
-
-        // 9. Implemento sem documentação CRLV Alerts
-        this.state.veiculos.forEach(v => {
-            if (v.tipoUnidade === 'Implemento/Reboque' && !v.docVeiculoAnexo) {
-                alerts.push({
-                    id: `ALT-IMP-DOC-${v.id}`,
-                    tipo: 'Implemento sem CRLV',
-                    prioridade: 'Baixa',
-                    status: 'Atenção',
-                    titulo: `Reboque sem CRLV: ${v.placa}`,
-                    desc: `Implemento não possui cópia digital do CRLV anexada ao sistema.`,
-                    link: 'veiculos',
-                    targetId: v.id
-                });
-            }
-        });
-
-        // 10. Tacógrafo Alerts (Tacógrafos)
-        this.state.veiculos.forEach(v => {
-            if (v.possuiTacografo === 'Sim') {
-                if (v.validadeAfericaoTacografo) {
-                    const valDate = new Date(v.validadeAfericaoTacografo + 'T23:59:59');
-                    const diffTime = valDate - today;
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                    if (diffDays < 0) {
-                        alerts.push({
-                            id: `ALT-TAC-EXP-${v.id}`,
-                            tipo: 'Tacógrafo vencido',
-                            prioridade: 'Alta',
-                            status: 'Atrasado',
-                            titulo: `Tacógrafo Vencido: ${v.placa}`,
-                            desc: `A validade da aferição do tacógrafo expirou em ${v.validadeAfericaoTacografo.split('-').reverse().join('/')}`,
-                            link: 'veiculos',
-                            targetId: v.id
-                        });
-                    } else if (diffDays <= 30) {
-                        alerts.push({
-                            id: `ALT-TAC-PROX-${v.id}`,
-                            tipo: 'Tacógrafo próximo do vencimento',
-                            prioridade: 'Média',
-                            status: 'Atenção',
-                            titulo: `Tacógrafo a vencer: ${v.placa}`,
-                            desc: `A aferição vencerá em ${diffDays} dias (${v.validadeAfericaoTacografo.split('-').reverse().join('/')})`,
-                            link: 'veiculos',
-                            targetId: v.id
-                        });
-                    }
-                }
-
-                if (v.proximaTrocaAfericaoTacografo) {
-                    const nextDate = new Date(v.proximaTrocaAfericaoTacografo + 'T23:59:59');
-                    const diffTime = nextDate - today;
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                    if (diffDays >= 0 && diffDays <= 15) {
-                        alerts.push({
-                            id: `ALT-TAC-NEXT-${v.id}`,
-                            tipo: 'Próxima aferição/troca',
-                            prioridade: 'Média',
-                            status: 'Atenção',
-                            titulo: `Próxima aferição/troca: ${v.placa}`,
-                            desc: `A próxima troca ou aferição do tacógrafo está agendada para daqui a ${diffDays} dias (${v.proximaTrocaAfericaoTacografo.split('-').reverse().join('/')})`,
-                            link: 'veiculos',
-                            targetId: v.id
-                        });
-                    }
-                }
-            }
-        });
-
-        return alerts;
+        return this.state.alertas || [];
     }
 
     getMetrics() {
@@ -1205,10 +760,10 @@ class MovixStore {
         });
         const mediaKMLGeral = validKMLCount > 0 ? (mediaKMLTotal / validKMLCount) : 0;
 
-        const contagemCNHsVencidas = alerts.filter(a => a.tipo === 'CNH vencida').length;
-        const contagemManutencaoAtrasada = alerts.filter(a => a.tipo === 'Manutenção atrasada').length;
-        const contagemOleosVencidos = alerts.filter(a => a.tipo === 'Óleo vencido').length;
-        const contagemPneusTroca = alerts.filter(a => a.prioridade === 'Alta' && a.tipo === 'Pneu próximo da troca').length;
+        const contagemCNHsVencidas = alerts.filter(a => a.categoria === 'Motoristas' && a.prioridade === 'Crítica').length;
+        const contagemManutencaoAtrasada = alerts.filter(a => a.categoria === 'Manutenções').length;
+        const contagemOleosVencidos = alerts.filter(a => a.categoria === 'Troca de Óleo' && a.prioridade === 'Crítica').length;
+        const contagemPneusTroca = alerts.filter(a => a.categoria === 'Pneus').length;
 
         const totalMultasVal = (this.state.multas || []).reduce((acc, m) => acc + (parseFloat(m.valor) || 0), 0);
         const totalMultasCount = (this.state.multas || []).length;
@@ -1234,7 +789,7 @@ class MovixStore {
             veiculosAtrasados: contagemManutencaoAtrasada,
             documentosVencidos: 0,
             cnhsVencidas: contagemCNHsVencidas,
-            oleosProximos: alerts.filter(a => a.tipo === 'Óleo próximo da troca').length,
+            oleosProximos: alerts.filter(a => a.categoria === 'Troca de Óleo' && a.prioridade === 'Alta').length,
             oleosVencidos: contagemOleosVencidos,
             pneusTroca: contagemPneusTroca,
             totalMultas: totalMultasCount,

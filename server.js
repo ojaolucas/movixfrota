@@ -81,6 +81,34 @@ app.use(async (req, res, next) => {
     next();
 });
 
+// Middleware para auto-sincronizar notificações em caso de modificações (POST, PUT, DELETE)
+app.use((req, res, next) => {
+    res.on('finish', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+            const isWrite = ['POST', 'PUT', 'DELETE'].includes(req.method);
+            const path = req.path;
+            const isEntityPath = [
+                '/api/veiculos',
+                '/api/motoristas',
+                '/api/manutencoes',
+                '/api/oleos',
+                '/api/pneus',
+                '/api/viagens',
+                '/api/multas'
+            ].some(p => path.startsWith(p));
+
+            if (isWrite && isEntityPath) {
+                const usuario = (req.session && req.session.nome) ? req.session.nome : 'sistema';
+                // Executa sincronização em background
+                syncNotifications(usuario).catch(err => {
+                    console.error("Erro no auto-sync de notificações:", err);
+                });
+            }
+        }
+    });
+    next();
+});
+
 // Servir arquivos estáticos da pasta public
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(UPLOADS_PATH));
@@ -299,7 +327,8 @@ app.post('/api/veiculos', requireAuth, async (req, res) => {
                 "seloExtintor", "dataFabricacaoExtintor", "dataRecargaExtintor", "validadeExtintor", "proximaRecargaExtintor", "statusExtintor", 
                 "extintorCertificadoAnexo", "extintorComprovanteAnexo", "extintorLaudoAnexo", "extintorNotaFiscalAnexo", "observacoesExtintor", 
                 "possuiTacografo", "marcaTacografo", "modeloTacografo", "numSerieTacografo", "dataInstalacaoTacografo", "dataUltimaAfericaoTacografo", 
-                "validadeAfericaoTacografo", "empresaAfericaoTacografo", "anexoComprovanteTacografo", "observacoesTacografo", "configRodagem", "configEixos", "qtdEstepes"
+                "validadeAfericaoTacografo", "empresaAfericaoTacografo", "anexoComprovanteTacografo", "observacoesTacografo", "configRodagem", "configEixos", "qtdEstepes",
+                "validadeLicenciamento", "validadeIPVA"
             ) VALUES (
                 $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 
                 $16, $17, $18, $19, $20, $21, $22, $23, $24, 
@@ -310,7 +339,7 @@ app.post('/api/veiculos', requireAuth, async (req, res) => {
                 $49, $50, $51, $52, $53, $54, 
                 $55, $56, $57, $58, $59, 
                 $60, $61, $62, $63, $64, $65, 
-                $66, $67, $68, $69, $70, $71, $72
+                $66, $67, $68, $69, $70, $71, $72, $73, $74
             ) RETURNING *
         `, [
             id, v.marca, v.modelo, v.ano, v.cor, v.tipo, v.renavam, v.chassi, v.placa, v.combustivel, kmVal, v.dataAquisicao, v.status || 'disponivel', v.observacoes, JSON.stringify(historicoKM),
@@ -323,7 +352,8 @@ app.post('/api/veiculos', requireAuth, async (req, res) => {
             v.extintorCertificadoAnexo, v.extintorComprovanteAnexo, v.extintorLaudoAnexo, v.extintorNotaFiscalAnexo, v.observacoesExtintor,
             v.possuiTacografo || 'Não', v.marcaTacografo, v.modeloTacografo, v.numSerieTacografo, v.dataInstalacaoTacografo, v.dataUltimaAfericaoTacografo,
             v.validadeAfericaoTacografo, v.empresaAfericaoTacografo, v.anexoComprovanteTacografo, v.observacoesTacografo, v.configRodagem || 'Personalizado', JSON.stringify(configEixos || []),
-            parseInt(v.qtdEstepes) >= 0 ? parseInt(v.qtdEstepes) : 1
+            parseInt(v.qtdEstepes) >= 0 ? parseInt(v.qtdEstepes) : 1,
+            v.validadeLicenciamento || null, v.validadeIPVA || null
         ]);
 
         await addLog(req.session.nome, req.session.perfil, 'Cadastro', 'Veículo', `Cadastrou veículo ${v.marca} ${v.modelo} (${v.placa})`);
@@ -370,8 +400,9 @@ app.put('/api/veiculos/:id', requireAuth, async (req, res) => {
                 "extintorCertificadoAnexo" = $54, "extintorComprovanteAnexo" = $55, "extintorLaudoAnexo" = $56, "extintorNotaFiscalAnexo" = $57, "observacoesExtintor" = $58,
                 "possuiTacografo" = $59, "marcaTacografo" = $60, "modeloTacografo" = $61, "numSerieTacografo" = $62, "dataInstalacaoTacografo" = $63, "dataUltimaAfericaoTacografo" = $64,
                 "validadeAfericaoTacografo" = $65, "empresaAfericaoTacografo" = $66, "anexoComprovanteTacografo" = $67, "observacoesTacografo" = $68,
-                "configRodagem" = $69, "configEixos" = $70, "qtdEstepes" = $71
-            WHERE id = $72
+                "configRodagem" = $69, "configEixos" = $70, "qtdEstepes" = $71,
+                "validadeLicenciamento" = $72, "validadeIPVA" = $73
+            WHERE id = $74
             RETURNING *
         `, [
             v.marca, v.modelo, v.ano, v.cor, v.tipo, v.renavam, v.chassi, v.placa, v.combustivel, newKM, v.dataAquisicao, v.status || 'disponivel', v.observacoes, JSON.stringify(historicoKM),
@@ -386,6 +417,7 @@ app.put('/api/veiculos/:id', requireAuth, async (req, res) => {
             v.validadeAfericaoTacografo, v.empresaAfericaoTacografo, v.anexoComprovanteTacografo, v.observacoesTacografo,
             v.configRodagem || 'Personalizado', JSON.stringify(configEixos || []),
             parseInt(v.qtdEstepes) >= 0 ? parseInt(v.qtdEstepes) : (original.qtdEstepes !== undefined ? original.qtdEstepes : 1),
+            v.validadeLicenciamento || null, v.validadeIPVA || null,
             req.params.id
         ]);
 
@@ -833,6 +865,9 @@ app.put('/api/abastecimentos/:id', requireAuth, async (req, res) => {
 
         // Recalcular médias após o update
         await recalculateVehicleRefuelings(ab.veiculoId || original.veiculoId);
+        if (ab.veiculoId && ab.veiculoId !== original.veiculoId) {
+            await recalculateVehicleRefuelings(original.veiculoId);
+        }
 
         const updatedRes = await db.query('SELECT * FROM abastecimentos WHERE id = $1', [req.params.id]);
         await addLog(req.session.nome, req.session.perfil, 'Edição', 'Abastecimento', `Editou abastecimento R$ ${valorTotal.toFixed(2)} - veículo ${veic ? veic.placa : ''}, condutor: ${motoristaNome} (${motoristaCategoria})`);
@@ -1225,6 +1260,57 @@ app.get('/api/viagens', requireAuth, async (req, res) => {
     }
 });
 
+async function checkTripConflict(veiculoId, motoristaId, dataSaida, horaSaida, dataRetorno, horaRetorno, ignoreTripId = null) {
+    let queryStr = `
+        SELECT * FROM viagens 
+        WHERE ("veiculoId" = $1 OR "motoristaId" = $2) AND status <> 'Cancelada'
+    `;
+    let queryParams = [veiculoId, motoristaId];
+
+    if (ignoreTripId) {
+        queryStr += ` AND id <> $3`;
+        queryParams.push(ignoreTripId);
+    }
+
+    const res = await db.query(queryStr, queryParams);
+    const existingViagens = res.rows;
+
+    const cStart = new Date(`${dataSaida}T${horaSaida || '00:00'}:00`);
+    let cEnd = null;
+    if (dataRetorno && horaRetorno) {
+        cEnd = new Date(`${dataRetorno}T${horaRetorno}:00`);
+    }
+
+    if (isNaN(cStart.getTime())) return null;
+
+    for (const vi of existingViagens) {
+        const tStart = new Date(`${vi.dataSaida}T${vi.horaSaida || '00:00'}:00`);
+        let tEnd;
+        if (vi.status && vi.status.toLowerCase() === 'realizada') {
+            tEnd = new Date(`${vi.dataRetorno}T${vi.horaRetorno || '23:59'}:00`);
+        } else {
+            // Em Andamento: occupies vehicle/driver from tStart up to now
+            tEnd = new Date();
+            if (tEnd < tStart) {
+                tEnd = new Date(tStart.getTime() + 24 * 60 * 60 * 1000);
+            }
+        }
+
+        if (isNaN(tStart.getTime()) || isNaN(tEnd.getTime())) continue;
+
+        if (cEnd) {
+            if (tStart < cEnd && cStart < tEnd) {
+                return vi;
+            }
+        } else {
+            if (cStart >= tStart && cStart <= tEnd) {
+                return vi;
+            }
+        }
+    }
+    return null;
+}
+
 app.post('/api/viagens', requireAuth, async (req, res) => {
     try {
         const v = req.body;
@@ -1234,6 +1320,8 @@ app.post('/api/viagens', requireAuth, async (req, res) => {
         if (!v.horaSaida) {
             return res.status(400).json({ error: 'O horário de saída é obrigatório.' });
         }
+
+
         const id = 'VIA-' + uuidv4().substr(0, 8).toUpperCase();
         const kmInicial = parseFloat(v.kmInicial) || 0;
         const kmFinal = parseFloat(v.kmFinal) || 0;
@@ -1250,12 +1338,23 @@ app.post('/api/viagens', requireAuth, async (req, res) => {
         const veicRes = await db.query('SELECT placa FROM veiculos WHERE id = $1', [v.veiculoId]);
         const veiculoPlaca = veicRes.rows[0] ? veicRes.rows[0].placa : 'N/A';
 
+        const firstDriverLog = [{
+            motoristaId: v.motoristaId,
+            motoristaNome: motoristaNome,
+            dataInicio: v.dataSaida,
+            horaInicio: v.horaSaida,
+            dataFim: null,
+            horaFim: null,
+            kmInicial: kmInicial,
+            kmFinal: null
+        }];
+
         const result = await db.query(`
-            INSERT INTO viagens (id, "veiculoId", "motoristaId", "motoristaCategoria", "dataSaida", "horaSaida", "dataRetorno", "horaRetorno", "kmInicial", "kmFinal", origem, destino, status, observacoes, "kmRodado", custos)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+            INSERT INTO viagens (id, "veiculoId", "motoristaId", "motoristaCategoria", "dataSaida", "horaSaida", "dataRetorno", "horaRetorno", "kmInicial", "kmFinal", origem, destino, status, observacoes, "kmRodado", custos, "historicoCondutores")
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
             RETURNING *
         `, [
-            id, v.veiculoId, v.motoristaId, motoristaCategoria, v.dataSaida, v.horaSaida, v.dataRetorno, v.horaRetorno, kmInicial, kmFinal, v.origem, v.destino, v.status || 'Em Andamento', v.observacoes, kmRodado, custos
+            id, v.veiculoId, v.motoristaId, motoristaCategoria, v.dataSaida, v.horaSaida, v.dataRetorno, v.horaRetorno, kmInicial, kmFinal, v.origem, v.destino, v.status || 'Em Andamento', v.observacoes, kmRodado, custos, JSON.stringify(firstDriverLog)
         ]);
 
         await addLog(req.session.nome, req.session.perfil, 'Cadastro', 'Viagem', `Registrou saída de viagem: veículo ${veiculoPlaca}, condutor ${motoristaNome} (${motoristaCategoria}), rota ${v.origem} → ${v.destino}`);
@@ -1279,6 +1378,8 @@ app.put('/api/viagens/:id', requireAuth, async (req, res) => {
         if (updates.status === 'Realizada' && !updates.horaRetorno && !original.horaRetorno) {
             return res.status(400).json({ error: 'O horário de retorno é obrigatório para concluir a viagem.' });
         }
+
+
 
         const kmInicial = updates.kmInicial !== undefined ? parseFloat(updates.kmInicial) || 0 : parseFloat(original.kmInicial) || 0;
         const kmFinal = updates.kmFinal !== undefined ? parseFloat(updates.kmFinal) || 0 : parseFloat(original.kmFinal) || 0;
@@ -1310,10 +1411,43 @@ app.put('/api/viagens/:id', requireAuth, async (req, res) => {
         const veicRes = await db.query('SELECT placa FROM veiculos WHERE id = $1', [veiculoId]);
         const veiculoPlaca = veicRes.rows[0] ? veicRes.rows[0].placa : 'N/A';
 
+        let historicoCondutores = original.historicoCondutores || [];
+        if (typeof historicoCondutores === 'string') {
+            historicoCondutores = JSON.parse(historicoCondutores);
+        }
+
+        // If driver was edited, synchronize the first entry if no swaps yet
+        if (updates.motoristaId && updates.motoristaId !== original.motoristaId) {
+            if (historicoCondutores.length <= 1) {
+                historicoCondutores = [{
+                    motoristaId: updates.motoristaId,
+                    motoristaNome: motoristaNome,
+                    dataInicio: updates.dataSaida || original.dataSaida,
+                    horaInicio: updates.horaSaida || original.horaSaida,
+                    dataFim: null,
+                    horaFim: null,
+                    kmInicial: kmInicial,
+                    kmFinal: null
+                }];
+            }
+        }
+
+        // If status changed to Realizada, close the last driver entry
+        if (updates.status === 'Realizada' && original.status !== 'Realizada') {
+            if (historicoCondutores.length > 0) {
+                const lastIdx = historicoCondutores.length - 1;
+                if (!historicoCondutores[lastIdx].dataFim) {
+                    historicoCondutores[lastIdx].dataFim = updates.dataRetorno || original.dataRetorno || new Date().toISOString().split('T')[0];
+                    historicoCondutores[lastIdx].horaFim = updates.horaRetorno || original.horaRetorno || new Date().toTimeString().split(' ')[0].substring(0, 5);
+                    historicoCondutores[lastIdx].kmFinal = kmFinal;
+                }
+            }
+        }
+
         const result = await db.query(`
             UPDATE viagens SET
-                "veiculoId" = $1, "motoristaId" = $2, "motoristaCategoria" = $3, "dataSaida" = $4, "horaSaida" = $5, "dataRetorno" = $6, "horaRetorno" = $7, "kmInicial" = $8, "kmFinal" = $9, origem = $10, destino = $11, status = $12, observacoes = $13, "kmRodado" = $14, custos = $15
-            WHERE id = $16
+                "veiculoId" = $1, "motoristaId" = $2, "motoristaCategoria" = $3, "dataSaida" = $4, "horaSaida" = $5, "dataRetorno" = $6, "horaRetorno" = $7, "kmInicial" = $8, "kmFinal" = $9, origem = $10, destino = $11, status = $12, observacoes = $13, "kmRodado" = $14, custos = $15, "historicoCondutores" = $16
+            WHERE id = $17
             RETURNING *
         `, [
             updates.veiculoId || original.veiculoId,
@@ -1331,6 +1465,7 @@ app.put('/api/viagens/:id', requireAuth, async (req, res) => {
             updates.observacoes || original.observacoes,
             kmRodado,
             custos,
+            JSON.stringify(historicoCondutores),
             req.params.id
         ]);
 
@@ -1338,6 +1473,131 @@ app.put('/api/viagens/:id', requireAuth, async (req, res) => {
         res.json(result.rows[0]);
     } catch (err) {
         console.error("Erro ao atualizar viagem:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
+});
+
+app.post('/api/viagens/:id/troca-motorista', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { novoMotoristaId, dataTroca, horaTroca, kmTroca, localTroca, observacoes } = req.body;
+
+        if (!novoMotoristaId || !dataTroca || !horaTroca || kmTroca === undefined) {
+            return res.status(400).json({ error: 'Campos obrigatórios ausentes para troca.' });
+        }
+
+        // Fetch original voyage
+        const originalRes = await db.query('SELECT * FROM viagens WHERE id = $1', [id]);
+        if (originalRes.rowCount === 0) {
+            return res.status(404).json({ error: 'Viagem não encontrada.' });
+        }
+        const original = originalRes.rows[0];
+
+        // Validations
+        if (!original.status || original.status.trim().toLowerCase() !== 'em andamento') {
+            return res.status(400).json({ error: 'A troca de motorista só pode ser registrada em viagens Em Andamento.' });
+        }
+
+        if (original.motoristaId === novoMotoristaId) {
+            return res.status(400).json({ error: 'O novo motorista não pode ser o mesmo que já está conduzindo.' });
+        }
+
+        // Fetch new driver status and CNH
+        const driverRes = await db.query('SELECT nome, status, "dataVencimentoCNH", categoria FROM motoristas WHERE id = $1', [novoMotoristaId]);
+        const newDriver = driverRes.rows[0];
+        if (!newDriver) {
+            return res.status(404).json({ error: 'Novo motorista não encontrado.' });
+        }
+
+        if (newDriver.status !== 'ativo') {
+            return res.status(400).json({ error: 'O novo motorista selecionado deve estar Ativo.' });
+        }
+
+        if (newDriver.dataVencimentoCNH < dataTroca) {
+            return res.status(400).json({ error: 'A CNH do novo motorista está vencida na data da troca.' });
+        }
+
+
+
+        // Fetch vehicle details
+        const veicRes = await db.query('SELECT placa, "kmAtual", "historicoKM" FROM veiculos WHERE id = $1', [original.veiculoId]);
+        const vehicle = veicRes.rows[0];
+        const veiculoPlaca = vehicle ? vehicle.placa : 'N/A';
+        const veiculoKM = vehicle ? parseFloat(vehicle.kmAtual) || 0 : 0;
+
+        const kmTrocaNum = parseFloat(kmTroca) || 0;
+
+        // Parse and validate datetime
+        const departureDateTime = new Date(`${original.dataSaida}T${original.horaSaida || '00:00'}:00`);
+        const swapDateTime = new Date(`${dataTroca}T${horaTroca}:00`);
+        if (isNaN(departureDateTime.getTime()) || isNaN(swapDateTime.getTime())) {
+            return res.status(400).json({ error: 'Data/Hora de partida ou de troca inválidas.' });
+        }
+
+        if (swapDateTime < departureDateTime) {
+            return res.status(400).json({ error: 'A data e hora da troca não podem ser anteriores à data/hora de partida da viagem.' });
+        }
+
+        // Load and update history
+        let historico = original.historicoCondutores || [];
+        if (typeof historico === 'string') {
+            historico = JSON.parse(historico);
+        }
+
+        // Close the active driver entry
+        if (historico.length > 0) {
+            const lastIdx = historico.length - 1;
+            if (!historico[lastIdx].dataFim) {
+                historico[lastIdx].dataFim = dataTroca;
+                historico[lastIdx].horaFim = horaTroca;
+                historico[lastIdx].kmFinal = kmTrocaNum;
+            }
+        }
+
+        // Fetch old driver name
+        const oldDriverRes = await db.query('SELECT nome FROM motoristas WHERE id = $1', [original.motoristaId]);
+        const oldDriverName = oldDriverRes.rows[0] ? oldDriverRes.rows[0].nome : 'Deletado';
+
+        // Append new driver entry
+        historico.push({
+            motoristaId: novoMotoristaId,
+            motoristaNome: newDriver.nome,
+            dataInicio: dataTroca,
+            horaInicio: horaTroca,
+            dataFim: null,
+            horaFim: null,
+            kmInicial: kmTrocaNum,
+            kmFinal: null
+        });
+
+        // Update vehicle current KM if kmTroca is greater
+        if (vehicle && kmTrocaNum > veiculoKM) {
+            let historicoKM = vehicle.historicoKM || [];
+            if (typeof historicoKM === 'string') {
+                historicoKM = JSON.parse(historicoKM);
+            }
+            historicoKM.push({ data: dataTroca, km: kmTrocaNum });
+            await db.query('UPDATE veiculos SET "kmAtual" = $1, "historicoKM" = $2 WHERE id = $3', [kmTrocaNum, JSON.stringify(historicoKM), original.veiculoId]);
+        }
+
+        // Update voyage
+        const motoristaCategoria = newDriver.categoria || 'Motorista Efetivo';
+        const result = await db.query(`
+            UPDATE viagens SET
+                "motoristaId" = $1,
+                "motoristaCategoria" = $2,
+                "historicoCondutores" = $3
+            WHERE id = $4
+            RETURNING *
+        `, [novoMotoristaId, motoristaCategoria, JSON.stringify(historico), id]);
+
+        // Audit Log
+        const logDetails = `Troca de motorista na viagem ${id} (${veiculoPlaca}): Condutor anterior: ${oldDriverName}, Novo condutor: ${newDriver.nome}, KM: ${kmTrocaNum}, Local: ${localTroca || 'Não informado'}, Obs: ${observacoes || 'Nenhuma'}`;
+        await addLog(req.session.nome, req.session.perfil, 'Edição', 'Viagem', logDetails);
+
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Erro ao registrar troca de motorista:", err);
         res.status(500).json({ error: 'Erro interno do servidor.' });
     }
 });
@@ -1639,79 +1899,689 @@ app.get('/api/metricas', requireAuth, async (req, res) => {
     }
 });
 
-// ─── ALERTAS DINÂMICOS ────────────────────────────────────
-app.get('/api/alertas', requireAuth, async (req, res) => {
-    try {
-        const alerts = [];
-        const today = new Date();
-        const tenDays = new Date(); tenDays.setDate(today.getDate() + 10);
+// ─── CENTRAL DE NOTIFICAÇÕES E ALERTAS DINÂMICOS ──────────
 
-        const [
-            motoristasRes,
-            manutencoesRes,
-            multasRes,
-            pneusRes
-        ] = await Promise.all([
-            db.query('SELECT id, nome, "dataVencimentoCNH", categoria FROM motoristas'),
-            db.query('SELECT m.id, m.km, m.tipo, m.status, v.placa, m."veiculoId" FROM manutencoes m LEFT JOIN veiculos v ON m."veiculoId" = v.id WHERE m.status = \'Atrasada\''),
-            db.query('SELECT m.id, m.data, m.valor, m.status, v.placa, m."veiculoId" FROM multas m LEFT JOIN veiculos v ON m."veiculoId" = v.id WHERE m.status = \'Não Pago\''),
-            db.query('SELECT p.id, p.codigo, p."vidaEstimada", p."kmInicial", v.placa, v."kmAtual" FROM pneus p JOIN veiculos v ON p."veiculoAtual" = v.id WHERE p."veiculoAtual" IS NOT NULL')
-        ]);
+// Sync Notifications Engine
+async function syncNotifications(usuarioName = 'sistema') {
+    const today = new Date();
 
-        const motoristas = motoristasRes.rows;
-        const manutencoes = manutencoesRes.rows;
-        const multas = multasRes.rows;
-        const pneus = pneusRes.rows;
+    // Fetch all related entities
+    const veiculosRes = await db.query('SELECT * FROM veiculos');
+    const motoristasRes = await db.query('SELECT * FROM motoristas');
+    const manutencoesRes = await db.query('SELECT * FROM manutencoes');
+    const oleosRes = await db.query('SELECT * FROM oleos');
+    const pneusRes = await db.query('SELECT * FROM pneus');
+    const viagensRes = await db.query('SELECT * FROM viagens');
+    const multasRes = await db.query('SELECT * FROM multas');
 
-        motoristas.forEach(m => {
-            // Apenas motoristas efetivos geram alertas de CNH
-            if (m.categoria && m.categoria !== 'Motorista Efetivo') return;
-            const exp = new Date(m.dataVencimentoCNH);
-            if (exp < today) alerts.push({ id: `ALT-CNH-EXP-${m.id}`, prioridade: 'Alta', titulo: `CNH Vencida: ${m.nome}`, desc: `Venceu em ${m.dataVencimentoCNH}`, link: 'motoristas', targetId: m.id });
-            else if (exp <= tenDays) alerts.push({ id: `ALT-CNH-PRX-${m.id}`, prioridade: 'Média', titulo: `CNH a Vencer: ${m.nome}`, desc: `Vence em ${m.dataVencimentoCNH}`, link: 'motoristas', targetId: m.id });
-        });
+    const veiculos = veiculosRes.rows;
+    const motoristas = motoristasRes.rows;
+    const manutencoes = manutencoesRes.rows;
+    const oleos = oleosRes.rows;
+    const pneus = pneusRes.rows;
+    const viagens = viagensRes.rows;
+    const multas = multasRes.rows;
 
-        manutencoes.forEach(m => {
-            alerts.push({ id: `ALT-MAN-${m.id}`, prioridade: 'Alta', titulo: `Manutenção Atrasada: ${m.placa || ''}`, desc: `O.S. ${m.tipo} agendada para ${m.km} KM`, link: 'manutencoes', targetId: m.id });
-        });
+    const calculatedAlerts = [];
 
-        multas.forEach(m => {
-            const label = m.placa || 'Frota';
-            const infraDate = new Date(m.data);
-            const limitDate = new Date();
-            limitDate.setDate(limitDate.getDate() - 30);
-            const formattedVal = parseFloat(m.valor) || 0;
-            
-            if (infraDate < limitDate) {
-                alerts.push({
-                    id: `ALT-MUL-EXP-${m.id}`,
-                    prioridade: 'Alta',
-                    titulo: `Multa Crítica pendente: ${label}`,
-                    desc: `Valor de R$ ${formattedVal.toFixed(2)} registrado em ${m.data.split('-').reverse().join('/')}`,
-                    link: 'multas',
-                    targetId: m.id
+    // Helper to calculate days difference
+    const getDaysDiff = (dateStr) => {
+        if (!dateStr) return 9999;
+        const target = new Date(dateStr + 'T23:59:59');
+        const diffTime = target - today;
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    };
+
+    // 1. Motoristas - CNH
+    motoristas.forEach(m => {
+        if (m.status !== 'ativo') return;
+        const diffDays = getDaysDiff(m.dataVencimentoCNH);
+        if (diffDays < 0) {
+            calculatedAlerts.push({
+                id: `CNH-VENCIDA-${m.id}`,
+                tipo: 'CNH vencida',
+                categoria: 'Motoristas',
+                titulo: `CNH Vencida: ${m.nome}`,
+                descricao: `CNH do motorista ${m.nome} venceu em ${m.dataVencimentoCNH.split('-').reverse().join('/')}.`,
+                prioridade: 'Crítica',
+                link: 'motoristas',
+                targetId: m.id,
+                motoristaId: m.id
+            });
+        } else if (diffDays <= 30) {
+            calculatedAlerts.push({
+                id: `CNH-VENCENDO-${m.id}`,
+                tipo: 'CNH vencendo',
+                categoria: 'Motoristas',
+                titulo: `CNH Vencendo: ${m.nome}`,
+                descricao: `CNH do motorista ${m.nome} vence em ${diffDays} dias (${m.dataVencimentoCNH.split('-').reverse().join('/')}).`,
+                prioridade: diffDays <= 7 ? 'Alta' : 'Média',
+                link: 'motoristas',
+                targetId: m.id,
+                motoristaId: m.id
+            });
+        }
+    });
+
+    // 2. Veículos - Seguro, Licenciamento, IPVA, Tacógrafo, Extintor
+    veiculos.forEach(v => {
+        const isActive = v.status !== 'inativo';
+        if (!isActive) return;
+
+        // Seguro
+        if (v.possuiSeguro === 'Sim' && v.validadeContratoSeguro) {
+            const diffDays = getDaysDiff(v.validadeContratoSeguro);
+            if (diffDays < 0) {
+                calculatedAlerts.push({
+                    id: `SEGURO-VENCIDO-${v.id}`,
+                    tipo: 'Seguro vencido',
+                    categoria: 'Veículos',
+                    titulo: `Seguro Vencido: ${v.placa}`,
+                    descricao: `O seguro do veículo ${v.placa} venceu em ${v.validadeContratoSeguro.split('-').reverse().join('/')}.`,
+                    prioridade: 'Crítica',
+                    link: 'veiculos',
+                    targetId: v.id,
+                    veiculoId: v.id
                 });
-            } else {
-                alerts.push({
-                    id: `ALT-MUL-PRX-${m.id}`,
-                    prioridade: 'Média',
-                    titulo: `Multa pendente de pagamento: ${label}`,
-                    desc: `Valor de R$ ${formattedVal.toFixed(2)} registrado em ${m.data.split('-').reverse().join('/')}`,
-                    link: 'multas',
-                    targetId: m.id
+            } else if (diffDays <= 30) {
+                calculatedAlerts.push({
+                    id: `SEGURO-VENCENDO-${v.id}`,
+                    tipo: 'Seguro vencendo',
+                    categoria: 'Veículos',
+                    titulo: `Seguro Vencendo: ${v.placa}`,
+                    descricao: `O seguro do veículo ${v.placa} vence em ${diffDays} dias (${v.validadeContratoSeguro.split('-').reverse().join('/')}).`,
+                    prioridade: diffDays <= 7 ? 'Alta' : 'Média',
+                    link: 'veiculos',
+                    targetId: v.id,
+                    veiculoId: v.id
                 });
             }
+        }
+
+        // Licenciamento
+        if (v.validadeLicenciamento) {
+            const diffDays = getDaysDiff(v.validadeLicenciamento);
+            if (diffDays < 0) {
+                calculatedAlerts.push({
+                    id: `LICEN-VENCIDO-${v.id}`,
+                    tipo: 'Licenciamento vencido',
+                    categoria: 'Veículos',
+                    titulo: `Licenciamento Vencido: ${v.placa}`,
+                    descricao: `O licenciamento do veículo ${v.placa} venceu em ${v.validadeLicenciamento.split('-').reverse().join('/')}.`,
+                    prioridade: 'Crítica',
+                    link: 'veiculos',
+                    targetId: v.id,
+                    veiculoId: v.id
+                });
+            } else if (diffDays <= 30) {
+                calculatedAlerts.push({
+                    id: `LICEN-VENCENDO-${v.id}`,
+                    tipo: 'Licenciamento vencendo',
+                    categoria: 'Veículos',
+                    titulo: `Licenciamento Vencendo: ${v.placa}`,
+                    descricao: `O licenciamento do veículo ${v.placa} vence em ${diffDays} dias (${v.validadeLicenciamento.split('-').reverse().join('/')}).`,
+                    prioridade: diffDays <= 7 ? 'Alta' : 'Média',
+                    link: 'veiculos',
+                    targetId: v.id,
+                    veiculoId: v.id
+                });
+            }
+        }
+
+        // IPVA
+        if (v.validadeIPVA) {
+            const diffDays = getDaysDiff(v.validadeIPVA);
+            if (diffDays < 0) {
+                calculatedAlerts.push({
+                    id: `IPVA-VENCIDO-${v.id}`,
+                    tipo: 'IPVA vencido',
+                    categoria: 'Veículos',
+                    titulo: `IPVA Vencido: ${v.placa}`,
+                    descricao: `O IPVA do veículo ${v.placa} venceu em ${v.validadeIPVA.split('-').reverse().join('/')}.`,
+                    prioridade: 'Crítica',
+                    link: 'veiculos',
+                    targetId: v.id,
+                    veiculoId: v.id
+                });
+            } else if (diffDays <= 30) {
+                calculatedAlerts.push({
+                    id: `IPVA-VENCENDO-${v.id}`,
+                    tipo: 'IPVA vencendo',
+                    categoria: 'Veículos',
+                    titulo: `IPVA Vencendo: ${v.placa}`,
+                    descricao: `O IPVA do veículo ${v.placa} vence em ${diffDays} dias (${v.validadeIPVA.split('-').reverse().join('/')}).`,
+                    prioridade: diffDays <= 7 ? 'Alta' : 'Média',
+                    link: 'veiculos',
+                    targetId: v.id,
+                    veiculoId: v.id
+                });
+            }
+        }
+
+        // Tacógrafo
+        if (v.possuiTacografo === 'Sim' && v.validadeAfericaoTacografo) {
+            const diffDays = getDaysDiff(v.validadeAfericaoTacografo);
+            if (diffDays < 0) {
+                calculatedAlerts.push({
+                    id: `TACO-VENCIDO-${v.id}`,
+                    tipo: 'Tacógrafo vencido',
+                    categoria: 'Veículos',
+                    titulo: `Tacógrafo Vencido: ${v.placa}`,
+                    descricao: `A aferição do tacógrafo do veículo ${v.placa} venceu em ${v.validadeAfericaoTacografo.split('-').reverse().join('/')}.`,
+                    prioridade: 'Crítica',
+                    link: 'veiculos',
+                    targetId: v.id,
+                    veiculoId: v.id
+                });
+            } else if (diffDays <= 30) {
+                calculatedAlerts.push({
+                    id: `TACO-VENCENDO-${v.id}`,
+                    tipo: 'Tacógrafo vencendo',
+                    categoria: 'Veículos',
+                    titulo: `Tacógrafo Vencendo: ${v.placa}`,
+                    descricao: `A aferição do tacógrafo do veículo ${v.placa} vence em ${diffDays} dias (${v.validadeAfericaoTacografo.split('-').reverse().join('/')}).`,
+                    prioridade: diffDays <= 7 ? 'Alta' : 'Média',
+                    link: 'veiculos',
+                    targetId: v.id,
+                    veiculoId: v.id
+                });
+            }
+        }
+
+        // Extintor
+        if (v.possuiExtintor === 'Sim' && v.validadeExtintor) {
+            const diffDays = getDaysDiff(v.validadeExtintor);
+            if (diffDays < 0) {
+                calculatedAlerts.push({
+                    id: `EXT-VENCIDO-${v.id}`,
+                    tipo: 'Extintor vencido',
+                    categoria: 'Veículos',
+                    titulo: `Extintor Vencido: ${v.placa}`,
+                    descricao: `A validade do extintor do veículo ${v.placa} venceu em ${v.validadeExtintor.split('-').reverse().join('/')}.`,
+                    prioridade: 'Crítica',
+                    link: 'veiculos',
+                    targetId: v.id,
+                    veiculoId: v.id
+                });
+            } else if (diffDays <= 30) {
+                calculatedAlerts.push({
+                    id: `EXT-VENCENDO-${v.id}`,
+                    tipo: 'Extintor vencendo',
+                    categoria: 'Veículos',
+                    titulo: `Extintor Vencendo: ${v.placa}`,
+                    descricao: `O extintor do veículo ${v.placa} vence em ${diffDays} dias (${v.validadeExtintor.split('-').reverse().join('/')}).`,
+                    prioridade: diffDays <= 7 ? 'Alta' : 'Média',
+                    link: 'veiculos',
+                    targetId: v.id,
+                    veiculoId: v.id
+                });
+            }
+        }
+    });
+
+    // 3. Manutenções
+    manutencoes.forEach(m => {
+        const v = veiculos.find(item => item.id === m.veiculoId);
+        const placa = v ? v.placa : 'Veículo';
+
+        if (m.status === 'Atrasada') {
+            calculatedAlerts.push({
+                id: `MAN-ATRASADA-${m.id}`,
+                tipo: 'Manutenção preventiva atrasada',
+                categoria: 'Manutenções',
+                titulo: `Manutenção Atrasada: ${placa}`,
+                descricao: `Manutenção preventiva do tipo ${m.tipo} agendada para ${m.data} está atrasada.`,
+                prioridade: 'Alta',
+                link: 'manutencoes',
+                targetId: m.veiculoId,
+                veiculoId: m.veiculoId
+            });
+        } else if (m.status === 'Agendada') {
+            const diffDays = getDaysDiff(m.data);
+            const kmAtual = v ? parseFloat(v.kmAtual) || 0 : 0;
+            const targetKM = parseFloat(m.km) || 0;
+            const kmRemaining = targetKM - kmAtual;
+
+            if (diffDays >= 0 && (diffDays <= 10 || kmRemaining <= 500)) {
+                calculatedAlerts.push({
+                    id: `MAN-PROXIMA-${m.id}`,
+                    tipo: 'Manutenção preventiva próxima',
+                    categoria: 'Manutenções',
+                    titulo: `Manutenção Próxima: ${placa}`,
+                    descricao: `Manutenção ${m.tipo} agendada para ${m.data.split('-').reverse().join('/')} ou KM ${targetKM.toLocaleString('pt-BR')} (restam ${diffDays} dias ou ${kmRemaining} km).`,
+                    prioridade: 'Média',
+                    link: 'manutencoes',
+                    targetId: m.veiculoId,
+                    veiculoId: m.veiculoId
+                });
+            } else {
+                calculatedAlerts.push({
+                    id: `MAN-PENDENTE-${m.id}`,
+                    tipo: 'Ordem de serviço pendente',
+                    categoria: 'Manutenções',
+                    titulo: `Ordem de Serviço Pendente: ${placa}`,
+                    descricao: `Manutenção ${m.tipo} está pendente / agendada para ${m.data.split('-').reverse().join('/')}.`,
+                    prioridade: 'Informativa',
+                    link: 'manutencoes',
+                    targetId: m.veiculoId,
+                    veiculoId: m.veiculoId
+                });
+            }
+        }
+    });
+
+    // 4. Troca de Óleo
+    oleos.forEach(o => {
+        const v = veiculos.find(item => item.id === o.veiculoId);
+        if (!v || v.tipoUnidade === 'Implemento/Reboque') return;
+
+        const kmAtual = parseFloat(v.kmAtual) || 0;
+        const targetKM = parseFloat(o.proximaTrocaKM) || 0;
+        const kmRemaining = targetKM - kmAtual;
+        const diffDays = getDaysDiff(o.proximaTrocaDias);
+
+        if (kmRemaining <= 0 || diffDays < 0) {
+            calculatedAlerts.push({
+                id: `OLEO-ATRASADA-${o.id}`,
+                tipo: 'Troca atrasada',
+                categoria: 'Troca de Óleo',
+                titulo: `Troca de Óleo Atrasada: ${v.placa}`,
+                descricao: `Troca de óleo vencida por ${Math.abs(kmRemaining).toLocaleString('pt-BR')} km ou ${Math.abs(diffDays)} dias.`,
+                prioridade: 'Alta',
+                link: 'oleo',
+                targetId: v.id,
+                veiculoId: v.id
+            });
+        } else if (kmRemaining <= 500 || diffDays <= 10) {
+            calculatedAlerts.push({
+                id: `OLEO-PROXIMA-${o.id}`,
+                tipo: 'Troca próxima',
+                categoria: 'Troca de Óleo',
+                titulo: `Troca de Óleo Próxima: ${v.placa}`,
+                descricao: `Troca de óleo agendada para KM ${targetKM.toLocaleString('pt-BR')} (restam ${kmRemaining} km ou ${diffDays} dias).`,
+                prioridade: 'Média',
+                link: 'oleo',
+                targetId: v.id,
+                veiculoId: v.id
+            });
+        }
+    });
+
+    // 5. Pneus
+    pneus.forEach(p => {
+        if (!p.veiculoAtual) return;
+        const v = veiculos.find(item => item.id === p.veiculoAtual);
+        const placa = v ? v.placa : 'Frota';
+
+        let kmRodado = 0;
+        if (v) {
+            kmRodado = (parseFloat(v.kmAtual) || 0) - (parseFloat(p.kmInicial) || 0);
+        }
+        const vidaEstimada = parseFloat(p.vidaEstimada) || 40000;
+        const kmLeft = vidaEstimada - kmRodado;
+        const percent = (kmLeft / vidaEstimada) * 100;
+
+        if (percent < 10) {
+            calculatedAlerts.push({
+                id: `PNEU-LIMITE-${p.id}`,
+                tipo: 'Vida útil próxima do limite',
+                categoria: 'Pneus',
+                titulo: `Pneu Crítico [${p.codigo}]: ${placa}`,
+                descricao: `Pneu na posição ${p.posicao || 'N/A'} atingiu menos de 10% da vida útil estimada (${kmLeft.toFixed(0)} km restantes).`,
+                prioridade: 'Crítica',
+                link: 'pneus',
+                targetId: p.id,
+                veiculoId: p.veiculoAtual
+            });
+        } else if (percent < 25) {
+            calculatedAlerts.push({
+                id: `PNEU-DESGASTE-${p.id}`,
+                tipo: 'Vida útil próxima do limite',
+                categoria: 'Pneus',
+                titulo: `Desgaste de Pneu [${p.codigo}]: ${placa}`,
+                descricao: `Pneu na posição ${p.posicao || 'N/A'} atingiu 25% ou menos da vida útil estimada (${kmLeft.toFixed(0)} km restantes).`,
+                prioridade: 'Média',
+                link: 'pneus',
+                targetId: p.id,
+                veiculoId: p.veiculoAtual
+            });
+        }
+    });
+
+    // 6. Viagens
+    viagens.forEach(vi => {
+        if (vi.status !== 'Em Andamento') return;
+
+        const v = veiculos.find(item => item.id === vi.veiculoId);
+        const m = motoristas.find(item => item.id === vi.motoristaId);
+        const placa = v ? v.placa : 'N/A';
+        const motoristaNome = m ? m.nome : 'N/A';
+
+        const departureDateTime = new Date(`${vi.dataSaida}T${vi.horaSaida || '00:00'}:00`);
+        const durationHours = Math.abs(today - departureDateTime) / (1000 * 60 * 60);
+
+        if (durationHours > 72) {
+            calculatedAlerts.push({
+                id: `VIAGEM-LONGA-${vi.id}`,
+                tipo: 'Viagem em andamento há muito tempo',
+                categoria: 'Viagens',
+                titulo: `Viagem Longa em Andamento: ${vi.origem} ➔ ${vi.destino}`,
+                descricao: `A viagem do veículo ${placa} iniciou em ${vi.dataSaida.split('-').reverse().join('/')} às ${vi.horaSaida || '00:00'} e está ativa há mais de 3 dias.`,
+                prioridade: 'Alta',
+                link: 'viagens',
+                targetId: vi.id,
+                veiculoId: vi.veiculoId,
+                motoristaId: vi.motoristaId
+            });
+        }
+
+        // Veículo em viagem
+        calculatedAlerts.push({
+            id: `VEICULO-VIAGEM-${vi.id}`,
+            tipo: 'Veículo em viagem',
+            categoria: 'Viagens',
+            titulo: `Veículo em Viagem: ${placa}`,
+            descricao: `Veículo está em rota de ${vi.origem} para ${vi.destino}.`,
+            prioridade: 'Informativa',
+            link: 'viagens',
+            targetId: vi.id,
+            veiculoId: vi.veiculoId
         });
 
-        pneus.forEach(p => {
-            const kmRodado = parseFloat(p.kmAtual) - parseFloat(p.kmInicial);
-            const kmLeft = Math.max(0, parseFloat(p.vidaEstimada) - kmRodado);
-            const pct = parseFloat(p.vidaEstimada) > 0 ? (kmLeft / parseFloat(p.vidaEstimada)) * 100 : 0;
-            if (pct < 10) alerts.push({ id: `ALT-PNE-${p.id}`, prioridade: 'Alta', titulo: `Trocar Pneu: ${p.placa}`, desc: `Pneu [${p.codigo}] com apenas ${Math.round(kmLeft)} KM restantes`, link: 'pneus', targetId: p.id });
-            else if (pct < 25) alerts.push({ id: `ALT-PNE-PRX-${p.id}`, prioridade: 'Média', titulo: `Desgaste Pneu: ${p.placa}`, desc: `Pneu [${p.codigo}] com ${Math.round(pct)}% de vida útil`, link: 'pneus', targetId: p.id });
+        // Motorista em viagem
+        calculatedAlerts.push({
+            id: `MOTORISTA-VIAGEM-${vi.id}`,
+            tipo: 'Motorista em viagem',
+            categoria: 'Viagens',
+            titulo: `Motorista em Viagem: ${motoristaNome}`,
+            descricao: `Motorista está conduzindo na rota de ${vi.origem} para ${vi.destino}.`,
+            prioridade: 'Informativa',
+            link: 'viagens',
+            targetId: vi.id,
+            motoristaId: vi.motoristaId
+        });
+    });
+
+    // 7. Multas
+    multas.forEach(mu => {
+        if (mu.status !== 'Não Pago') return;
+
+        const v = veiculos.find(item => item.id === mu.veiculoId);
+        const label = v ? v.placa : 'Frota';
+        const daysDiff = getDaysDiff(mu.data);
+
+        if (Math.abs(daysDiff) > 30) {
+            calculatedAlerts.push({
+                id: `MULTA-VENCIDA-${mu.id}`,
+                tipo: 'Prazo vencido',
+                categoria: 'Multas',
+                titulo: `Prazo de Multa Expirado: ${label}`,
+                descricao: `Multa no valor de R$ ${(parseFloat(mu.valor) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} registrada em ${mu.data.split('-').reverse().join('/')} expirou o prazo de 30 dias de pagamento sem compensação.`,
+                prioridade: 'Alta',
+                link: 'multas',
+                targetId: mu.id,
+                veiculoId: mu.veiculoId,
+                motoristaId: mu.motoristaId
+            });
+        } else {
+            calculatedAlerts.push({
+                id: `MULTA-PENDENTE-${mu.id}`,
+                tipo: 'Prazo vencido',
+                categoria: 'Multas',
+                titulo: `Multa Pendente: ${label}`,
+                descricao: `Multa no valor de R$ ${(parseFloat(mu.valor) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} registrada em ${mu.data.split('-').reverse().join('/')}.`,
+                prioridade: 'Média',
+                link: 'multas',
+                targetId: mu.id,
+                veiculoId: mu.veiculoId,
+                motoristaId: mu.motoristaId
+            });
+        }
+    });
+
+    const existingRes = await db.query('SELECT * FROM notificacoes');
+    const existing = existingRes.rows;
+
+    for (const alert of calculatedAlerts) {
+        const found = existing.find(e => e.id === alert.id);
+
+        if (!found) {
+            const auditEntry = {
+                acao: 'criação',
+                usuario: usuarioName,
+                data: new Date().toISOString()
+            };
+            await db.query(`
+                INSERT INTO notificacoes (
+                    id, tipo, categoria, titulo, descricao, "dataCriacao", prioridade, status, link, "targetId", "veiculoId", "motoristaId", "usuarioResponsavel", auditoria
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            `, [
+                alert.id, alert.tipo, alert.categoria, alert.titulo, alert.descricao, new Date(), alert.prioridade, 'Não lida', alert.link, alert.targetId, alert.veiculoId || null, alert.motoristaId || null, usuarioName, JSON.stringify([auditEntry])
+            ]);
+        } else if (found.status === 'Resolvida') {
+            const auditEntry = {
+                acao: 'reabertura',
+                usuario: usuarioName,
+                data: new Date().toISOString()
+            };
+            let newAuditoria = found.auditoria || [];
+            if (typeof newAuditoria === 'string') {
+                newAuditoria = JSON.parse(newAuditoria);
+            }
+            newAuditoria.push(auditEntry);
+
+            await db.query(`
+                UPDATE notificacoes SET 
+                    status = 'Não lida', 
+                    prioridade = $1, 
+                    descricao = $2, 
+                    auditoria = $3 
+                WHERE id = $4
+            `, [alert.prioridade, alert.descricao, JSON.stringify(newAuditoria), alert.id]);
+        } else {
+            if (found.prioridade !== alert.prioridade || found.descricao !== alert.descricao) {
+                await db.query(`
+                    UPDATE notificacoes SET 
+                        prioridade = $1, 
+                        descricao = $2 
+                    WHERE id = $3
+                `, [alert.prioridade, alert.descricao, alert.id]);
+            }
+        }
+    }
+
+    const calculatedIds = new Set(calculatedAlerts.map(a => a.id));
+    const activeDatabaseNotifs = existing.filter(e => e.status !== 'Resolvida');
+
+    for (const notif of activeDatabaseNotifs) {
+        if (!calculatedIds.has(notif.id)) {
+            const auditEntry = {
+                acao: 'resolução automática',
+                usuario: 'sistema',
+                data: new Date().toISOString()
+            };
+            let newAuditoria = notif.auditoria || [];
+            if (typeof newAuditoria === 'string') {
+                newAuditoria = JSON.parse(newAuditoria);
+            }
+            newAuditoria.push(auditEntry);
+
+            await db.query(`
+                UPDATE notificacoes SET 
+                    status = 'Resolvida', 
+                    auditoria = $1 
+                WHERE id = $2
+            `, [JSON.stringify(newAuditoria), notif.id]);
+        }
+    }
+}
+
+// REST API Routes for Notifications
+app.get('/api/notificacoes', requireAuth, async (req, res) => {
+    try {
+        const { categoria, prioridade, status, usuarioResponsavel, dataInicio, dataFim, veiculoId, motoristaId, search } = req.query;
+
+        let queryStr = 'SELECT n.*, v.placa as "veiculoPlaca", m.nome as "motoristaNome" FROM notificacoes n LEFT JOIN veiculos v ON n."veiculoId" = v.id LEFT JOIN motoristas m ON n."motoristaId" = m.id';
+        const whereClauses = [];
+        const params = [];
+
+        if (categoria) {
+            params.push(categoria);
+            whereClauses.push(`n.categoria = $${params.length}`);
+        }
+        if (prioridade) {
+            params.push(prioridade);
+            whereClauses.push(`n.prioridade = $${params.length}`);
+        }
+        if (status) {
+            params.push(status);
+            whereClauses.push(`n.status = $${params.length}`);
+        }
+        if (usuarioResponsavel) {
+            params.push(`%${usuarioResponsavel}%`);
+            whereClauses.push(`n."usuarioResponsavel" ILIKE $${params.length}`);
+        }
+        if (veiculoId) {
+            params.push(veiculoId);
+            whereClauses.push(`n."veiculoId" = $${params.length}`);
+        }
+        if (motoristaId) {
+            params.push(motoristaId);
+            whereClauses.push(`n."motoristaId" = $${params.length}`);
+        }
+        if (dataInicio) {
+            params.push(dataInicio);
+            whereClauses.push(`n."dataCriacao" >= $${params.length}::timestamp`);
+        }
+        if (dataFim) {
+            params.push(dataFim + 'T23:59:59');
+            whereClauses.push(`n."dataCriacao" <= $${params.length}::timestamp`);
+        }
+        if (search) {
+            params.push(`%${search}%`);
+            whereClauses.push(`(n.titulo ILIKE $${params.length} OR n.descricao ILIKE $${params.length} OR v.placa ILIKE $${params.length} OR m.nome ILIKE $${params.length})`);
+        }
+
+        if (whereClauses.length > 0) {
+            queryStr += ' WHERE ' + whereClauses.join(' AND ');
+        }
+
+        queryStr += ` ORDER BY 
+            CASE n.prioridade 
+                WHEN 'Crítica' THEN 4 
+                WHEN 'Alta' THEN 3 
+                WHEN 'Média' THEN 2 
+                WHEN 'Informativa' THEN 1 
+                ELSE 0 
+            END DESC, 
+            n."dataCriacao" DESC`;
+
+        const result = await db.query(queryStr, params);
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Erro ao obter notificações:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
+});
+
+app.put('/api/notificacoes/:id', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        if (!status) {
+            return res.status(400).json({ error: 'Status é obrigatório.' });
+        }
+
+        const selectRes = await db.query('SELECT * FROM notificacoes WHERE id = $1', [id]);
+        if (selectRes.rowCount === 0) {
+            return res.status(404).json({ error: 'Notificação não encontrada.' });
+        }
+        const notif = selectRes.rows[0];
+
+        let auditoria = notif.auditoria || [];
+        if (typeof auditoria === 'string') {
+            auditoria = JSON.parse(auditoria);
+        }
+        const acao = `marcar como ${status.toLowerCase()}`;
+        auditoria.push({
+            acao: acao,
+            usuario: req.user.nome,
+            data: new Date().toISOString()
         });
 
-        res.json(alerts);
+        const updateRes = await db.query(`
+            UPDATE notificacoes 
+            SET status = $1, "usuarioResponsavel" = $2, auditoria = $3 
+            WHERE id = $4
+            RETURNING *
+        `, [status, req.user.nome, JSON.stringify(auditoria), id]);
+
+        await db.query(`
+            INSERT INTO logs (usuario, perfil, acao, entidade, detalhes)
+            VALUES ($1, $2, $3, $4, $5)
+        `, [req.user.nome, req.user.perfil, `Alteração de status de notificação: ${status}`, 'Notificações', `Notificação ${id} alterada para ${status}`]);
+
+        res.json(updateRes.rows[0]);
+    } catch (err) {
+        console.error("Erro ao atualizar notificação:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
+});
+
+app.delete('/api/notificacoes/:id', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const selectRes = await db.query('SELECT * FROM notificacoes WHERE id = $1', [id]);
+        if (selectRes.rowCount === 0) {
+            return res.status(404).json({ error: 'Notificação não encontrada.' });
+        }
+
+        await db.query('DELETE FROM notificacoes WHERE id = $1', [id]);
+
+        await db.query(`
+            INSERT INTO logs (usuario, perfil, acao, entidade, detalhes)
+            VALUES ($1, $2, $3, $4, $5)
+        `, [req.user.nome, req.user.perfil, 'Exclusão de notificação', 'Notificações', `Notificação ${id} excluída permanentemente`]);
+
+        res.json({ success: true, message: 'Notificação excluída com sucesso.' });
+    } catch (err) {
+        console.error("Erro ao excluir notificação:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
+});
+
+app.post('/api/notificacoes/sync', requireAuth, async (req, res) => {
+    try {
+        await syncNotifications(req.user.nome);
+        res.json({ success: true, message: 'Notificações sincronizadas com sucesso.' });
+    } catch (err) {
+        console.error("Erro ao sincronizar notificações:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
+});
+
+app.get('/api/alertas', requireAuth, async (req, res) => {
+    try {
+        await syncNotifications(req.user ? req.user.nome : 'sistema');
+
+        const result = await db.query(`
+            SELECT id, tipo, categoria, titulo, descricao as "desc", prioridade, status, link, "targetId" 
+            FROM notificacoes 
+            WHERE status != 'Resolvida'
+            ORDER BY 
+                CASE prioridade 
+                    WHEN 'Crítica' THEN 4 
+                    WHEN 'Alta' THEN 3 
+                    WHEN 'Média' THEN 2 
+                    WHEN 'Informativa' THEN 1 
+                    ELSE 0 
+                END DESC, 
+                "dataCriacao" DESC
+        `);
+
+        res.json(result.rows);
     } catch (err) {
         console.error("Erro ao obter alertas dinâmicos:", err);
         res.status(500).json({ error: 'Erro interno do servidor.' });
@@ -1888,6 +2758,109 @@ async function boot() {
         console.error("Falha crítica ao bootar banco de dados PostgreSQL:", err);
     }
 }
+
+
+// ─── ALERTAS DINÂMICOS ────────────────────────────────────
+app.get('/api/alertas', requireAuth, async (req, res) => {
+    try {
+        const alerts = [];
+        const today = new Date();
+        const tenDays = new Date(); tenDays.setDate(today.getDate() + 10);
+        const thirtyDays = new Date(); thirtyDays.setDate(today.getDate() + 30);
+
+        const [
+            motoristasRes,
+            manutencoesRes,
+            multasRes,
+            pneusRes,
+            veiculosRes,
+            oleosRes
+        ] = await Promise.all([
+            db.query('SELECT id, nome, "dataVencimentoCNH", categoria, "categoriaCNH" FROM motoristas WHERE status != \'inativo\''),
+            db.query('SELECT m.id, m.km, m.tipo, m.status, v.placa, m."veiculoId" FROM manutencoes m LEFT JOIN veiculos v ON m."veiculoId" = v.id WHERE m.status = \'Atrasada\''),
+            db.query('SELECT m.id, m.data, m.valor, m.status, v.placa, m."veiculoId" FROM multas m LEFT JOIN veiculos v ON m."veiculoId" = v.id WHERE m.status = \'Não Pago\''),
+            db.query('SELECT p.id, p.codigo, p."vidaEstimada", p."kmInicial", v.placa, v."kmAtual" FROM pneus p JOIN veiculos v ON p."veiculoAtual" = v.id WHERE p."veiculoAtual" IS NOT NULL'),
+            db.query('SELECT id, placa, "validadeLicenciamento", "validadeIPVA" FROM veiculos WHERE status != \'inativo\''),
+            db.query('SELECT o.id, o."veiculoId", o."kmProxTroca", o."dataProxTroca", v."kmAtual", v.placa FROM oleos o JOIN veiculos v ON o."veiculoId" = v.id WHERE o.id = (SELECT id FROM oleos WHERE "veiculoId" = o."veiculoId" ORDER BY data DESC LIMIT 1)')
+        ]);
+
+        const motoristas = motoristasRes.rows;
+        const manutencoes = manutencoesRes.rows;
+        const multas = multasRes.rows;
+        const pneus = pneusRes.rows;
+        const veiculos = veiculosRes.rows;
+        const oleos = oleosRes.rows;
+
+        // CNH alerts
+        motoristas.forEach(m => {
+            if (!m.dataVencimentoCNH) return;
+            const exp = new Date(m.dataVencimentoCNH);
+            if (exp < today) {
+                alerts.push({ id: `ALT-CNH-EXP-${m.id}`, prioridade: 'Crítica', categoria: 'Motoristas', status: 'Não lida', titulo: `CNH Vencida: ${m.nome}`, descricao: `Venceu em ${m.dataVencimentoCNH.split('T')[0].split('-').reverse().join('/')}`, link: 'motoristas', targetId: m.id });
+            } else if (exp <= tenDays) {
+                alerts.push({ id: `ALT-CNH-PRX-${m.id}`, prioridade: 'Alta', categoria: 'Motoristas', status: 'Não lida', titulo: `CNH a Vencer: ${m.nome}`, descricao: `Vence em ${m.dataVencimentoCNH.split('T')[0].split('-').reverse().join('/')}`, link: 'motoristas', targetId: m.id });
+            }
+        });
+
+        // Manutenção atrasada
+        manutencoes.forEach(m => {
+            alerts.push({ id: `ALT-MAN-${m.id}`, prioridade: 'Alta', categoria: 'Manutenções', status: 'Não lida', titulo: `Manutenção Atrasada: ${m.placa || ''}`, descricao: `O.S. ${m.tipo} agendada para ${m.km} KM`, link: 'manutencoes', targetId: m.id });
+        });
+
+        // Multas não pagas
+        multas.forEach(m => {
+            const label = m.placa || 'Frota';
+            const infraDate = new Date(m.data);
+            const limitDate = new Date();
+            limitDate.setDate(limitDate.getDate() - 30);
+            const formattedVal = parseFloat(m.valor) || 0;
+            const dateStr = m.data ? m.data.split('T')[0].split('-').reverse().join('/') : '';
+
+            if (infraDate < limitDate) {
+                alerts.push({ id: `ALT-MUL-EXP-${m.id}`, prioridade: 'Crítica', categoria: 'Multas', status: 'Não lida', titulo: `Multa Crítica pendente: ${label}`, descricao: `Valor de R$ ${formattedVal.toFixed(2)} registrado em ${dateStr}`, link: 'multas', targetId: m.id });
+            } else {
+                alerts.push({ id: `ALT-MUL-PRX-${m.id}`, prioridade: 'Alta', categoria: 'Multas', status: 'Não lida', titulo: `Multa pendente de pagamento: ${label}`, descricao: `Valor de R$ ${formattedVal.toFixed(2)} registrado em ${dateStr}`, link: 'multas', targetId: m.id });
+            }
+        });
+
+        // Pneus
+        pneus.forEach(p => {
+            const kmRodado = parseFloat(p.kmAtual) - parseFloat(p.kmInicial);
+            const kmLeft = Math.max(0, parseFloat(p.vidaEstimada) - kmRodado);
+            const pct = parseFloat(p.vidaEstimada) > 0 ? (kmLeft / parseFloat(p.vidaEstimada)) * 100 : 0;
+            if (pct < 10) alerts.push({ id: `ALT-PNE-${p.id}`, prioridade: 'Crítica', categoria: 'Pneus', status: 'Não lida', titulo: `Trocar Pneu: ${p.placa}`, descricao: `Pneu [${p.codigo}] com apenas ${Math.round(kmLeft)} KM restantes`, link: 'pneus', targetId: p.id });
+            else if (pct < 25) alerts.push({ id: `ALT-PNE-PRX-${p.id}`, prioridade: 'Alta', categoria: 'Pneus', status: 'Não lida', titulo: `Desgaste Pneu: ${p.placa}`, descricao: `Pneu [${p.codigo}] com ${Math.round(pct)}% de vida útil`, link: 'pneus', targetId: p.id });
+        });
+
+        // Licenciamento / IPVA
+        veiculos.forEach(v => {
+            if (v.validadeLicenciamento) {
+                const d = new Date(v.validadeLicenciamento);
+                if (d < today) alerts.push({ id: `ALT-LIC-EXP-${v.id}`, prioridade: 'Crítica', categoria: 'Veículos', status: 'Não lida', titulo: `Licenciamento Vencido: ${v.placa}`, descricao: `Venceu em ${v.validadeLicenciamento.split('T')[0].split('-').reverse().join('/')}`, link: 'veiculos', targetId: v.id });
+                else if (d <= thirtyDays) alerts.push({ id: `ALT-LIC-PRX-${v.id}`, prioridade: 'Alta', categoria: 'Veículos', status: 'Não lida', titulo: `Licenciamento a Vencer: ${v.placa}`, descricao: `Vence em ${v.validadeLicenciamento.split('T')[0].split('-').reverse().join('/')}`, link: 'veiculos', targetId: v.id });
+            }
+            if (v.validadeIPVA) {
+                const d = new Date(v.validadeIPVA);
+                if (d < today) alerts.push({ id: `ALT-IPVA-EXP-${v.id}`, prioridade: 'Crítica', categoria: 'Veículos', status: 'Não lida', titulo: `IPVA Vencido: ${v.placa}`, descricao: `Venceu em ${v.validadeIPVA.split('T')[0].split('-').reverse().join('/')}`, link: 'veiculos', targetId: v.id });
+                else if (d <= thirtyDays) alerts.push({ id: `ALT-IPVA-PRX-${v.id}`, prioridade: 'Alta', categoria: 'Veículos', status: 'Não lida', titulo: `IPVA a Vencer: ${v.placa}`, descricao: `Vence em ${v.validadeIPVA.split('T')[0].split('-').reverse().join('/')}`, link: 'veiculos', targetId: v.id });
+            }
+        });
+
+        // Troca de óleo
+        oleos.forEach(o => {
+            if (o.kmProxTroca && o.kmAtual) {
+                const kmLeft = parseFloat(o.kmProxTroca) - parseFloat(o.kmAtual);
+                if (kmLeft <= 0) alerts.push({ id: `ALT-OIL-EXP-${o.veiculoId}`, prioridade: 'Crítica', categoria: 'Troca de Óleo', status: 'Não lida', titulo: `Troca de Óleo Atrasada: ${o.placa}`, descricao: `KM da troca: ${parseInt(o.kmProxTroca).toLocaleString('pt-BR')} — KM atual: ${parseInt(o.kmAtual).toLocaleString('pt-BR')}`, link: 'oleo', targetId: o.veiculoId });
+                else if (kmLeft <= 500) alerts.push({ id: `ALT-OIL-PRX-${o.veiculoId}`, prioridade: 'Alta', categoria: 'Troca de Óleo', status: 'Não lida', titulo: `Troca de Óleo Próxima: ${o.placa}`, descricao: `Restam ${Math.round(kmLeft)} KM para a próxima troca`, link: 'oleo', targetId: o.veiculoId });
+            }
+        });
+
+        res.json(alerts);
+    } catch (err) {
+        console.error("Erro ao obter alertas dinâmicos:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
+});
 
 // ─── Start Server ─────────────────────────────────────────
 app.listen(PORT, async () => {

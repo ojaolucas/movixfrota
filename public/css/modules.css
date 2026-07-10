@@ -779,6 +779,12 @@ textarea.form-control {
     scrollbar-width: none; /* Firefox */
     -webkit-overflow-scrolling: touch;
     padding-bottom: 2px;
+    cursor: grab;
+    user-select: none;
+}
+
+.detail-tab-menu.grabbing {
+    cursor: grabbing;
 }
 
 .detail-tab-menu::-webkit-scrollbar {

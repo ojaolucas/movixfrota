@@ -319,9 +319,14 @@
                         <td><span class="status-pill ${statusClass}">${t.status}</span></td>
                         <td style="text-align: center;">
                             ${t.status && t.status.toLowerCase() === 'em andamento' && !isVisualizador ? `
-                                <button class="btn-icon-only btn-conclude" data-id="${t.id}" title="Registrar Retorno da Viagem">
-                                    <i class="fa-solid fa-flag-checkered text-success"></i>
-                                </button>
+                                <div style="display:flex; gap:6px; justify-content:center; align-items:center;">
+                                    <button class="btn-icon-only btn-conclude" data-id="${t.id}" title="Registrar Retorno da Viagem">
+                                        <i class="fa-solid fa-flag-checkered text-success"></i>
+                                    </button>
+                                    <button class="btn-icon-only btn-troca-motorista" data-id="${t.id}" title="Registrar Troca de Motorista" style="background-color: var(--primary-light); color: var(--primary);">
+                                        <i class="fa-solid fa-arrows-spin"></i>
+                                    </button>
+                                </div>
                             ` : '<span style="color:var(--text-muted); font-size:0.8rem;">-</span>'}
                         </td>
                         ${actionsHTML}
@@ -449,6 +454,7 @@
             const conclBtn = e.target.closest('.btn-conclude');
             const editBtn = e.target.closest('.btn-edit-viagem');
             const deleteBtn = e.target.closest('.btn-delete-viagem');
+            const swapBtn = e.target.closest('.btn-troca-motorista');
             
             if (viewDetailBtn) {
                 openViagemDetailModal(viewDetailBtn.getAttribute('data-id'));
@@ -458,6 +464,8 @@
                 openViagemModal(editBtn.getAttribute('data-id'));
             } else if (deleteBtn) {
                 confirmDeleteViagem(deleteBtn.getAttribute('data-id'));
+            } else if (swapBtn) {
+                openTrocaMotoristaModal(swapBtn.getAttribute('data-id'));
             }
         });
 
@@ -503,40 +511,88 @@
                 historyTimelineHTML = '<p style="font-size:0.8rem; color:var(--text-muted); font-style:italic;">Nenhum log de auditoria encontrado para esta viagem.</p>';
             }
 
-            modalBody.innerHTML = `
-                <div class="grid-1-1" style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px;">
-                    <div>
-                        <h4 style="font-family:var(--font-heading); color:var(--primary); margin-bottom:12px;"><i class="fa-solid fa-circle-info"></i> Informações Gerais</h4>
-                        <ul class="detail-sidebar-info-list" style="border:none; padding:0; font-size:0.85rem; display:flex; flex-direction:column; gap:10px;">
-                            <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Veículo</span><strong style="color:var(--primary);">${v ? `${v.placa} (${v.marca} ${v.modelo})` : 'Deletado'}</strong></li>
-                            <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Motorista</span><strong>${m ? m.nome : 'Deletado'}</strong></li>
-                            <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Categoria do Condutor</span><strong>${t.motoristaCategoria || (m ? m.categoria : 'Motorista Efetivo')}</strong></li>
-                            <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Origem</span><strong>${t.origem}</strong></li>
-                            <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Destino</span><strong>${t.destino}</strong></li>
-                            <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Partida</span><strong>${t.dataSaida.split('-').reverse().join('/')} às ${t.horaSaida || '-'}</strong></li>
-                            <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Retorno</span><strong>${t.dataRetorno ? `${t.dataRetorno.split('-').reverse().join('/')} às ${t.horaRetorno || '-'}` : '<span class="text-warning">Em trânsito</span>'}</strong></li>
-                            <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>KM Inicial</span><strong>${parseFloat(t.kmInicial).toLocaleString('pt-BR')} km</strong></li>
-                            <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>KM Final</span><strong>${t.kmFinal > 0 ? `${parseFloat(t.kmFinal).toLocaleString('pt-BR')} km` : '-'}</strong></li>
-                            <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>KM Rodados</span><strong>${t.kmRodado > 0 ? `${parseFloat(t.kmRodado).toLocaleString('pt-BR')} km` : '-'}</strong></li>
-                            <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Custos de Viagem</span><strong>${window.movixApp.formatCurrency(t.custos)}</strong></li>
-                            <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Situação</span>
-                                <span class="status-pill ${t.status && t.status.toLowerCase() === 'realizada' ? 'realizada' : 'em_andamento'}">${t.status}</span>
-                            </li>
-                        </ul>
+            // Build driver history rows
+            let historicoCondutores = t.historicoCondutores || [];
+            if (typeof historicoCondutores === 'string') {
+                historicoCondutores = JSON.parse(historicoCondutores);
+            }
 
-                        ${t.observacoes ? `
-                        <div style="margin-top:20px;">
-                            <h5 style="font-weight:700; margin-bottom:6px; font-size:0.85rem;">Instruções e Observações:</h5>
-                            <p style="font-size:0.8rem; line-height:1.5; color:var(--text-muted); background:var(--bg-surface-hover); padding:10px; border-radius:6px; border-left:3px solid var(--primary); white-space:pre-wrap;">${t.observacoes}</p>
-                        </div>` : ''}
-                    </div>
-
-                    <div style="border-left:1px solid var(--border-color); padding-left:20px;">
-                        <h4 style="font-family:var(--font-heading); color:var(--primary); margin-bottom:16px;"><i class="fa-solid fa-clock-rotate-left"></i> Histórico de Alterações (Auditoria)</h4>
-                        <div style="max-height: 380px; overflow-y:auto; padding-right:8px;">
-                            ${historyTimelineHTML}
+            let historyDriversHTML = '';
+            if (historicoCondutores.length > 0) {
+                historyDriversHTML = `
+                    <div style="border-top:1px solid var(--border-color); padding-top:20px; margin-top:20px;">
+                        <h4 style="font-family:var(--font-heading); color:var(--primary); margin-bottom:12px;"><i class="fa-solid fa-people-carry-box"></i> Histórico de Condutores</h4>
+                        <div class="table-responsive" style="margin-top:10px; border:none; box-shadow:none;">
+                            <table class="smart-table" style="font-size:0.85rem;">
+                                <thead>
+                                    <tr>
+                                        <th>Motorista</th>
+                                        <th>Início</th>
+                                        <th>Fim</th>
+                                        <th style="text-align:right;">KM Inicial</th>
+                                        <th style="text-align:right;">KM Final</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${historicoCondutores.map(h => {
+                                        const startStr = `${h.dataInicio.split('-').reverse().join('/')} às ${h.horaInicio}`;
+                                        const endStr = h.dataFim 
+                                            ? `${h.dataFim.split('-').reverse().join('/')} às ${h.horaFim}`
+                                            : (t.status === 'Realizada' ? '-' : '<span class="status-pill ok" style="font-size:0.65rem; padding:1px 6px;">Conduzindo</span>');
+                                        return `
+                                            <tr>
+                                                <td style="font-weight:600;">${h.motoristaNome || 'Desconhecido'}</td>
+                                                <td>${startStr}</td>
+                                                <td>${endStr}</td>
+                                                <td style="text-align:right;">${parseFloat(h.kmInicial).toLocaleString('pt-BR')} km</td>
+                                                <td style="text-align:right;">${h.kmFinal ? `${parseFloat(h.kmFinal).toLocaleString('pt-BR')} km` : '-'}</td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
+                `;
+            }
+
+            modalBody.innerHTML = `
+                <div style="display:flex; flex-direction:column; gap:20px;">
+                    <div class="grid-1-1" style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px;">
+                        <div>
+                            <h4 style="font-family:var(--font-heading); color:var(--primary); margin-bottom:12px;"><i class="fa-solid fa-circle-info"></i> Informações Gerais</h4>
+                            <ul class="detail-sidebar-info-list" style="border:none; padding:0; font-size:0.85rem; display:flex; flex-direction:column; gap:10px;">
+                                <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Veículo</span><strong style="color:var(--primary);">${v ? `${v.placa} (${v.marca} ${v.modelo})` : 'Deletado'}</strong></li>
+                                <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Motorista Atual</span><strong>${m ? m.nome : 'Deletado'}</strong></li>
+                                <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Categoria do Condutor</span><strong>${t.motoristaCategoria || (m ? m.categoria : 'Motorista Efetivo')}</strong></li>
+                                <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Origem</span><strong>${t.origem}</strong></li>
+                                <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Destino</span><strong>${t.destino}</strong></li>
+                                <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Partida</span><strong>${t.dataSaida.split('-').reverse().join('/')} às ${t.horaSaida || '-'}</strong></li>
+                                <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Retorno</span><strong>${t.dataRetorno ? `${t.dataRetorno.split('-').reverse().join('/')} às ${t.horaRetorno || '-'}` : '<span class="text-warning">Em trânsito</span>'}</strong></li>
+                                <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>KM Inicial</span><strong>${parseFloat(t.kmInicial).toLocaleString('pt-BR')} km</strong></li>
+                                <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>KM Final</span><strong>${t.kmFinal > 0 ? `${parseFloat(t.kmFinal).toLocaleString('pt-BR')} km` : '-'}</strong></li>
+                                <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>KM Rodados</span><strong>${t.kmRodado > 0 ? `${parseFloat(t.kmRodado).toLocaleString('pt-BR')} km` : '-'}</strong></li>
+                                <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Custos de Viagem</span><strong>${window.movixApp.formatCurrency(t.custos)}</strong></li>
+                                <li class="detail-sidebar-info-item" style="padding:4px 0; display:flex; justify-content:space-between; border-bottom:1px solid var(--border-light);"><span>Situação</span>
+                                    <span class="status-pill ${t.status && t.status.toLowerCase() === 'realizada' ? 'realizada' : 'em_andamento'}">${t.status}</span>
+                                </li>
+                            </ul>
+
+                            ${t.observacoes ? `
+                            <div style="margin-top:20px;">
+                                <h5 style="font-weight:700; margin-bottom:6px; font-size:0.85rem;">Instruções e Observações:</h5>
+                                <p style="font-size:0.8rem; line-height:1.5; color:var(--text-muted); background:var(--bg-surface-hover); padding:10px; border-radius:6px; border-left:3px solid var(--primary); white-space:pre-wrap;">${t.observacoes}</p>
+                            </div>` : ''}
+                        </div>
+
+                        <div style="border-left:1px solid var(--border-color); padding-left:20px;">
+                            <h4 style="font-family:var(--font-heading); color:var(--primary); margin-bottom:16px;"><i class="fa-solid fa-clock-rotate-left"></i> Histórico de Alterações (Auditoria)</h4>
+                            <div style="max-height: 380px; overflow-y:auto; padding-right:8px;">
+                                ${historyTimelineHTML}
+                            </div>
+                        </div>
+                    </div>
+                    ${historyDriversHTML}
                 </div>
             `;
 
@@ -547,6 +603,236 @@
             modal.classList.add('active');
 
             document.getElementById('btn-fechar-detalhe').addEventListener('click', () => modal.classList.remove('active'));
+        }
+
+        function openTrocaMotoristaModal(tripId) {
+            const currentTrips = window.movixStore.getViagens();
+            const t = currentTrips.find(item => item.id === tripId);
+            if (!t) return;
+
+            const freshVehicles = window.movixStore.getVeiculos();
+            const freshDrivers = window.movixStore.getMotoristas();
+
+            const vehicle = freshVehicles.find(v => v.id === t.veiculoId);
+            const currentDriver = freshDrivers.find(d => d.id === t.motoristaId);
+            const currentDriverName = currentDriver ? currentDriver.nome : 'Desconhecido';
+
+            const modal = document.getElementById('global-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body-content');
+            const modalFooter = document.getElementById('modal-footer-actions');
+
+            modalTitle.innerHTML = `<i class="fa-solid fa-arrows-spin"></i> Registrar Troca de Motorista: ${t.id}`;
+
+            // Filter active drivers and exclude current driver
+            const activeDrivers = freshDrivers.filter(d => d.status === 'ativo' && d.id !== t.motoristaId);
+
+            modalBody.innerHTML = `
+                <form id="form-troca-motorista" style="display:flex; flex-direction:column; gap:16px;">
+                    <div style="background-color:var(--bg-surface-hover); padding:12px; border-radius:6px; border:1px solid var(--border-color); font-size:0.85rem; display:flex; flex-direction:column; gap:6px;">
+                        <div><strong>Motorista Atual:</strong> ${currentDriverName}</div>
+                        <div><strong>KM de Partida:</strong> ${parseFloat(t.kmInicial).toLocaleString('pt-BR')} km</div>
+                        <div><strong>Data/Hora de Saída:</strong> ${t.dataSaida.split('-').reverse().join('/')} às ${t.horaSaida || '-'}</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Novo Motorista <span class="text-danger">*</span></label>
+                        <select name="novoMotoristaId" class="form-control" required style="width:100%;">
+                            <option value="">Selecione o novo motorista...</option>
+                            ${activeDrivers.map(d => `<option value="${d.id}">${d.nome} (${d.categoria || 'Motorista Efetivo'})</option>`).join('')}
+                        </select>
+                    </div>
+
+                    <div class="grid-2" style="gap:16px;">
+                        <div class="form-group">
+                            <label>Data da Troca <span class="text-danger">*</span></label>
+                            <input type="date" name="dataTroca" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Hora da Troca <span class="text-danger">*</span></label>
+                            <input type="time" name="horaTroca" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>KM do Veículo no Momento da Troca <span class="text-danger">*</span></label>
+                        <input type="number" name="kmTroca" class="form-control" min="${t.kmInicial}" required placeholder="Odômetro no momento da troca">
+                        <small style="color:var(--text-muted); display:block; margin-top:4px;">KM inicial da viagem: <strong>${parseFloat(t.kmInicial).toLocaleString('pt-BR')} km</strong>. KM atual do veículo: <strong>${vehicle ? parseFloat(vehicle.kmAtual).toLocaleString('pt-BR') : '-'} km</strong>.</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Local da Troca (Opcional)</label>
+                        <input type="text" name="localTroca" class="form-control" placeholder="Ex: Posto Graal KM 120, Rodovia Dutra">
+                    </div>
+                    <div class="form-group">
+                        <label>Observações / Motivo (Opcional)</label>
+                        <textarea name="observacoes" class="form-control" rows="2" placeholder="Descreva observações adicionais ou motivo da troca..."></textarea>
+                    </div>
+                </form>
+            `;
+
+            modalFooter.innerHTML = `
+                <button class="btn btn-secondary" id="btn-cancelar-troca">Cancelar</button>
+                <button class="btn btn-primary" id="btn-confirmar-troca">Confirmar Troca</button>
+            `;
+
+            modal.classList.add('active');
+
+            // Autocomplete for new driver select
+            const newDriverSel = modalBody.querySelector('select[name="novoMotoristaId"]');
+            window.movixApp.initAutocomplete(newDriverSel, 'Selecione o novo motorista...');
+
+            // Listen for change to trigger conflict suggestion warning
+            newDriverSel.addEventListener('change', () => {
+                const motoristaId = newDriverSel.value;
+                if (!motoristaId) return;
+
+                const activeTrips = window.movixStore.getViagens().filter(vi => vi.status && vi.status.toLowerCase() === 'em andamento');
+                const conflictTrip = activeTrips.find(vi => vi.motoristaId === motoristaId && vi.id !== t.id);
+
+                if (conflictTrip) {
+                    const driver = freshDrivers.find(d => d.id === motoristaId);
+                    const driverName = driver ? driver.nome : 'N/A';
+                    const dateFormatted = conflictTrip.dataSaida.split('-').reverse().join('/');
+                    const timeFormatted = conflictTrip.horaSaida || 'N/A';
+                    window.movixApp.showConfirmModal(
+                        `O motorista ${driverName} já está vinculado à viagem em andamento de ${conflictTrip.origem} para ${conflictTrip.destino}, iniciada em ${dateFormatted} às ${timeFormatted}. Deseja escalar este motorista mesmo assim?`,
+                        () => {
+                            // keep selection
+                        },
+                        () => {
+                            // reset selection
+                            newDriverSel.value = "";
+                            newDriverSel.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                    );
+                }
+            });
+
+            document.getElementById('btn-cancelar-troca').addEventListener('click', () => modal.classList.remove('active'));
+
+            document.getElementById('btn-confirmar-troca').addEventListener('click', async () => {
+                const form = document.getElementById('form-troca-motorista');
+                if (!form.checkValidity()) {
+                    form.reportValidity();
+                    return;
+                }
+
+                const data = {
+                    novoMotoristaId: form.querySelector('[name="novoMotoristaId"]').value,
+                    dataTroca: form.querySelector('[name="dataTroca"]').value,
+                    horaTroca: form.querySelector('[name="horaTroca"]').value,
+                    kmTroca: form.querySelector('[name="kmTroca"]').value,
+                    localTroca: form.querySelector('[name="localTroca"]').value.trim(),
+                    observacoes: form.querySelector('[name="observacoes"]').value.trim()
+                };
+
+                const newDriverObj = freshDrivers.find(d => d.id === data.novoMotoristaId);
+                if (!newDriverObj) {
+                    window.movixApp.showToast('Selecione um motorista válido.', 'error');
+                    return;
+                }
+
+                // CNH validation
+                if (newDriverObj.dataVencimentoCNH < data.dataTroca) {
+                    window.movixApp.showToast(`A CNH do motorista ${newDriverObj.nome} está vencida desde ${newDriverObj.dataVencimentoCNH.split('-').reverse().join('/')}.`, 'error');
+                    return;
+                }
+
+                // Datetime bounds validation
+                const departureDT = new Date(`${t.dataSaida}T${t.horaSaida || '00:00'}:00`);
+                const swapDT = new Date(`${data.dataTroca}T${data.horaTroca}:00`);
+                if (swapDT < departureDT) {
+                    window.movixApp.showToast('A data e hora da troca não podem ser anteriores à data e hora de partida da viagem.', 'error');
+                    return;
+                }
+
+                // Check scheduling conflict for the new driver
+                const checkConflict = () => {
+                    const currentTrips = window.movixStore.getViagens();
+                    const cStart = new Date(`${data.dataTroca}T${data.horaTroca}:00`);
+                    if (isNaN(cStart.getTime())) return null;
+
+                    for (const vi of currentTrips) {
+                        if (vi.id === t.id) continue;
+                        if (vi.status && vi.status.toLowerCase() === 'cancelada') continue;
+
+                        if (vi.motoristaId !== data.novoMotoristaId) continue;
+
+                        const tStart = new Date(`${vi.dataSaida}T${vi.horaSaida || '00:00'}:00`);
+                        let tEnd;
+                        if (vi.status && vi.status.toLowerCase() === 'realizada') {
+                            tEnd = new Date(`${vi.dataRetorno}T${vi.horaRetorno || '23:59'}:00`);
+                        } else {
+                            tEnd = new Date();
+                            if (tEnd < tStart) {
+                                tEnd = new Date(tStart.getTime() + 24 * 60 * 60 * 1000);
+                            }
+                        }
+
+                        if (isNaN(tStart.getTime()) || isNaN(tEnd.getTime())) continue;
+
+                        if (cStart >= tStart && cStart <= tEnd) return vi;
+                    }
+                    return null;
+                };
+
+                const executeSwap = async (justificativa) => {
+                    const saveBtn = document.getElementById('btn-confirmar-troca');
+                    saveBtn.disabled = true;
+                    saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processando...';
+
+                    // If a justification was needed, append to observations
+                    if (justificativa) {
+                        data.observacoes = (data.observacoes ? data.observacoes + ' | ' : '') + `[KM Justificado: ${justificativa}]`;
+                    }
+
+                    try {
+                        const response = await fetch(`/api/viagens/${t.id}/troca-motorista`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(data)
+                        });
+
+                        if (!response.ok) {
+                            const errData = await response.json();
+                            throw new Error(errData.error || 'Erro ao registrar troca de motorista.');
+                        }
+
+                        window.movixApp.showToast('Troca de motorista registrada com sucesso!', 'success');
+                        modal.classList.remove('active');
+                        
+                        // Reload trips
+                        await window.movixStore.loadData();
+                        updateTable();
+                    } catch (err) {
+                        console.error(err);
+                        window.movixApp.showToast(err.message, 'error');
+                        saveBtn.disabled = false;
+                        saveBtn.innerHTML = 'Confirmar Troca';
+                    }
+                };
+
+                const conflict = checkConflict();
+                if (conflict) {
+                    const startFormatted = `${conflict.dataSaida.split('-').reverse().join('/')} às ${conflict.horaSaida || '00:00'}`;
+                    let periodMessage = '';
+                    if (conflict.status && conflict.status.toLowerCase() === 'realizada') {
+                        const endFormatted = `${conflict.dataRetorno.split('-').reverse().join('/')} às ${conflict.horaRetorno || '23:59'}`;
+                        periodMessage = `no período de ${startFormatted} até ${endFormatted}`;
+                    } else {
+                        periodMessage = `iniciada em ${startFormatted} (viagem ainda em andamento)`;
+                    }
+
+                    window.movixApp.showConfirmModal(
+                        `O motorista ${newDriverObj.nome} já está vinculado à viagem ${conflict.id} de ${conflict.origem} para ${conflict.destino}, ${periodMessage}. Deseja prosseguir com a troca mesmo assim?`,
+                        () => {
+                            window.movixApp.validateKM(t.veiculoId, parseFloat(data.kmTroca) || 0, executeSwap, false, 0);
+                        },
+                        () => {}
+                    );
+                } else {
+                    window.movixApp.validateKM(t.veiculoId, parseFloat(data.kmTroca) || 0, executeSwap, false, 0);
+                }
+            });
         }
 
         // CRUD Modal Dialog
@@ -768,6 +1054,51 @@
                 formData.forEach((value, key) => data[key] = value);
 
                 const veiculoId = veicSel.value;
+                const motoristaId = data.motoristaId;
+                const dataSaida = data.dataSaida;
+                const horaSaida = data.horaSaida;
+                const dataRetorno = data.dataRetorno || null;
+                const horaRetorno = data.horaRetorno || null;
+
+                // Frontend overlap check
+                const checkConflict = () => {
+                    const currentTrips = window.movixStore.getViagens();
+                    const cStart = new Date(`${dataSaida}T${horaSaida || '00:00'}:00`);
+                    let cEnd = null;
+                    if (dataRetorno && horaRetorno) {
+                        cEnd = new Date(`${dataRetorno}T${horaRetorno}:00`);
+                    }
+
+                    if (isNaN(cStart.getTime())) return null;
+
+                    for (const vi of currentTrips) {
+                        if (isEdit && vi.id === tripId) continue;
+                        if (vi.status && vi.status.toLowerCase() === 'cancelada') continue;
+
+                        if (vi.veiculoId !== veiculoId && vi.motoristaId !== motoristaId) continue;
+
+                        const tStart = new Date(`${vi.dataSaida}T${vi.horaSaida || '00:00'}:00`);
+                        let tEnd;
+                        if (vi.status && vi.status.toLowerCase() === 'realizada') {
+                            tEnd = new Date(`${vi.dataRetorno}T${vi.horaRetorno || '23:59'}:00`);
+                        } else {
+                            tEnd = new Date();
+                            if (tEnd < tStart) {
+                                tEnd = new Date(tStart.getTime() + 24 * 60 * 60 * 1000);
+                            }
+                        }
+
+                        if (isNaN(tStart.getTime()) || isNaN(tEnd.getTime())) continue;
+
+                        if (cEnd) {
+                            if (tStart < cEnd && cStart < tEnd) return vi;
+                        } else {
+                            if (cStart >= tStart && cStart <= tEnd) return vi;
+                        }
+                    }
+                    return null;
+                };
+
                 const enteredKMInicial = parseFloat(data.kmInicial) || 0;
                 const originalKMInicial = isEdit ? parseFloat(t.kmInicial) || 0 : 0;
 
@@ -801,22 +1132,55 @@
                     }
                 };
 
-                // Validate kmInicial first
-                window.movixApp.validateKM(veiculoId, enteredKMInicial, (justificativaInicial) => {
-                    // If isEdit and it is 'Realizada', we must also validate kmFinal
-                    if (isEdit && t.status === 'Realizada' && data.kmFinal) {
-                        const enteredKMFinal = parseFloat(data.kmFinal) || 0;
-                        const originalKMFinal = parseFloat(t.kmFinal) || 0;
-                        window.movixApp.validateKM(veiculoId, enteredKMFinal, (justificativaFinal) => {
-                            if (justificativaFinal) {
-                                data.observacoes = (data.observacoes || '') + (data.observacoes ? '\n' : '') + `Motivo da divergência de KM Final: ${justificativaFinal}`;
-                            }
+                const proceedValidation = () => {
+                    // Validate kmInicial first
+                    window.movixApp.validateKM(veiculoId, enteredKMInicial, (justificativaInicial) => {
+                        // If isEdit and it is 'Realizada', we must also validate kmFinal
+                        if (isEdit && t.status === 'Realizada' && data.kmFinal) {
+                            const enteredKMFinal = parseFloat(data.kmFinal) || 0;
+                            const originalKMFinal = parseFloat(t.kmFinal) || 0;
+                            window.movixApp.validateKM(veiculoId, enteredKMFinal, (justificativaFinal) => {
+                                if (justificativaFinal) {
+                                    data.observacoes = (data.observacoes || '') + (data.observacoes ? '\n' : '') + `Motivo da divergência de KM Final: ${justificativaFinal}`;
+                                }
+                                saveAction(justificativaInicial);
+                            }, true, originalKMFinal);
+                        } else {
                             saveAction(justificativaInicial);
-                        }, true, originalKMFinal);
+                        }
+                    }, isEdit, originalKMInicial);
+                };
+
+                const conflict = checkConflict();
+                if (conflict) {
+                    const target = conflict.veiculoId === veiculoId ? 'veículo' : 'motorista';
+                    let targetName = '';
+                    if (target === 'veículo') {
+                        const v = vehicles.find(item => item.id === veiculoId);
+                        targetName = `de placa ${v ? v.placa : 'N/A'}`;
                     } else {
-                        saveAction(justificativaInicial);
+                        const d = drivers.find(item => item.id === motoristaId);
+                        targetName = d ? d.nome : 'N/A';
                     }
-                }, isEdit, originalKMInicial);
+                    const startFormatted = `${conflict.dataSaida.split('-').reverse().join('/')} às ${conflict.horaSaida || '00:00'}`;
+                    let periodMessage = '';
+                    if (conflict.status && conflict.status.toLowerCase() === 'realizada') {
+                        const endFormatted = `${conflict.dataRetorno.split('-').reverse().join('/')} às ${conflict.horaRetorno || '23:59'}`;
+                        periodMessage = `no período de ${startFormatted} até ${endFormatted}`;
+                    } else {
+                        periodMessage = `iniciada em ${startFormatted} (viagem ainda em andamento)`;
+                    }
+
+                    window.movixApp.showConfirmModal(
+                        `O ${target} ${targetName} já está vinculado à viagem ${conflict.id} de ${conflict.origem} para ${conflict.destino}, ${periodMessage}. Deseja prosseguir com o registro mesmo assim?`,
+                        () => {
+                            proceedValidation();
+                        },
+                        () => {}
+                    );
+                } else {
+                    proceedValidation();
+                }
             });
         }
 
@@ -825,6 +1189,48 @@
             const currentTrips = window.movixStore.getViagens();
             const t = currentTrips.find(item => item.id === tripId);
             if (!t) return;
+
+            const freshVehicles = window.movixStore.getVeiculos();
+            const freshDrivers = window.movixStore.getMotoristas();
+
+            const v = freshVehicles.find(item => item.id === t.veiculoId);
+            const veiculoPlacaModelo = v ? `${v.placa} - ${v.marca || ''} ${v.modelo || ''}`.trim() : 'N/A';
+
+            let hist = t.historicoCondutores || [];
+            if (typeof hist === 'string') {
+                try {
+                    hist = JSON.parse(hist);
+                } catch (e) {
+                    hist = [];
+                }
+            }
+
+            const motoristaSaidaName = (hist && hist.length > 0)
+                ? (hist[0].motoristaNome || 'N/A')
+                : (freshDrivers.find(item => item.id === t.motoristaId)?.nome || 'N/A');
+
+            const currentDriverName = (hist && hist.length > 0)
+                ? (hist[hist.length - 1].motoristaNome || 'N/A')
+                : (freshDrivers.find(item => item.id === t.motoristaId)?.nome || 'N/A');
+
+            const dateSaidaFormatted = t.dataSaida ? t.dataSaida.split('-').reverse().join('/') : '-';
+
+            let motoristaText = motoristaSaidaName;
+            if (hist && hist.length > 1) {
+                motoristaText = `${motoristaSaidaName} ➔ ${currentDriverName}`;
+            }
+
+            let swapInfoHTML = '';
+            let lastSwapKM = parseFloat(t.kmInicial);
+            if (hist && hist.length > 1) {
+                const lastSwap = hist[hist.length - 1];
+                const prevDriver = hist[hist.length - 2].motoristaNome;
+                const dStr = lastSwap.dataInicio ? lastSwap.dataInicio.split('-').reverse().join('/') : '-';
+                const hStr = lastSwap.horaInicio || '00:00';
+                const kmStr = lastSwap.kmInicial ? parseFloat(lastSwap.kmInicial).toLocaleString('pt-BR') : '-';
+                swapInfoHTML = `<div><strong>Última Troca:</strong> ${prevDriver} ➔ ${lastSwap.motoristaNome} em ${dStr} às ${hStr} (KM: ${kmStr} km)</div>`;
+                lastSwapKM = parseFloat(lastSwap.kmInicial);
+            }
 
             const modal = document.getElementById('global-modal');
             const modalTitle = document.getElementById('modal-title');
@@ -835,9 +1241,11 @@
 
             modalBody.innerHTML = `
                 <form id="form-concluir-viagem" class="form-grid">
-                    <div style="grid-column: span 2; background-color:var(--bg-surface-hover); padding:12px; border-radius:6px; border:1px solid var(--border-color); font-size:0.85rem;">
-                        <p><strong>Motorista:</strong> ${drivers.find(item => item.id === t.motoristaId)?.nome || ''}</p>
-                        <p><strong>KM de Partida:</strong> ${parseFloat(t.kmInicial).toLocaleString('pt-BR')} km</p>
+                    <div style="grid-column: span 2; background-color:var(--bg-surface-hover); padding:12px; border-radius:6px; border:1px solid var(--border-color); font-size:0.85rem; display:flex; flex-direction:column; gap:6px; color:var(--text-main);">
+                        <div><strong>Veículo:</strong> ${veiculoPlacaModelo}</div>
+                        <div><strong>Motorista:</strong> ${motoristaText}</div>
+                        <div><strong>Saída:</strong> ${dateSaidaFormatted} às ${t.horaSaida || '-'} (KM: ${parseFloat(t.kmInicial).toLocaleString('pt-BR')} km)</div>
+                        ${swapInfoHTML}
                     </div>
 
                     <div class="form-group">
@@ -852,7 +1260,7 @@
 
                     <div class="form-group">
                         <label>KM de Retorno (Odômetro Final) <span class="required">*</span></label>
-                        <input type="number" class="form-control" name="kmFinal" required placeholder="Odômetro de chegada" min="${t.kmInicial}">
+                        <input type="number" class="form-control" name="kmFinal" required placeholder="Odômetro de chegada" min="${lastSwapKM}">
                     </div>
 
                     <div class="form-group">

@@ -933,6 +933,20 @@
                     </div>
                 </div>
 
+                <div class="form-group full-width" style="border-top: 1px solid var(--border-color); padding-top: 16px; margin-top: 12px;">
+                    <label style="font-weight: 700; color: var(--primary); margin-bottom: 8px; display: block;"><i class="fa-solid fa-file-circle-check"></i> Documentos e Validades</label>
+                    <div class="grid-1-1" style="grid-column: span 2; gap: 12px; display: grid; grid-template-columns: 1fr 1fr;">
+                        <div class="form-group" style="margin: 0;">
+                            <label>Validade do Licenciamento</label>
+                            <input type="date" class="form-control" name="validadeLicenciamento" value="${isEdit && vehicle.validadeLicenciamento ? vehicle.validadeLicenciamento.split('T')[0] : ''}">
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label>Validade do IPVA</label>
+                            <input type="date" class="form-control" name="validadeIPVA" value="${isEdit && vehicle.validadeIPVA ? vehicle.validadeIPVA.split('T')[0] : ''}">
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-group full-width">
                     <label>Observações</label>
                     <textarea class="form-control" name="observacoes" placeholder="Anotações gerais sobre o veículo">${isEdit && vehicle.observacoes ? vehicle.observacoes : ''}</textarea>
@@ -2453,6 +2467,44 @@
             tabMenu.addEventListener('scroll', updateFades);
             setTimeout(updateFades, 50);
             window.addEventListener('resize', updateFades);
+
+            // Horizontal mouse wheel scrolling support
+            tabMenu.addEventListener('wheel', (e) => {
+                if (e.deltaY !== 0) {
+                    e.preventDefault();
+                    tabMenu.scrollLeft += e.deltaY;
+                }
+            });
+
+            // Click and drag horizontal scroll support
+            let isDown = false;
+            let startX;
+            let scrollLeftStart;
+
+            tabMenu.addEventListener('mousedown', (e) => {
+                isDown = true;
+                tabMenu.classList.add('grabbing');
+                startX = e.pageX - tabMenu.offsetLeft;
+                scrollLeftStart = tabMenu.scrollLeft;
+            });
+
+            tabMenu.addEventListener('mouseleave', () => {
+                isDown = false;
+                tabMenu.classList.remove('grabbing');
+            });
+
+            tabMenu.addEventListener('mouseup', () => {
+                isDown = false;
+                tabMenu.classList.remove('grabbing');
+            });
+
+            tabMenu.addEventListener('mousemove', (e) => {
+                if (!isDown) return;
+                e.preventDefault();
+                const x = e.pageX - tabMenu.offsetLeft;
+                const walk = (x - startX) * 1.5;
+                tabMenu.scrollLeft = scrollLeftStart - walk;
+            });
         }
     }
 

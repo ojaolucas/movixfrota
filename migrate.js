@@ -193,12 +193,25 @@ async function migrate() {
         if (Array.isArray(localData.viagens)) {
             console.log(`🛣️  Migrando ${localData.viagens.length} viagens...`);
             for (const vi of localData.viagens) {
+                let hist = vi.historicoCondutores;
+                if (!hist) {
+                    hist = [{
+                        motoristaId: vi.motoristaId,
+                        motoristaNome: 'Motorista de Saída',
+                        dataInicio: vi.dataSaida,
+                        horaInicio: vi.horaSaida || '00:00',
+                        dataFim: vi.dataRetorno || null,
+                        horaFim: vi.horaRetorno || null,
+                        kmInicial: safeNum(vi.kmInicial) || 0,
+                        kmFinal: safeNum(vi.kmFinal) || null
+                    }];
+                }
                 await db.query(`
-                    INSERT INTO viagens (id, "veiculoId", "motoristaId", "dataSaida", "horaSaida", "dataRetorno", "horaRetorno", "kmInicial", "kmFinal", origem, destino, status, observacoes, "kmRodado", custos)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+                    INSERT INTO viagens (id, "veiculoId", "motoristaId", "dataSaida", "horaSaida", "dataRetorno", "horaRetorno", "kmInicial", "kmFinal", origem, destino, status, observacoes, "kmRodado", custos, "historicoCondutores")
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
                     ON CONFLICT (id) DO NOTHING
                 `, [
-                    vi.id, safeFK(vi.veiculoId), safeFK(vi.motoristaId), vi.dataSaida, vi.horaSaida, vi.dataRetorno, vi.horaRetorno, safeNum(vi.kmInicial), safeNum(vi.kmFinal), vi.origem, vi.destino, vi.status || 'Em Andamento', vi.observacoes, safeNum(vi.kmRodado), safeNum(vi.custos)
+                    vi.id, safeFK(vi.veiculoId), safeFK(vi.motoristaId), vi.dataSaida, vi.horaSaida, vi.dataRetorno, vi.horaRetorno, safeNum(vi.kmInicial), safeNum(vi.kmFinal), vi.origem, vi.destino, vi.status || 'Em Andamento', vi.observacoes, safeNum(vi.kmRodado), safeNum(vi.custos), JSON.stringify(hist)
                 ]);
             }
         }

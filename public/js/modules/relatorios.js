@@ -214,7 +214,7 @@
                     </div>
 
                     <div class="table-responsive" style="border:none; box-shadow:none; flex-grow:1; overflow-x:auto;">
-                        <table class="smart-table" id="table-report-output" style="width:100%;">
+                        <table class="smart-table" id="table-report-output" style="width:100%; white-space:nowrap;">
                             <thead id="thead-report-output">
                                 <!-- Dynamic -->
                             </thead>
@@ -1227,7 +1227,7 @@
                 const filterVeic = document.getElementById('filter-veiculo').value;
                 const filterDriver = document.getElementById('filter-motorista').value;
 
-                activeHeaders = ['Data Saída', 'Hora', 'Data Retorno', 'Hora', 'Veículo', 'Motorista', 'Origem', 'Destino', 'KM Rodado', 'Status'];
+                activeHeaders = ['Data de Saída', 'Hora de Saída', 'Veículo', 'Motorista de Saída', 'Origem', 'Destino', 'Troca de Motorista', 'Motorista de Chegada', 'Data de Retorno', 'Hora de Retorno', 'KM Rodado', 'Status'];
 
                 const filtered = viagens.filter(vi => {
                     const matchVeic = !filterVeic || vi.veiculoId === filterVeic;
@@ -1266,18 +1266,60 @@
 
                 activeReportData = filtered.map(vi => {
                     const v = vehicles.find(item => item.id === vi.veiculoId);
-                    const d = drivers.find(item => item.id === vi.motoristaId);
+                    
+                    let hist = vi.historicoCondutores || [];
+                    if (typeof hist === 'string') {
+                        try {
+                            hist = JSON.parse(hist);
+                        } catch (e) {
+                            hist = [];
+                        }
+                    }
+
+                    let motoristaSaida = 'Sem registro';
+                    let motoristaChegada = 'Sem registro';
+                    let trocaMotorista = 'Não';
+
+                    if (hist && hist.length > 0) {
+                        motoristaSaida = hist[0].motoristaNome || 'Motorista';
+                        
+                        if (hist.length > 1) {
+                            const last = hist[hist.length - 1];
+                            motoristaChegada = last.motoristaNome || 'Motorista';
+                            
+                            if (hist.length === 2) {
+                                const swap = hist[1];
+                                const dStr = swap.dataInicio ? swap.dataInicio.split('-').reverse().join('/') : '-';
+                                const hStr = swap.horaInicio || '00:00';
+                                trocaMotorista = `${dStr} às ${hStr}`;
+                            } else {
+                                trocaMotorista = `${hist.length - 1} Trocas`;
+                            }
+                        } else {
+                            motoristaChegada = motoristaSaida;
+                            trocaMotorista = 'Não';
+                        }
+                    } else {
+                        const d = drivers.find(item => item.id === vi.motoristaId);
+                        const name = d ? d.nome : 'Motorista';
+                        motoristaSaida = name;
+                        motoristaChegada = name;
+                        trocaMotorista = 'Não';
+                    }
+
                     return {
                         id: vi.id,
                         _dataSaida: vi.dataSaida,
                         dataFormatted: vi.dataSaida.split('-').reverse().join('/'),
                         horaSaida: vi.horaSaida || '-',
-                        dataRetorno: vi.dataRetorno ? vi.dataRetorno.split('-').reverse().join('/') : '-',
-                        horaRetorno: vi.horaRetorno || '-',
                         veiculo: v ? v.placa : 'Veículo',
-                        motorista: d ? d.nome : 'Motorista',
+                        motoristaSaida: motoristaSaida,
                         origem: vi.origem,
                         destino: vi.destino,
+                        trocaMotorista: trocaMotorista,
+                        motoristaChegada: motoristaChegada,
+                        dataRetorno: vi.dataRetorno ? vi.dataRetorno.split('-').reverse().join('/') : '-',
+                        horaRetorno: vi.horaRetorno || '-',
                         kmRodado: `${(parseFloat(vi.kmRodado) || 0).toLocaleString('pt-BR')} km`,
                         status: vi.status,
                         _rawDataRetorno: vi.dataRetorno || '',
@@ -2248,6 +2290,8 @@
                             'veiculo_vinculado': 'veiculo',
                             'vida_util_estimada': '_rawTotal',
                             'veiculo_(placa)': 'placa',
+                            'motorista_saida': 'motoristaSaida',
+                            'motorista_chegada': 'motoristaChegada',
                             'nº_apolice': 'apolice',
                             'no_apolice': 'apolice',
                             'valor_mensal': '_rawTotal',
@@ -2270,6 +2314,13 @@
                             'oficina_/_fornecedor': 'oficina',
                             'km_os': '_rawTotal',
                             'data_saida': '_dataSaida',
+                            'data_de_saida': '_dataSaida',
+                            'hora_de_saida': 'horaSaida',
+                            'motorista_de_saida': 'motoristaSaida',
+                            'motorista_de_chegada': 'motoristaChegada',
+                            'troca_de_motorista': 'trocaMotorista',
+                            'data_de_retorno': '_rawDataRetorno',
+                            'hora_de_retorno': 'horaRetorno',
                             'data_retorno': '_rawDataRetorno',
                             'data_troca': '_dataTroca',
                             'km_rodado': '_rawTotal',

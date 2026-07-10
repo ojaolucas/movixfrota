@@ -475,10 +475,18 @@ class MovixApp {
 
     refreshAlertsCount() {
         const badge = document.getElementById('bell-badge');
-        const isSilenced = localStorage.getItem('movix_alerts_silenced') === 'true';
         const alerts = window.movixStore.getAlerts();
+        const unreadCount = alerts.filter(n => n.status === 'Não lida').length;
 
-        if (alerts.length > 0 && !isSilenced) {
+        // Se surgirem novos alertas não lidos, reativar o indicador visual
+        const lastUnreadCount = parseInt(localStorage.getItem('movix_last_unread_count') || '0');
+        if (unreadCount > lastUnreadCount) {
+            localStorage.removeItem('movix_alerts_silenced');
+        }
+        localStorage.setItem('movix_last_unread_count', unreadCount.toString());
+
+        const isSilenced = localStorage.getItem('movix_alerts_silenced') === 'true';
+        if (unreadCount > 0 && !isSilenced) {
             badge.classList.add('active');
         } else {
             badge.classList.remove('active');
@@ -488,32 +496,43 @@ class MovixApp {
     refreshNotificationsPanel() {
         const list = document.getElementById('notifications-list');
         const alerts = window.movixStore.getAlerts();
+        const recentAlerts = alerts
+            .filter(n => n.status !== 'Resolvida')
+            .slice(0, 5);
 
         list.innerHTML = '';
-        if (alerts.length === 0) {
+        if (recentAlerts.length === 0) {
             list.innerHTML = `
                 <li style="padding:20px; text-align:center; color:var(--text-muted); font-size:0.8rem;">
-                    Nenhum alerta ativo!
+                    Nenhuma notificação pendente!
                 </li>
             `;
             return;
         }
 
-        alerts.forEach(a => {
+        recentAlerts.forEach(a => {
             let colorClass = 'info';
             let icon = '<i class="fa-solid fa-circle-info"></i>';
 
-            if (a.prioridade === 'Alta') { colorClass = 'danger'; icon = '<i class="fa-solid fa-triangle-exclamation"></i>'; }
-            else if (a.prioridade === 'Média') { colorClass = 'warning'; icon = '<i class="fa-solid fa-circle-exclamation"></i>'; }
+            if (a.prioridade === 'Crítica') { colorClass = 'danger'; icon = '<i class="fa-solid fa-triangle-exclamation"></i>'; }
+            else if (a.prioridade === 'Alta') { colorClass = 'warning'; icon = '<i class="fa-solid fa-circle-exclamation"></i>'; }
+
+            if (a.categoria === 'Veículos') icon = '<i class="fa-solid fa-truck"></i>';
+            else if (a.categoria === 'Motoristas') icon = '<i class="fa-solid fa-id-card-clip"></i>';
+            else if (a.categoria === 'Manutenções') icon = '<i class="fa-solid fa-screwdriver-wrench"></i>';
+            else if (a.categoria === 'Troca de Óleo') icon = '<i class="fa-solid fa-oil-can"></i>';
+            else if (a.categoria === 'Pneus') icon = '<i class="fa-solid fa-circle-notch"></i>';
+            else if (a.categoria === 'Viagens') icon = '<i class="fa-solid fa-route"></i>';
+            else if (a.categoria === 'Multas') icon = '<i class="fa-solid fa-ticket"></i>';
 
             list.innerHTML += `
-                <li class="notification-item" data-route="${a.link}" data-target="${a.targetId}">
+                <li class="notification-item" data-route="${a.link || 'notificacoes'}" data-target="${a.targetId || ''}" style="cursor:pointer; ${a.status === 'Não lida' ? 'background: rgba(var(--primary-rgb), 0.04);' : ''}">
                     <div class="notification-icon-wrapper ${colorClass}">
                         ${icon}
                     </div>
                     <div class="notification-text-wrapper">
-                        <span class="notification-msg" style="color:var(--text-main); font-weight:600;">${a.titulo}</span>
-                        <span class="notification-time">${a.desc}</span>
+                        <span class="notification-msg" style="color:var(--text-main); font-weight:600; font-size:0.8rem;">${a.titulo}</span>
+                        <span class="notification-time" style="font-size:0.75rem;">${a.descricao || a.desc || ''}</span>
                     </div>
                 </li>
             `;

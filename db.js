@@ -272,7 +272,8 @@ async function initDB() {
                 status VARCHAR(50) DEFAULT 'Em Andamento',
                 observacoes TEXT,
                 "kmRodado" NUMERIC,
-                custos NUMERIC DEFAULT 0
+                custos NUMERIC DEFAULT 0,
+                "historicoCondutores" JSONB DEFAULT '[]'::jsonb
             )
         `);
 
@@ -301,16 +302,17 @@ async function initDB() {
             )
         `);
 
-        // Migration Alters for Multas
+        // Migration Alters
         await query(`ALTER TABLE multas ADD COLUMN IF NOT EXISTS "associacaoTipo" VARCHAR(50) DEFAULT 'sem_motorista'`);
         await query(`ALTER TABLE multas ADD COLUMN IF NOT EXISTS "viagemId" VARCHAR(50) REFERENCES viagens(id) ON DELETE SET NULL`);
-        
-        // Migration Alters for Conductor Categories
         await query(`ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS "categoria" VARCHAR(50) DEFAULT 'Motorista Efetivo'`);
         await query(`ALTER TABLE viagens ADD COLUMN IF NOT EXISTS "motoristaCategoria" VARCHAR(50) DEFAULT 'Motorista Efetivo'`);
         await query(`ALTER TABLE abastecimentos ADD COLUMN IF NOT EXISTS "motoristaCategoria" VARCHAR(50) DEFAULT 'Motorista Efetivo'`);
         await query(`ALTER TABLE multas ADD COLUMN IF NOT EXISTS "motoristaCategoria" VARCHAR(50) DEFAULT 'Motorista Efetivo'`);
         await query(`ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS "qtdEstepes" INTEGER DEFAULT 1`);
+        await query(`ALTER TABLE viagens ADD COLUMN IF NOT EXISTS "historicoCondutores" JSONB DEFAULT '[]'::jsonb`);
+        await query(`ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS "validadeLicenciamento" DATE`);
+        await query(`ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS "validadeIPVA" DATE`);
 
         // 10. Logs Table
         await query(`

@@ -293,7 +293,7 @@
                     
                     <div class="form-group">
                         <label>Selecione o Veículo <span class="required">*</span></label>
-                        <select class="form-control" name="veiculoId" id="ab-veiculo-sel" required ${isEdit ? 'disabled' : ''}>
+                        <select class="form-control" name="veiculoId" id="ab-veiculo-sel" required>
                             <option value="" disabled ${!isEdit ? 'selected' : ''}>Selecione um veículo</option>
                             ${vehicles.map(v => `<option value="${v.id}" data-km="${v.kmAtual}" data-fuel="${v.combustivel}" ${isEdit && ab.veiculoId === v.id ? 'selected' : ''}>${v.placa} - ${v.marca} ${v.modelo} (KM: ${v.kmAtual})</option>`).join('')}
                         </select>
@@ -374,11 +374,9 @@
             window.movixApp.initAutocomplete(motSel, 'Selecione o motorista...');
 
             function syncVehicle() {
-                if (isEdit) return;
                 const opt = veicSel.options[veicSel.selectedIndex];
                 if (!opt || opt.value === "") {
                     kmHint.innerText = "";
-                    kmInput.value = "";
                     return;
                 }
                 const lastKM = opt.getAttribute('data-km');
@@ -386,7 +384,6 @@
                 
                 kmHint.innerText = `KM atual do veículo: ${parseFloat(lastKM).toLocaleString('pt-BR')} km. Lançamentos com KM menor serão validados como retroativos.`;
                 kmInput.removeAttribute('min');
-                kmInput.value = parseInt(lastKM) + 100;
 
                 if (fuelType === 'Diesel') fuelSel.value = 'Diesel';
                 else if (fuelType === 'Diesel S10') fuelSel.value = 'Diesel S10';
@@ -437,7 +434,7 @@
                     return;
                 }
 
-                const veiculoId = isEdit ? ab.veiculoId : veicSel.value;
+                const veiculoId = veicSel.value;
                 const enteredKM = parseFloat(kmInput.value) || 0;
                 const originalKM = isEdit ? parseFloat(ab.kmAtual) || 0 : 0;
 
@@ -448,7 +445,7 @@
                     const data = {};
                     formData.forEach((value, key) => data[key] = value);
                     if (isEdit) {
-                        data.veiculoId = ab.veiculoId;
+                        data.veiculoId = veicSel.value;
                     }
 
                     if (justificativa) {
