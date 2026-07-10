@@ -2526,7 +2526,10 @@ app.post('/api/notificacoes/sync', requireAuth, async (req, res) => {
 
 app.get('/api/alertas', requireAuth, async (req, res) => {
     try {
-        await syncNotifications(req.session ? req.session.nome : 'sistema');
+        // Executa a sincronização em background para não bloquear a renderização das telas do usuário
+        syncNotifications(req.session ? req.session.nome : 'sistema').catch(err => {
+            console.error("Erro ao sincronizar notificações em background:", err);
+        });
 
         const result = await db.query(`
             SELECT id, tipo, categoria, titulo, descricao as "desc", prioridade, status, link, "targetId", "dataCriacao", "usuarioResponsavel", auditoria 
