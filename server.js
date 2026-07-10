@@ -2260,164 +2260,38 @@ async function syncNotifications(usuarioName = 'sistema') {
     // 7. Multas
     multas.forEach(mu => {
         if (mu.status === 'Pago') return;
+        if (mu.associacaoTipo === 'sem_motorista') return; // Ignorar multas sem indicação de condutor (NIC)
 
         const v = veiculos.find(item => item.id === mu.veiculoId);
         const label = v ? v.placa : 'Frota';
         const daysDiff = getDaysDiff(mu.data);
         const diffDaysAbs = Math.abs(daysDiff);
 
-        if (mu.associacaoTipo === 'sem_motorista') {
-            if (diffDaysAbs > 15) {
-                calculatedAlerts.push({
-                    id: `MULTA-NIC-${mu.id}`,
-                    tipo: 'Multa sem condutor (NIC)',
-                    categoria: 'Multas',
-                    titulo: `Multa sem Indicação (NIC): ${label}`,
-                    descricao: `A infração de trânsito em ${mu.data.split('-').reverse().join('/')} não possui condutor indicado há mais de 15 dias.`,
-                    prioridade: 'Crítica',
-                    link: 'multas',
-                    targetId: mu.id,
-                    veiculoId: mu.veiculoId,
-                    motoristaId: mu.motoristaId
-                });
-            } else {
-                calculatedAlerts.push({
-                    id: `MULTA-AGUARDANDO-INDICACAO-${mu.id}`,
-                    tipo: 'Multa aguardando indicação',
-                    categoria: 'Multas',
-                    titulo: `Multa Aguardando Indicação: ${label}`,
-                    descricao: `Multa aguardando indicação de condutor (registrada em ${mu.data.split('-').reverse().join('/')}).`,
-                    prioridade: 'Alta',
-                    link: 'multas',
-                    targetId: mu.id,
-                    veiculoId: mu.veiculoId,
-                    motoristaId: mu.motoristaId
-                });
-            }
+        if (diffDaysAbs > 30) {
+            calculatedAlerts.push({
+                id: `MULTA-VENCIDA-${mu.id}`,
+                tipo: 'Multa vencida',
+                categoria: 'Multas',
+                titulo: `Multa Vencida: ${label}`,
+                descricao: `Multa pendente de pagamento há mais de 30 dias (registrada em ${mu.data.split('-').reverse().join('/')}).`,
+                prioridade: 'Alta',
+                link: 'multas',
+                targetId: mu.id,
+                veiculoId: mu.veiculoId,
+                motoristaId: mu.motoristaId
+            });
         } else {
-            if (diffDaysAbs > 30) {
-                calculatedAlerts.push({
-                    id: `MULTA-VENCIDA-${mu.id}`,
-                    tipo: 'Multa vencida',
-                    categoria: 'Multas',
-                    titulo: `Multa Vencida: ${label}`,
-                    descricao: `Multa pendente de pagamento há mais de 30 dias (registrada em ${mu.data.split('-').reverse().join('/')}).`,
-                    prioridade: 'Alta',
-                    link: 'multas',
-                    targetId: mu.id,
-                    veiculoId: mu.veiculoId,
-                    motoristaId: mu.motoristaId
-                });
-            } else {
-                calculatedAlerts.push({
-                    id: `MULTA-PENDENTE-${mu.id}`,
-                    tipo: 'Multa próxima do vencimento',
-                    categoria: 'Multas',
-                    titulo: `Multa Próxima do Vencimento: ${label}`,
-                    descricao: `Multa registrada em ${mu.data.split('-').reverse().join('/')} pendente de pagamento.`,
-                    prioridade: 'Média',
-                    link: 'multas',
-                    targetId: mu.id,
-                    veiculoId: mu.veiculoId,
-                    motoristaId: mu.motoristaId
-                });
-            }
-        }
-    });
-
-    // 8. Abastecimentos (Detecção de Inconsistências Operacionais)
-    // Agrupar abastecimentos por veículo e ordenar cronologicamente por data e KM
-    const fuelByVehicle = {};
-    abastecimentos.forEach(ab => {
-        if (!ab.veiculoId) return;
-        if (!fuelByVehicle[ab.veiculoId]) {
-            fuelByVehicle[ab.veiculoId] = [];
-        }
-        fuelByVehicle[ab.veiculoId].push(ab);
-    });
-
-    Object.keys(fuelByVehicle).forEach(veiculoId => {
-        const vehicleFuel = fuelByVehicle[veiculoId];
-        const v = veiculos.find(item => item.id === veiculoId);
-        const placa = v ? v.placa : 'Veículo';
-
-        // Ordenar: primeiro pela data, depois pelo kmAtual
-        vehicleFuel.sort((a, b) => {
-            const dateA = new Date(a.data);
-            const dateB = new Date(b.data);
-            if (dateA - dateB !== 0) return dateA - dateB;
-            return (parseFloat(a.kmAtual) || 0) - (parseFloat(b.kmAtual) || 0);
-        });
-
-        // 8.1 Inconsistência de KM (retroativo / inferior ao anterior)
-        for (let i = 0; i < vehicleFuel.length; i++) {
-            const current = vehicleFuel[i];
-            if (current.combustivel === 'Arla 32') continue; // Pular Arla
-
-            // Verificar se algum abastecimento anterior tem KM maior
-            for (let j = 0; j < i; j++) {
-                const prev = vehicleFuel[j];
-                if (prev.combustivel === 'Arla 32') continue;
-                if (parseFloat(prev.kmAtual) > parseFloat(current.kmAtual)) {
-                    calculatedAlerts.push({
-                        id: `ABS-KM-RETROATIVO-${current.id}`,
-                        tipo: 'Quilometragem inferior ao último abastecimento',
-                        categoria: 'Abastecimentos',
-                        titulo: `Inconsistência de KM: ${placa}`,
-                        descricao: `Abastecimento em ${current.data.split('-').reverse().join('/')} registra KM ${parseFloat(current.kmAtual).toLocaleString('pt-BR')}, inferior ao abastecimento anterior em ${prev.data.split('-').reverse().join('/')} (KM ${parseFloat(prev.kmAtual).toLocaleString('pt-BR')}).`,
-                        prioridade: 'Alta',
-                        link: 'abastecimentos',
-                        targetId: current.id,
-                        veiculoId: veiculoId
-                    });
-                    break;
-                }
-            }
-
-            // 8.2 Inconsistência de KM contra viagens terminadas
-            const vehicleTrips = viagens.filter(t => t.veiculoId === veiculoId && t.status === 'Concluída' && t.dataRetorno && t.kmFinal);
-            for (const trip of vehicleTrips) {
-                if (trip.dataRetorno <= current.data) {
-                    if (parseFloat(trip.kmFinal) > parseFloat(current.kmAtual)) {
-                        calculatedAlerts.push({
-                            id: `ABS-KM-VIAGEM-${current.id}`,
-                            tipo: 'Quilometragem inferior à última viagem registrada',
-                            categoria: 'Abastecimentos',
-                            titulo: `KM Inferior à Viagem: ${placa}`,
-                            descricao: `Abastecimento em ${current.data.split('-').reverse().join('/')} (KM ${parseFloat(current.kmAtual).toLocaleString('pt-BR')}) é inferior ao KM de retorno da viagem para ${trip.destino} finalizada em ${trip.dataRetorno.split('-').reverse().join('/')} (KM ${parseFloat(trip.kmFinal).toLocaleString('pt-BR')}).`,
-                            prioridade: 'Alta',
-                            link: 'abastecimentos',
-                            targetId: current.id,
-                            veiculoId: veiculoId
-                        });
-                        break;
-                    }
-                }
-            }
-        }
-
-        // 8.3 Desvio no Consumo Médio (KM/L)
-        const kmLValidos = vehicleFuel.filter(a => parseFloat(a.kmL) > 0 && a.combustivel !== 'Arla 32');
-        if (kmLValidos.length >= 3) {
-            const sumKmL = kmLValidos.reduce((sum, a) => sum + parseFloat(a.kmL), 0);
-            const mediaKmL = sumKmL / kmLValidos.length;
-
-            kmLValidos.forEach(ab => {
-                const kmL = parseFloat(ab.kmL);
-                const variacao = Math.abs(kmL - mediaKmL) / mediaKmL;
-                if (variacao > 0.4) {
-                    calculatedAlerts.push({
-                        id: `ABS-CONSUMO-ANORMAL-${ab.id}`,
-                        tipo: 'Consumo muito acima ou abaixo da média histórica do veículo',
-                        categoria: 'Abastecimentos',
-                        titulo: `Consumo Fora da Média: ${placa}`,
-                        descricao: `O abastecimento em ${ab.data.split('-').reverse().join('/')} registrou consumo de ${kmL.toFixed(2)} km/L, com desvio de ${(variacao * 100).toFixed(0)}% em relação à média histórica do veículo (${mediaKmL.toFixed(2)} km/L).`,
-                        prioridade: 'Média',
-                        link: 'abastecimentos',
-                        targetId: ab.id,
-                        veiculoId: veiculoId
-                    });
-                }
+            calculatedAlerts.push({
+                id: `MULTA-PENDENTE-${mu.id}`,
+                tipo: 'Multa próxima do vencimento',
+                categoria: 'Multas',
+                titulo: `Multa Próxima do Vencimento: ${label}`,
+                descricao: `Multa registrada em ${mu.data.split('-').reverse().join('/')} pendente de pagamento.`,
+                prioridade: 'Média',
+                link: 'multas',
+                targetId: mu.id,
+                veiculoId: mu.veiculoId,
+                motoristaId: mu.motoristaId
             });
         }
     });
