@@ -1660,8 +1660,8 @@ app.post('/api/multas', requireAuth, async (req, res) => {
         const veiculoPlaca = veicRes.rows[0] ? veicRes.rows[0].placa : 'N/A';
 
         const result = await db.query(`
-            INSERT INTO multas (id, "veiculoId", "motoristaId", "motoristaCategoria", data, hora, horario, codigo, descricao, gravidade, pontos, valor, status, observacoes, anexo, "anexoBoleto", "anexoComprovante", historico, "associacaoTipo", "viagemId")
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+            INSERT INTO multas (id, "veiculoId", "motoristaId", "motoristaCategoria", data, hora, horario, codigo, descricao, gravidade, pontos, valor, status, observacoes, anexo, "anexoBoleto", "anexoComprovante", "dataVencimentoBoleto", historico, "associacaoTipo", "viagemId")
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
             RETURNING *
         `, [
             id,
@@ -1681,6 +1681,7 @@ app.post('/api/multas', requireAuth, async (req, res) => {
             m.anexo,
             m.anexoBoleto,
             m.anexoComprovante,
+            m.dataVencimentoBoleto || null,
             JSON.stringify(historico),
             m.associacaoTipo || 'sem_motorista',
             m.viagemId && m.viagemId !== "" ? m.viagemId : null
@@ -1737,8 +1738,8 @@ app.put('/api/multas/:id', requireAuth, async (req, res) => {
 
         const result = await db.query(`
             UPDATE multas SET
-                "veiculoId" = $1, "motoristaId" = $2, "motoristaCategoria" = $3, data = $4, hora = $5, horario = $6, codigo = $7, descricao = $8, gravidade = $9, pontos = $10, valor = $11, status = $12, observacoes = $13, anexo = $14, "anexoBoleto" = $15, "anexoComprovante" = $16, historico = $17, "associacaoTipo" = $18, "viagemId" = $19
-            WHERE id = $20
+                "veiculoId" = $1, "motoristaId" = $2, "motoristaCategoria" = $3, data = $4, hora = $5, horario = $6, codigo = $7, descricao = $8, gravidade = $9, pontos = $10, valor = $11, status = $12, observacoes = $13, anexo = $14, "anexoBoleto" = $15, "anexoComprovante" = $16, "dataVencimentoBoleto" = $17, historico = $18, "associacaoTipo" = $19, "viagemId" = $20
+            WHERE id = $21
             RETURNING *
         `, [
             veiculoId,
@@ -1757,6 +1758,7 @@ app.put('/api/multas/:id', requireAuth, async (req, res) => {
             m.anexo || original.anexo,
             m.anexoBoleto || original.anexoBoleto,
             m.anexoComprovante || original.anexoComprovante,
+            m.dataVencimentoBoleto !== undefined ? m.dataVencimentoBoleto : original.dataVencimentoBoleto,
             JSON.stringify(historico),
             m.associacaoTipo || original.associacaoTipo || 'sem_motorista',
             m.viagemId !== undefined ? (m.viagemId && m.viagemId !== "" ? m.viagemId : null) : (original.viagemId || null),
@@ -2260,33 +2262,32 @@ async function syncNotifications(usuarioName = 'sistema') {
     // 7. Multas
     multas.forEach(mu => {
         if (mu.status === 'Pago') return;
-        if (mu.associacaoTipo === 'sem_motorista') return; // Ignorar multas sem indicação de condutor (NIC)
+        if (!mu.dataVencimentoBoleto) return; // Avisar apenas quando houver Data de Vencimento do Boleto
 
         const v = veiculos.find(item => item.id === mu.veiculoId);
         const label = v ? v.placa : 'Frota';
-        const daysDiff = getDaysDiff(mu.data);
-        const diffDaysAbs = Math.abs(daysDiff);
+        const daysDiff = getDaysDiff(mu.dataVencimentoBoleto);
 
-        if (diffDaysAbs > 30) {
+        if (daysDiff < 0) {
             calculatedAlerts.push({
                 id: `MULTA-VENCIDA-${mu.id}`,
                 tipo: 'Multa vencida',
                 categoria: 'Multas',
                 titulo: `Multa Vencida: ${label}`,
-                descricao: `Multa pendente de pagamento há mais de 30 dias (registrada em ${mu.data.split('-').reverse().join('/')}).`,
+                descricao: `O boleto da multa registrada em ${mu.data.split('-').reverse().join('/')} venceu em ${mu.dataVencimentoBoleto.split('-').reverse().join('/')}.`,
                 prioridade: 'Alta',
                 link: 'multas',
                 targetId: mu.id,
                 veiculoId: mu.veiculoId,
                 motoristaId: mu.motoristaId
             });
-        } else {
+        } else if (daysDiff <= 30) {
             calculatedAlerts.push({
                 id: `MULTA-PENDENTE-${mu.id}`,
                 tipo: 'Multa próxima do vencimento',
                 categoria: 'Multas',
                 titulo: `Multa Próxima do Vencimento: ${label}`,
-                descricao: `Multa registrada em ${mu.data.split('-').reverse().join('/')} pendente de pagamento.`,
+                descricao: `O boleto da multa registrada em ${mu.data.split('-').reverse().join('/')} vence em ${daysDiff} dias (${mu.dataVencimentoBoleto.split('-').reverse().join('/')}).`,
                 prioridade: 'Média',
                 link: 'multas',
                 targetId: mu.id,

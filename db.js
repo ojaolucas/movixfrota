@@ -296,6 +296,7 @@ async function initDB() {
                 anexo TEXT,
                 "anexoBoleto" TEXT,
                 "anexoComprovante" TEXT,
+                "dataVencimentoBoleto" VARCHAR(20),
                 historico JSONB DEFAULT '[]'::jsonb,
                 "associacaoTipo" VARCHAR(50) DEFAULT 'sem_motorista',
                 "viagemId" VARCHAR(50) REFERENCES viagens(id) ON DELETE SET NULL
@@ -305,6 +306,7 @@ async function initDB() {
         // Migration Alters
         await query(`ALTER TABLE multas ADD COLUMN IF NOT EXISTS "associacaoTipo" VARCHAR(50) DEFAULT 'sem_motorista'`);
         await query(`ALTER TABLE multas ADD COLUMN IF NOT EXISTS "viagemId" VARCHAR(50) REFERENCES viagens(id) ON DELETE SET NULL`);
+        await query(`ALTER TABLE multas ADD COLUMN IF NOT EXISTS "dataVencimentoBoleto" VARCHAR(20)`);
         await query(`ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS "categoria" VARCHAR(50) DEFAULT 'Motorista Efetivo'`);
         await query(`ALTER TABLE viagens ADD COLUMN IF NOT EXISTS "motoristaCategoria" VARCHAR(50) DEFAULT 'Motorista Efetivo'`);
         await query(`ALTER TABLE abastecimentos ADD COLUMN IF NOT EXISTS "motoristaCategoria" VARCHAR(50) DEFAULT 'Motorista Efetivo'`);
