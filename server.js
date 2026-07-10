@@ -2141,7 +2141,17 @@ async function syncNotifications(usuarioName = 'sistema') {
     });
 
     // 4. Troca de Óleo
+    // Agrupar e obter apenas a última troca de óleo registrada de cada veículo
+    const latestOleoByVehicle = {};
     oleos.forEach(o => {
+        if (!o.veiculoId) return;
+        const currentLatest = latestOleoByVehicle[o.veiculoId];
+        if (!currentLatest || new Date(o.dataTroca) > new Date(currentLatest.dataTroca)) {
+            latestOleoByVehicle[o.veiculoId] = o;
+        }
+    });
+
+    Object.values(latestOleoByVehicle).forEach(o => {
         const v = veiculos.find(item => item.id === o.veiculoId);
         if (!v || v.tipoUnidade === 'Implemento/Reboque') return;
 
