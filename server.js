@@ -2600,10 +2600,7 @@ app.put('/api/notificacoes/:id', requireAuth, async (req, res) => {
             RETURNING *
         `, [status, req.session.nome, JSON.stringify(auditoria), id]);
 
-        await db.query(`
-            INSERT INTO logs (usuario, perfil, acao, entidade, detalhes)
-            VALUES ($1, $2, $3, $4, $5)
-        `, [req.session.nome, req.session.perfil, `Alteração de status de notificação: ${status}`, 'Notificações', `Notificação ${id} alterada para ${status}`]);
+        await addLog(req.session.nome, req.session.perfil, `Alteração de status de notificação: ${status}`, 'Notificações', `Notificação ${id} alterada para ${status}`);
 
         res.json(updateRes.rows[0]);
     } catch (err) {
@@ -2623,10 +2620,7 @@ app.delete('/api/notificacoes/:id', requireAuth, async (req, res) => {
 
         await db.query('DELETE FROM notificacoes WHERE id = $1', [id]);
 
-        await db.query(`
-            INSERT INTO logs (usuario, perfil, acao, entidade, detalhes)
-            VALUES ($1, $2, $3, $4, $5)
-        `, [req.session.nome, req.session.perfil, 'Exclusão de notificação', 'Notificações', `Notificação ${id} excluída permanentemente`]);
+        await addLog(req.session.nome, req.session.perfil, 'Exclusão de notificação', 'Notificações', `Notificação ${id} excluída permanentemente`);
 
         res.json({ success: true, message: 'Notificação excluída com sucesso.' });
     } catch (err) {

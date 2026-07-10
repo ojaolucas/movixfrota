@@ -58,7 +58,7 @@ class MovixStore {
                 fetch('/api/alertas').then(r => r.json()).catch(() => [])
             ]);
 
-            this.state.veiculos = (veiculos || []).map(v => ({
+            this.state.veiculos = (Array.isArray(veiculos) ? veiculos : []).map(v => ({
                 ...v,
                 kmAtual: parseFloat(v.kmAtual) || 0,
                 valorMensalSeguro: parseFloat(v.valorMensalSeguro) || 0,
@@ -66,11 +66,11 @@ class MovixStore {
                 configRodagem: v.configRodagem || 'Personalizado',
                 configEixos: typeof v.configEixos === 'string' ? JSON.parse(v.configEixos) : (v.configEixos || [])
             }));
-            this.state.motoristas = (motoristas || []).map(m => ({
+            this.state.motoristas = (Array.isArray(motoristas) ? motoristas : []).map(m => ({
                 ...m,
                 categoria: m.categoria || 'Motorista Efetivo'
             }));
-            this.state.multas = (multas || []).map(mu => ({
+            this.state.multas = (Array.isArray(multas) ? multas : []).map(mu => ({
                 ...mu,
                 pontos: parseInt(mu.pontos) || 0,
                 valor: parseFloat(mu.valor) || 0,
@@ -78,7 +78,7 @@ class MovixStore {
                 viagemId: mu.viagemId || null,
                 motoristaCategoria: mu.motoristaCategoria || null
             }));
-            this.state.abastecimentos = (abastecimentos || []).map(a => ({
+            this.state.abastecimentos = (Array.isArray(abastecimentos) ? abastecimentos : []).map(a => ({
                 ...a,
                 litros: parseFloat(a.litros) || 0,
                 valorLitro: parseFloat(a.valorLitro) || 0,
@@ -88,25 +88,25 @@ class MovixStore {
                 custoKM: parseFloat(a.custoKM) || 0,
                 motoristaCategoria: a.motoristaCategoria || null
             }));
-            this.state.manutencoes = (manutencoes || []).map(m => ({
+            this.state.manutencoes = (Array.isArray(manutencoes) ? manutencoes : []).map(m => ({
                 ...m,
                 valor: parseFloat(m.valor) || 0,
                 km: parseFloat(m.km) || 0
             }));
-            this.state.pneus = (pneus || []).map(p => ({
+            this.state.pneus = (Array.isArray(pneus) ? pneus : []).map(p => ({
                 ...p,
                 custo: parseFloat(p.custo) || 0,
                 vidaEstimada: parseFloat(p.vidaEstimada) || 0,
                 kmInicial: parseFloat(p.kmInicial) || 0,
                 recapado: !!p.recapado
             }));
-            this.state.oleos = (oleos || []).map(o => ({
+            this.state.oleos = (Array.isArray(oleos) ? oleos : []).map(o => ({
                 ...o,
                 kmTroca: parseFloat(o.kmTroca) || 0,
                 proximaTrocaKM: parseFloat(o.proximaTrocaKM) || 0,
                 valor: parseFloat(o.valor) || 0
             }));
-            this.state.viagens = (viagens || []).map(vi => ({
+            this.state.viagens = (Array.isArray(viagens) ? viagens : []).map(vi => ({
                 ...vi,
                 kmInicial: parseFloat(vi.kmInicial) || 0,
                 kmFinal: parseFloat(vi.kmFinal) || 0,
@@ -114,12 +114,13 @@ class MovixStore {
                 custos: parseFloat(vi.custos) || 0,
                 motoristaCategoria: vi.motoristaCategoria || null
             }));
-            this.state.logs = logs || [];
-            this.state.alertas = alertas || [];
+            this.state.logs = Array.isArray(logs) ? logs : [];
+            this.state.alertas = Array.isArray(alertas) ? alertas : [];
 
             // Load users list if logged user is Admin
             if (this.activeUser && this.activeUser.perfil === 'Administrador') {
-                this.state.usuarios = await fetch('/api/usuarios').then(r => r.json());
+                const fetchedUsers = await fetch('/api/usuarios').then(r => r.json());
+                this.state.usuarios = Array.isArray(fetchedUsers) ? fetchedUsers : [this.activeUser];
             } else {
                 this.state.usuarios = [this.activeUser]; // Fallback for list display
             }
