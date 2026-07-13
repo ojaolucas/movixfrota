@@ -765,13 +765,13 @@
 
             window.movixApp.initAutocomplete(pneuVeicSel, 'Selecione o veículo...');
 
-            const toggleInstallFields = (isStock) => {
+            const toggleInstallFields = (isStockOrEstepe) => {
                  const kmInput = document.getElementById('pneu-kminicial-input');
                  const dateInput = document.getElementById('pneu-datainstalacao-input');
                  const kmGroup = document.getElementById('pneu-kminicial-group');
                  const dateGroup = document.getElementById('pneu-datainstalacao-group');
 
-                 if (isStock) {
+                 if (isStockOrEstepe) {
                      if (kmGroup) kmGroup.style.display = 'none';
                      if (dateGroup) dateGroup.style.display = 'none';
                      if (kmInput) {
@@ -831,11 +831,18 @@
                          dateInput.value = new Date().toISOString().split('T')[0];
                      }
                  }
-                 toggleInstallFields(false);
+                 const isStock = !veicId;
+                 const isEstepe = pneuPosSel.value && pneuPosSel.value.startsWith('Estepe');
+                 toggleInstallFields(isStock || isEstepe);
             };
 
             if (pneuVeicSel && pneuPosSel) {
                 pneuVeicSel.addEventListener('change', handlePneuVeicChange);
+                pneuPosSel.addEventListener('change', () => {
+                    const isStock = !pneuVeicSel.value;
+                    const isEstepe = pneuPosSel.value && pneuPosSel.value.startsWith('Estepe');
+                    toggleInstallFields(isStock || isEstepe);
+                });
             }
 
             if (!isEdit && defaultPos) {
@@ -865,10 +872,15 @@
                 const data = {};
                 formData.forEach((value, key) => data[key] = value);
 
-                if (data.veiculoAtual) {
+                const isEstepe = data.posicao && data.posicao.startsWith('Estepe');
+                if (data.veiculoAtual && !isEstepe) {
                     const selectedVeh = vehicles.find(v => v.id === data.veiculoAtual);
                     data.kmInicial = parseFloat(data.kmInicial) || 0;
                     data.status = isEdit ? data.status : 'ok';
+                } else if (data.veiculoAtual && isEstepe) {
+                    data.kmInicial = 0;
+                    data.status = isEdit ? data.status : 'ok';
+                    data.dataInstalacao = '';
                 } else {
                     data.kmInicial = 0;
                     data.status = isEdit ? data.status : 'ok';
@@ -947,7 +959,8 @@
                      }
                  };
 
-                 if (veiculoId) {
+                 const isEstepeSubmit = data.posicao && data.posicao.startsWith('Estepe');
+                 if (veiculoId && !isEstepeSubmit) {
                     window.movixApp.validateKM(veiculoId, enteredKM, saveAction, isEdit, originalKM);
                 } else {
                     saveAction();

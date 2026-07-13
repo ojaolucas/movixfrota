@@ -2205,6 +2205,9 @@ async function syncNotifications(usuarioName = 'sistema') {
     // 5. Pneus
     pneus.forEach(p => {
         if (!p.veiculoAtual) return;
+        // Se for estepe, não roda km, então não deve gerar alerta de desgaste/vida útil
+        if (p.posicao && p.posicao.startsWith('Estepe')) return;
+
         const v = veiculos.find(item => item.id === p.veiculoAtual);
         const placa = v ? v.placa : 'Frota';
 
