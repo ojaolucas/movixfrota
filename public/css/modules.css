@@ -1,5 +1,10 @@
 /* MovixFrota - Modules and Specialized Components CSS */
 
+/* Global Utilities */
+.text-nowrap {
+    white-space: nowrap !important;
+}
+
 /* Grid System for Modules */
 .grid-1 { display: grid; grid-template-columns: 1fr; gap: 24px; }
 .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
@@ -886,11 +891,30 @@ textarea.form-control {
     
     .smart-table th, .smart-table td {
         white-space: normal !important;
-        word-break: break-word !important;
-        padding: 6px 8px !important;
-        font-size: 0.65rem !important;
-        line-height: 1.2 !important;
+        word-break: keep-all !important;
+        word-wrap: normal !important;
+        padding: 4px 6px !important;
+        font-size: 0.58rem !important;
+        line-height: 1.15 !important;
         border-bottom: 1px solid #cbd5e1 !important;
+    }
+
+    /* Adapt layout dynamically if table has many columns */
+    .smart-table:has(th:nth-child(9)) th,
+    .smart-table:has(th:nth-child(9)) td {
+        font-size: 0.50rem !important; /* ~8px */
+        padding: 3px 4px !important;
+    }
+
+    .smart-table:has(th:nth-child(11)) th,
+    .smart-table:has(th:nth-child(11)) td {
+        font-size: 0.44rem !important; /* ~7px */
+        padding: 2px 3px !important;
+    }
+
+    .text-nowrap,
+    .smart-table td.text-nowrap {
+        white-space: nowrap !important;
     }
     
     .smart-table th {

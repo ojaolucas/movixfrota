@@ -2405,7 +2405,34 @@
                     if (key.startsWith('_') || key === 'id' || key === 'data') return;
                     
                     let val = row[key];
-                    let cellHTML = `<td>${val}</td>`;
+                    const valStr = String(val);
+                    let cellClass = '';
+                    
+                    // Identify short column values that should not wrap (dates, times, plates, currency, status, numbers)
+                    if (
+                        key.toLowerCase().includes('data') ||
+                        key.toLowerCase().includes('hora') ||
+                        key === 'veiculo' ||
+                        key === 'placa' ||
+                        key === 'codigo' ||
+                        key === 'codigoPneu' ||
+                        key === 'kmSaida' ||
+                        key === 'kmRetorno' ||
+                        key === 'kmAtual' ||
+                        key === 'kmRodado' ||
+                        key === 'kmInicial' ||
+                        key === 'kmTroca' ||
+                        key === 'proximaTrocaKM' ||
+                        key === 'vidaEstimada' ||
+                        key === 'custo' ||
+                        key === 'valor' ||
+                        key === 'valorTotal' ||
+                        (valStr.length < 15 && !valStr.includes(' '))
+                    ) {
+                        cellClass = 'class="text-nowrap"';
+                    }
+
+                    let cellHTML = `<td ${cellClass}>${val}</td>`;
 
                     // Style status badges or special columns
                     if (key === 'status' || key === 'situacaoVencimento' || key === 'gravidade') {
@@ -2427,11 +2454,11 @@
                                 displayVal = 'Em Oficina';
                             }
                         }
-                        cellHTML = `<td><span class="status-pill ${badgeClass}" style="font-weight:700; font-size:0.7rem; padding: 2px 6px;">${displayVal}</span></td>`;
+                        cellHTML = `<td class="text-nowrap"><span class="status-pill ${badgeClass}" style="font-weight:700; font-size:0.7rem; padding: 2px 6px;">${displayVal}</span></td>`;
                     } else if (key === 'veiculo' || key === 'placa') {
-                        cellHTML = `<td style="font-weight:700; color:var(--primary);">${val}</td>`;
+                        cellHTML = `<td class="text-nowrap" style="font-weight:700; color:var(--primary);">${val}</td>`;
                     } else if (key === 'total' || key === 'maintCost' || key === 'valorTotal' || key === 'valor') {
-                        cellHTML = `<td style="font-weight:700; color:var(--text-main);">${val}</td>`;
+                        cellHTML = `<td class="text-nowrap" style="font-weight:700; color:var(--text-main);">${val}</td>`;
                     }
                     htmlRow += cellHTML;
                 });
