@@ -97,6 +97,7 @@
                             <option value="Lubrificantes" ${state.filters.categoria === 'Lubrificantes' ? 'selected' : ''}>Lubrificantes</option>
                             <option value="Suspensão" ${state.filters.categoria === 'Suspensão' ? 'selected' : ''}>Suspensão</option>
                             <option value="Freios" ${state.filters.categoria === 'Freios' ? 'selected' : ''}>Freios</option>
+                            <option value="Estética" ${state.filters.categoria === 'Estética' ? 'selected' : ''}>Estética / Lavagem / Outros</option>
                         </select>
                     </div>
                     <div class="filter-group">
@@ -457,6 +458,7 @@
                         <option value="Parte elétrica" ${curVal === 'Parte elétrica' ? 'selected' : ''}>Parte elétrica</option>
                         <option value="Pneus" ${curVal === 'Pneus' ? 'selected' : ''}>Pneus</option>
                         <option value="Lubrificação" ${curVal === 'Lubrificação' ? 'selected' : ''}>Lubrificação</option>
+                        <option value="Estética" ${curVal === 'Estética' ? 'selected' : ''}>Estética / Lavagem / Outros</option>
                     `;
                     kmInput.removeAttribute('required');
                     if (!isEdit || veicId !== m.veiculoId) kmInput.value = '0';
@@ -468,6 +470,7 @@
                         <option value="Pneus" ${curVal === 'Pneus' ? 'selected' : ''}>Pneus / Suspensão</option>
                         <option value="Lubrificantes" ${curVal === 'Lubrificantes' ? 'selected' : ''}>Lubrificantes / Filtros</option>
                         <option value="Freios" ${curVal === 'Freios' ? 'selected' : ''}>Freios / Segurança</option>
+                        <option value="Estética" ${curVal === 'Estética' ? 'selected' : ''}>Estética / Lavagem / Outros</option>
                     `;
                     kmInput.setAttribute('required', '');
                     if (!isEdit || veicId !== m.veiculoId) kmInput.value = selectedOption.getAttribute('data-km') || '0';
