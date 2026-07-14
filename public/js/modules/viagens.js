@@ -1232,6 +1232,12 @@
                 lastSwapKM = parseFloat(lastSwap.kmInicial);
             }
 
+            let kmPartidaTexto = `${parseFloat(t.kmInicial).toLocaleString('pt-BR')} km`;
+            if (hist && hist.length > 1) {
+                const lastSwap = hist[hist.length - 1];
+                kmPartidaTexto = `${parseFloat(lastSwap.kmInicial).toLocaleString('pt-BR')} km`;
+            }
+
             const modal = document.getElementById('global-modal');
             const modalTitle = document.getElementById('modal-title');
             const modalBody = document.getElementById('modal-body-content');
@@ -1244,7 +1250,8 @@
                     <div style="grid-column: span 2; background-color:var(--bg-surface-hover); padding:12px; border-radius:6px; border:1px solid var(--border-color); font-size:0.85rem; display:flex; flex-direction:column; gap:6px; color:var(--text-main);">
                         <div><strong>Veículo:</strong> ${veiculoPlacaModelo}</div>
                         <div><strong>Motorista:</strong> ${motoristaText}</div>
-                        <div><strong>Saída:</strong> ${dateSaidaFormatted} às ${t.horaSaida || '-'} (KM: ${parseFloat(t.kmInicial).toLocaleString('pt-BR')} km)</div>
+                        <div><strong>KM de Partida:</strong> ${kmPartidaTexto}</div>
+                        <div><strong>Saída:</strong> ${dateSaidaFormatted} às ${t.horaSaida || '-'}</div>
                         ${swapInfoHTML}
                     </div>
 

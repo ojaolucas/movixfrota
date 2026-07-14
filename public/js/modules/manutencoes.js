@@ -30,13 +30,13 @@
         container.innerHTML = `
             <div class="page-header">
                 <div class="page-title-group">
-                    <h1 class="page-title">Controle de Manutenções</h1>
-                    <p class="page-subtitle">Acompanhe manutenções preventivas programadas e ordens corretivas da frota</p>
+                    <h1 class="page-title">Manutenções e Despesas Operacionais</h1>
+                    <p class="page-subtitle">Registre manutenções preventivas, corretivas e despesas operacionais da frota (lavagem, guincho, licenciamento e mais)</p>
                 </div>
                 <div class="page-actions">
                     ${!isVisualizador ? `
                         <button class="btn btn-primary" id="btn-nova-manutencao">
-                            <i class="fa-solid fa-plus"></i> Registrar Manutenção
+                            <i class="fa-solid fa-plus"></i> Registrar Serviço / Despesa
                         </button>
                     ` : ''}
                 </div>
@@ -85,19 +85,32 @@
                             <option value="">Todos</option>
                             <option value="Preventiva" ${state.filters.tipo === 'Preventiva' ? 'selected' : ''}>Preventiva</option>
                             <option value="Corretiva" ${state.filters.tipo === 'Corretiva' ? 'selected' : ''}>Corretiva</option>
+                            <option value="Despesa Operacional" ${state.filters.tipo === 'Despesa Operacional' ? 'selected' : ''}>Despesa Operacional</option>
                         </select>
                     </div>
                     <div class="filter-group">
                         <label>Categoria</label>
                         <select class="filter-input" id="filter-cat-manut">
                             <option value="">Todas</option>
-                            <option value="Mecânica" ${state.filters.categoria === 'Mecânica' ? 'selected' : ''}>Mecânica</option>
-                            <option value="Elétrica" ${state.filters.categoria === 'Elétrica' ? 'selected' : ''}>Elétrica</option>
-                            <option value="Pneus" ${state.filters.categoria === 'Pneus' ? 'selected' : ''}>Pneus</option>
-                            <option value="Lubrificantes" ${state.filters.categoria === 'Lubrificantes' ? 'selected' : ''}>Lubrificantes</option>
-                            <option value="Suspensão" ${state.filters.categoria === 'Suspensão' ? 'selected' : ''}>Suspensão</option>
-                            <option value="Freios" ${state.filters.categoria === 'Freios' ? 'selected' : ''}>Freios</option>
-                            <option value="Estética" ${state.filters.categoria === 'Estética' ? 'selected' : ''}>Estética / Lavagem / Outros</option>
+                            <optgroup label="— Manutenção Mecânica —">
+                                <option value="Mecânica" ${state.filters.categoria === 'Mecânica' ? 'selected' : ''}>Mecânica Geral</option>
+                                <option value="Pneus" ${state.filters.categoria === 'Pneus' ? 'selected' : ''}>Pneus / Alinhamento / Balanceamento</option>
+                                <option value="Lubrificantes" ${state.filters.categoria === 'Lubrificantes' ? 'selected' : ''}>Lubrificantes / Filtros</option>
+                                <option value="Freios" ${state.filters.categoria === 'Freios' ? 'selected' : ''}>Freios / Segurança</option>
+                                <option value="Suspensão" ${state.filters.categoria === 'Suspensão' ? 'selected' : ''}>Suspensão / Direção</option>
+                            </optgroup>
+                            <optgroup label="— Despesa Operacional —">
+                                <option value="Elétrica" ${state.filters.categoria === 'Elétrica' ? 'selected' : ''}>Elétrica / Bateria</option>
+                                <option value="Estética" ${state.filters.categoria === 'Estética' ? 'selected' : ''}>Estética / Lavagem</option>
+                                <option value="Funilaria" ${state.filters.categoria === 'Funilaria' ? 'selected' : ''}>Funilaria / Pintura</option>
+                                <option value="Guincho" ${state.filters.categoria === 'Guincho' ? 'selected' : ''}>Guincho / Reboque</option>
+                            </optgroup>
+                            <optgroup label="— Taxas e Documentação —">
+                                <option value="Licenciamento" ${state.filters.categoria === 'Licenciamento' ? 'selected' : ''}>Licenciamento</option>
+                                <option value="IPVA" ${state.filters.categoria === 'IPVA' ? 'selected' : ''}>IPVA / DPVAT</option>
+                                <option value="Vistoria" ${state.filters.categoria === 'Vistoria' ? 'selected' : ''}>Vistoria / Laudo</option>
+                                <option value="Outros" ${state.filters.categoria === 'Outros' ? 'selected' : ''}>Outros</option>
+                            </optgroup>
                         </select>
                     </div>
                     <div class="filter-group">
@@ -221,7 +234,7 @@
                             </div>
                         </td>
                         <td>${m.data.split('-').reverse().join('/')}</td>
-                        <td style="font-weight:600;">${parseFloat(m.km).toLocaleString('pt-BR')} km</td>
+                        <td style="font-weight:600; color: ${(!m.km || parseFloat(m.km) === 0) ? 'var(--text-muted)' : 'inherit'}">${(!m.km || parseFloat(m.km) === 0) ? '<span style="font-size:0.8rem;">—</span>' : parseFloat(m.km).toLocaleString('pt-BR') + ' km'}</td>
                         <td>${m.oficina}</td>
                         <td style="font-weight:700;">${window.movixApp.formatCurrency(m.valor)}</td>
                         <td><span class="status-pill ${statusClass}">${m.status}</span></td>
@@ -325,7 +338,7 @@
             const modalBody = document.getElementById('modal-body-content');
             const modalFooter = document.getElementById('modal-footer-actions');
 
-            modalTitle.innerText = isEdit ? `Ordem de Serviço: ${id}` : 'Registrar Ordem de Manutenção';
+            modalTitle.innerText = isEdit ? `Ordem de Serviço: ${id}` : 'Registrar Serviço ou Despesa';
 
             modalBody.innerHTML = `
                 <form id="form-manutencao" class="form-grid">
@@ -343,11 +356,12 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Tipo de Manutenção <span class="required">*</span></label>
-                        <select class="form-control" name="tipo" required>
-                            <option value="" disabled ${!isEdit ? 'selected' : ''}>Selecione o tipo de manutenção</option>
-                            <option value="Preventiva" ${isEdit && m.tipo === 'Preventiva' ? 'selected' : ''}>Preventiva (Programada)</option>
-                            <option value="Corretiva" ${isEdit && m.tipo === 'Corretiva' ? 'selected' : ''}>Corretiva (Avaria/Quebra)</option>
+                        <label>Tipo de Serviço <span class="required">*</span></label>
+                        <select class="form-control" name="tipo" id="man-tipo-sel" required>
+                            <option value="" disabled ${!isEdit ? 'selected' : ''}>Selecione o tipo</option>
+                            <option value="Preventiva" ${isEdit && m.tipo === 'Preventiva' ? 'selected' : ''}>Preventiva (Programada por KM/Tempo)</option>
+                            <option value="Corretiva" ${isEdit && m.tipo === 'Corretiva' ? 'selected' : ''}>Corretiva (Avaria / Quebra)</option>
+                            <option value="Despesa Operacional" ${isEdit && m.tipo === 'Despesa Operacional' ? 'selected' : ''}>Despesa Operacional (Lavagem, Taxa, Guincho...)</option>
                         </select>
                     </div>
 
@@ -358,9 +372,10 @@
                         </select>
                     </div>
 
-                    <div class="form-group">
-                        <label>KM Programado / Executado <span class="required">*</span></label>
-                        <input type="number" class="form-control" name="km" id="man-km-input" required placeholder="Ex: 145000" min="0" value="${isEdit ? m.km : ''}">
+                    <div class="form-group" id="man-km-wrapper">
+                        <label id="man-km-label">KM Programado / Executado <span class="required" id="man-km-asterisk">*</span></label>
+                        <input type="number" class="form-control" name="km" id="man-km-input" placeholder="Ex: 145000" min="0" value="${isEdit ? m.km : ''}">
+                        <span style="font-size:0.7rem; color:var(--text-muted); margin-top:2px; display:block;" id="man-km-help"></span>
                     </div>
 
                     <div class="form-group">
@@ -369,8 +384,8 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Oficina / Estabelecimento <span class="required">*</span></label>
-                        <input type="text" class="form-control" name="oficina" required placeholder="Nome da mecânica" value="${isEdit ? m.oficina : ''}">
+                        <label id="man-oficina-label">Oficina / Estabelecimento <span class="required">*</span></label>
+                        <input type="text" class="form-control" name="oficina" id="man-oficina-input" required placeholder="Nome da mecânica" value="${isEdit ? m.oficina : ''}">
                     </div>
 
                     <div class="form-group">
@@ -435,21 +450,99 @@
 
             window.movixApp.initAutocomplete(veicSel, 'Selecione o veículo...');
 
-            const handleVehicleChange = () => {
-                const selectedOption = veicSel.options[veicSel.selectedIndex];
-                if (!selectedOption || selectedOption.value === "") {
-                    catSel.innerHTML = '<option value="">Selecione um veículo primeiro</option>';
-                    kmInput.value = '';
-                    return;
+            // Dicionário de comportamento por categoria
+            const CATEGORIAS_CONFIG = {
+                // KM Obrigatório
+                'Mecânica':      { requerKM: 'required', labelEstab: 'Oficina / Estabelecimento' },
+                'Pneus':         { requerKM: 'required', labelEstab: 'Borracharia / Oficina' },
+                'Lubrificantes': { requerKM: 'required', labelEstab: 'Oficina / Estabelecimento' },
+                'Freios':        { requerKM: 'required', labelEstab: 'Oficina / Estabelecimento' },
+                'Suspensão':     { requerKM: 'required', labelEstab: 'Oficina / Estabelecimento' },
+                // Implemento/Reboque (KM opcional)
+                'Rolamentos':    { requerKM: 'optional', labelEstab: 'Oficina / Estabelecimento' },
+                'Estrutura':     { requerKM: 'optional', labelEstab: 'Oficina / Soldagem' },
+                'Solda':         { requerKM: 'optional', labelEstab: 'Oficina / Soldagem' },
+                'Parte elétrica':{ requerKM: 'optional', labelEstab: 'Elétrica / Oficina' },
+                'Lubrificação':  { requerKM: 'optional', labelEstab: 'Oficina / Estabelecimento' },
+                // KM Opcional
+                'Elétrica':      { requerKM: 'optional', labelEstab: 'Elétrica / Oficina' },
+                'Estética':      { requerKM: 'optional', labelEstab: 'Lava-Jato / Estética' },
+                'Funilaria':     { requerKM: 'optional', labelEstab: 'Funilaria / Pintura' },
+                'Guincho':       { requerKM: 'optional', labelEstab: 'Empresa de Guincho' },
+                // KM Oculto (Documental)
+                'Licenciamento': { requerKM: 'hidden',   labelEstab: 'Órgão / Despachante' },
+                'IPVA':          { requerKM: 'hidden',   labelEstab: 'Órgão / Despachante' },
+                'Vistoria':      { requerKM: 'hidden',   labelEstab: 'Vistoriadora / CIRETRAN' },
+                'Outros':        { requerKM: 'hidden',   labelEstab: 'Fornecedor / Estabelecimento' },
+            };
+
+            // Aplica comportamento do campo KM com base no config da categoria
+            const applyKMBehavior = (categoria) => {
+                const config = CATEGORIAS_CONFIG[categoria] || { requerKM: 'required', labelEstab: 'Oficina / Estabelecimento' };
+                const kmWrapper = document.getElementById('man-km-wrapper');
+                const kmInput = document.getElementById('man-km-input');
+                const kmLabel = document.getElementById('man-km-label');
+                const kmAsterisk = document.getElementById('man-km-asterisk');
+                const oficinaLabel = document.getElementById('man-oficina-label');
+                const kmHelp = document.getElementById('man-km-help');
+
+                if (config.requerKM === 'hidden') {
+                    kmWrapper.style.display = 'none';
+                    kmInput.removeAttribute('required');
+                    kmInput.value = '0';
+                    if (kmHelp) kmHelp.style.display = 'none';
+                } else if (config.requerKM === 'optional') {
+                    kmWrapper.style.display = '';
+                    kmInput.removeAttribute('required');
+                    if (kmAsterisk) kmAsterisk.style.display = 'none';
+                    kmLabel.innerHTML = 'KM Atual do Veículo <span style="font-size:0.75rem;color:var(--text-muted);">(Opcional)</span>';
+                    kmInput.placeholder = 'Opcional — registrar KM atual';
+                    if (kmHelp) kmHelp.style.display = 'block';
+                } else { // required
+                    kmWrapper.style.display = '';
+                    kmInput.setAttribute('required', '');
+                    kmLabel.innerHTML = 'KM Programado / Executado <span class="required" id="man-km-asterisk">*</span>';
+                    kmInput.placeholder = 'Ex: 145000';
+                    if (kmHelp) kmHelp.style.display = 'block';
                 }
 
+                if (oficinaLabel) {
+                    oficinaLabel.innerHTML = `${config.labelEstab} <span class="required">*</span>`;
+                }
+            };
+
+            // Popula categorias de acordo com o tipo selecionado e o tipo de veículo
+            const populateCategories = () => {
+                const tipoSel = document.getElementById('man-tipo-sel');
+                const tipoVal = tipoSel ? tipoSel.value : 'Preventiva';
+                const selectedOption = veicSel.options[veicSel.selectedIndex];
                 const veicId = veicSel.value;
                 const selectedVeh = vehicles.find(v => v.id === veicId);
                 const isTrailer = selectedVeh && selectedVeh.tipoUnidade === 'Implemento/Reboque';
-
                 const curVal = isEdit ? m.categoria : catSel.value;
 
-                if (isTrailer) {
+                if (!selectedOption || selectedOption.value === '') {
+                    catSel.innerHTML = '<option value="">Selecione um veículo primeiro</option>';
+                    applyKMBehavior('Mecânica');
+                    return;
+                }
+
+                if (tipoVal === 'Despesa Operacional') {
+                    catSel.innerHTML = `
+                        <optgroup label="— Serviços Eventuais —">
+                            <option value="Elétrica" ${curVal === 'Elétrica' ? 'selected' : ''}>Elétrica / Bateria</option>
+                            <option value="Estética" ${curVal === 'Estética' ? 'selected' : ''}>Estética / Lavagem</option>
+                            <option value="Funilaria" ${curVal === 'Funilaria' ? 'selected' : ''}>Funilaria / Pintura</option>
+                            <option value="Guincho" ${curVal === 'Guincho' ? 'selected' : ''}>Guincho / Reboque</option>
+                        </optgroup>
+                        <optgroup label="— Taxas e Documentação —">
+                            <option value="Licenciamento" ${curVal === 'Licenciamento' ? 'selected' : ''}>Licenciamento</option>
+                            <option value="IPVA" ${curVal === 'IPVA' ? 'selected' : ''}>IPVA / DPVAT</option>
+                            <option value="Vistoria" ${curVal === 'Vistoria' ? 'selected' : ''}>Vistoria / Laudo</option>
+                            <option value="Outros" ${curVal === 'Outros' ? 'selected' : ''}>Outros</option>
+                        </optgroup>
+                    `;
+                } else if (isTrailer) {
                     catSel.innerHTML = `
                         <option value="Suspensão" ${curVal === 'Suspensão' ? 'selected' : ''}>Suspensão</option>
                         <option value="Rolamentos" ${curVal === 'Rolamentos' ? 'selected' : ''}>Rolamentos</option>
@@ -458,29 +551,55 @@
                         <option value="Parte elétrica" ${curVal === 'Parte elétrica' ? 'selected' : ''}>Parte elétrica</option>
                         <option value="Pneus" ${curVal === 'Pneus' ? 'selected' : ''}>Pneus</option>
                         <option value="Lubrificação" ${curVal === 'Lubrificação' ? 'selected' : ''}>Lubrificação</option>
-                        <option value="Estética" ${curVal === 'Estética' ? 'selected' : ''}>Estética / Lavagem / Outros</option>
+                        <option value="Estética" ${curVal === 'Estética' ? 'selected' : ''}>Estética / Lavagem</option>
                     `;
-                    kmInput.removeAttribute('required');
-                    if (!isEdit || veicId !== m.veiculoId) kmInput.value = '0';
-                    kmInput.closest('.form-group').querySelector('label').innerHTML = 'KM Programado / Executado';
                 } else {
                     catSel.innerHTML = `
                         <option value="Mecânica" ${curVal === 'Mecânica' ? 'selected' : ''}>Mecânica Geral</option>
                         <option value="Elétrica" ${curVal === 'Elétrica' ? 'selected' : ''}>Elétrica / Bateria</option>
-                        <option value="Pneus" ${curVal === 'Pneus' ? 'selected' : ''}>Pneus / Suspensão</option>
+                        <option value="Pneus" ${curVal === 'Pneus' ? 'selected' : ''}>Pneus / Alinhamento / Balanceamento</option>
                         <option value="Lubrificantes" ${curVal === 'Lubrificantes' ? 'selected' : ''}>Lubrificantes / Filtros</option>
                         <option value="Freios" ${curVal === 'Freios' ? 'selected' : ''}>Freios / Segurança</option>
-                        <option value="Estética" ${curVal === 'Estética' ? 'selected' : ''}>Estética / Lavagem / Outros</option>
+                        <option value="Suspensão" ${curVal === 'Suspensão' ? 'selected' : ''}>Suspensão / Direção</option>
                     `;
-                    kmInput.setAttribute('required', '');
-                    if (!isEdit || veicId !== m.veiculoId) kmInput.value = selectedOption.getAttribute('data-km') || '0';
-                    kmInput.closest('.form-group').querySelector('label').innerHTML = 'KM Programado / Executado <span class="required">*</span>';
+                }
+
+                // Atualiza o KM com base na categoria atualmente selecionada
+                const currentCat = catSel.value;
+                applyKMBehavior(currentCat);
+
+                const kmInput = document.getElementById('man-km-input');
+                const kmHelp = document.getElementById('man-km-help');
+                const config = CATEGORIAS_CONFIG[currentCat] || { requerKM: 'required' };
+                
+                const veicKM = parseFloat(selectedOption.getAttribute('data-km')) || 0;
+                if (kmHelp) {
+                    kmHelp.innerText = `KM atual do veículo: ${veicKM.toLocaleString('pt-BR')} km. Lançamentos com KM menor serão validados como retroativos.`;
+                }
+
+                // Deixa o campo KM em branco se não estiver editando ou se trocar o veículo
+                if (config.requerKM !== 'hidden' && (!isEdit || veicId !== m.veiculoId)) {
+                    kmInput.value = '';
                 }
             };
 
             if (veicSel) {
-                veicSel.addEventListener('change', handleVehicleChange);
-                handleVehicleChange();
+                veicSel.addEventListener('change', populateCategories);
+                populateCategories();
+            }
+
+            const tipoSel = document.getElementById('man-tipo-sel');
+            if (tipoSel) {
+                tipoSel.addEventListener('change', populateCategories);
+            }
+
+            if (catSel) {
+                catSel.addEventListener('change', () => applyKMBehavior(catSel.value));
+            }
+
+            // Se editando, aplicar comportamento imediato com a categoria salva
+            if (isEdit && m.categoria) {
+                applyKMBehavior(m.categoria);
             }
 
             // File Upload logic
@@ -590,11 +709,17 @@
                      }
                  };
 
-                 if (isTrailer) {
+                // Verifica o comportamento do KM com base na categoria escolhida
+                 const currentCatSel = document.getElementById('man-cat-sel');
+                 const currentCat = currentCatSel ? currentCatSel.value : 'Mecânica';
+                 const catConfig = CATEGORIAS_CONFIG[currentCat] || { requerKM: 'required' };
+                 const kmExigido = catConfig.requerKM === 'required';
+
+                 if (isTrailer || !kmExigido) {
                     saveAction();
-                } else {
-                    window.movixApp.validateKM(veiculoId, enteredKM, saveAction, isEdit, originalKM);
-                }
+                 } else {
+                     window.movixApp.validateKM(veiculoId, enteredKM, saveAction, isEdit, originalKM);
+                 }
             });
         }
 
@@ -621,7 +746,7 @@
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Tipo da Manutenção</span><strong>${m.tipo}</strong></li>
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Categoria</span><strong>${m.categoria}</strong></li>
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Data Programada</span><strong>${m.data.split('-').reverse().join('/')}</strong></li>
-                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Quilometragem (KM)</span><strong>${parseFloat(m.km || 0).toLocaleString('pt-BR')} km</strong></li>
+                    <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Quilometragem (KM)</span><strong>${(!m.km || parseFloat(m.km) === 0) ? '<span style="color:var(--text-muted);font-size:0.85rem">— Não aplicável</span>' : parseFloat(m.km || 0).toLocaleString('pt-BR') + ' km'}</strong></li>
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Oficina / Estabelecimento</span><strong>${m.oficina || '-'}</strong></li>
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Fornecedor de Peças</span><strong>${m.fornecedor || '-'}</strong></li>
                     <li class="detail-sidebar-info-item" style="padding:4px 0;"><span>Valor da Manutenção</span><strong style="font-size:1.05rem; color:var(--text-main);">${window.movixApp.formatCurrency(m.valor)}</strong></li>

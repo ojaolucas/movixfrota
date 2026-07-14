@@ -1172,29 +1172,25 @@ class MovixApp {
     }
 
     formatCurrency(val) {
-        if (val === null || val === undefined || val === '') return '';
+        if (val === null || val === undefined || val === '') return 'R$ 0,00';
         
-        let numericString = '';
-        let num = typeof val === 'number' ? val : parseFloat(val);
-        if (!isNaN(num)) {
-            numericString = num.toFixed(2).replace(/\D/g, '');
+        let digits = '';
+        if (typeof val === 'number') {
+            digits = val.toFixed(2).replace(/\D/g, '');
         } else {
-            numericString = val.toString().replace(/\D/g, '');
+            digits = val.toString().replace(/\D/g, '');
         }
         
-        if (!numericString) return '';
+        if (!digits) return 'R$ 0,00';
         
-        if (/^0+$/.test(numericString)) {
-            return 'R$ 0,00';
+        // Remove zeros à esquerda
+        digits = digits.replace(/^0+/, '');
+        while (digits.length < 3) {
+            digits = '0' + digits;
         }
         
-        numericString = numericString.replace(/^0+/, '');
-        while (numericString.length < 3) {
-            numericString = '0' + numericString;
-        }
-        
-        const cents = numericString.slice(-2);
-        const integerPart = numericString.slice(0, -2);
+        const cents = digits.slice(-2);
+        const integerPart = digits.slice(0, -2);
         const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
         
         return `R$ ${formattedInteger},${cents}`;
@@ -1251,14 +1247,16 @@ class MovixApp {
             const target = e.target;
             if (isFinancialInput(target)) {
                 const val = target.value;
-                if (val === 'R$ 0,0' || val === 'R$ 0,' || val === 'R$ 0' || val === 'R$ ' || val === 'R') {
-                    target.value = '';
-                    target.dispatchEvent(new Event('input', { bubbles: true }));
-                    return;
-                }
                 const formatted = this.formatCurrency(val);
                 if (target.value !== formatted) {
                     target.value = formatted;
+                    // Força o cursor a ir para o final após alteração do valor
+                    setTimeout(() => {
+                        const len = target.value.length;
+                        try {
+                            target.setSelectionRange(len, len);
+                        } catch (err) {}
+                    }, 0);
                 }
             }
         });

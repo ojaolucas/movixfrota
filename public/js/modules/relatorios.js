@@ -133,6 +133,7 @@
                     </div>
                     <div style="text-align: right; font-size: 0.8rem; color: #64748b; line-height: 1.4;">
                         <div><strong>Relatório:</strong> <span id="print-report-name">N/A</span></div>
+                        <div><strong>Período:</strong> <span id="print-report-period">Todo o histórico</span></div>
                         <div><strong>Gerado por:</strong> <span id="print-report-user">${activeUser ? activeUser.nome : 'Usuário ERP'}</span></div>
                         <div><strong>Emitido em:</strong> <span id="print-report-time">N/A</span></div>
                     </div>
@@ -811,6 +812,10 @@
         // MAIN GENERATION FUNCTION
         function generateReport(isInitial = false) {
             const reportType = document.getElementById('report-type-sel').value;
+            const tableEl = document.getElementById('table-report-output');
+            if (tableEl) {
+                tableEl.classList.toggle('report-trips-layout', reportType === 'trips_report');
+            }
             const periodFilter = document.getElementById('report-period-filter');
             const periodVal = periodFilter ? periodFilter.value : 'all';
             const dateStartVal = document.getElementById('report-date-start') ? document.getElementById('report-date-start').value : '';
@@ -822,6 +827,26 @@
             const printReportName = document.getElementById('print-report-name');
             if (printReportName && selectEl) {
                 printReportName.innerText = selectEl.options[selectEl.selectedIndex].text;
+            }
+
+            const printReportPeriod = document.getElementById('print-report-period');
+            if (printReportPeriod) {
+                if (periodFilter) {
+                    const selectedVal = periodFilter.value;
+                    if (selectedVal === 'custom') {
+                        if (dateStartVal || dateEndVal) {
+                            const start = dateStartVal ? dateStartVal.split('-').reverse().join('/') : 'início';
+                            const end = dateEndVal ? dateEndVal.split('-').reverse().join('/') : 'fim';
+                            printReportPeriod.innerText = `De ${start} até ${end}`;
+                        } else {
+                            printReportPeriod.innerText = 'Todo o histórico';
+                        }
+                    } else {
+                        printReportPeriod.innerText = periodFilter.options[periodFilter.selectedIndex].text;
+                    }
+                } else {
+                    printReportPeriod.innerText = 'Todo o histórico';
+                }
             }
 
             // Clean active data
@@ -1227,7 +1252,7 @@
                 const filterVeic = document.getElementById('filter-veiculo').value;
                 const filterDriver = document.getElementById('filter-motorista').value;
 
-                activeHeaders = ['Data de Saída', 'Hora de Saída', 'Veículo', 'Motorista de Saída', 'Origem', 'Destino', 'Troca de Motorista', 'Motorista de Chegada', 'Data de Retorno', 'Hora de Retorno', 'KM Rodado', 'Status'];
+                activeHeaders = ['Período', 'Veículo', 'Motorista(s)', 'Rota', 'KM Rodado', 'Status'];
 
                 const filtered = viagens.filter(vi => {
                     const matchVeic = !filterVeic || vi.veiculoId === filterVeic;
@@ -1307,19 +1332,32 @@
                         trocaMotorista = 'Não';
                     }
 
+                    const dataSaidaFormatted = vi.dataSaida.split('-').reverse().join('/');
+                    const horaSaidaFormatted = vi.horaSaida || '00:00';
+                    const dataRetFormatted = vi.dataRetorno ? vi.dataRetorno.split('-').reverse().join('/') : '';
+                    const horaRetFormatted = vi.horaRetorno || '';
+                    
+                    let periodoHTML = `<div style="font-weight: 600; font-size: 0.82rem;"><span style="color: var(--text-muted); font-size: 0.72rem;">SAÍDA:</span> ${dataSaidaFormatted} às ${horaSaidaFormatted}</div>`;
+                    if (dataRetFormatted) {
+                        periodoHTML += `<div style="font-weight: 600; font-size: 0.82rem; margin-top: 3px;"><span style="color: var(--text-muted); font-size: 0.72rem;">RETORNO:</span> ${dataRetFormatted} às ${horaRetFormatted}</div>`;
+                    } else {
+                        periodoHTML += `<div style="font-weight: 600; font-size: 0.80rem; margin-top: 3px; color: var(--warning); font-style: italic;">Em andamento</div>`;
+                    }
+
+                    let motoristasHTML = `<div style="font-weight: 600; font-size: 0.85rem;">${motoristaSaida}</div>`;
+                    if (trocaMotorista !== 'Não') {
+                        motoristasHTML += `<div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500; margin-top: 2px;">Troca: ${trocaMotorista} (Chegada: ${motoristaChegada})</div>`;
+                    }
+
+                    const rotaHTML = `<div style="font-weight: 600; font-size: 0.85rem;">${vi.origem} <span style="color: var(--primary); font-weight: bold;">➔</span> ${vi.destino}</div>`;
+
                     return {
                         id: vi.id,
                         _dataSaida: vi.dataSaida,
-                        dataFormatted: vi.dataSaida.split('-').reverse().join('/'),
-                        horaSaida: vi.horaSaida || '-',
+                        periodo: periodoHTML,
                         veiculo: v ? v.placa : 'Veículo',
-                        motoristaSaida: motoristaSaida,
-                        origem: vi.origem,
-                        destino: vi.destino,
-                        trocaMotorista: trocaMotorista,
-                        motoristaChegada: motoristaChegada,
-                        dataRetorno: vi.dataRetorno ? vi.dataRetorno.split('-').reverse().join('/') : '-',
-                        horaRetorno: vi.horaRetorno || '-',
+                        motoristas: motoristasHTML,
+                        rota: rotaHTML,
                         kmRodado: `${(parseFloat(vi.kmRodado) || 0).toLocaleString('pt-BR')} km`,
                         status: vi.status,
                         _rawDataRetorno: vi.dataRetorno || '',
@@ -1940,11 +1978,12 @@
                 const cMaint = vehicleMaint.reduce((acc, m) => acc + (parseFloat(m.valor) || 0), 0);
                 const cMultas = vehicleMultas.reduce((acc, m) => acc + (parseFloat(m.valor) || 0), 0);
                 const cPneus = vehiclePneus.reduce((acc, p) => acc + (parseFloat(p.custo) || 0), 0);
+                const cOleos = vehicleOleos.reduce((acc, o) => acc + (parseFloat(o.valor) || 0), 0);
 
                 const cSeg = v.possuiSeguro === 'Sim' ? (parseFloat(v.valorMensalSeguro) || 0) * 12 : 0;
                 const cRast = v.possuiRastreador === 'Sim' ? (parseFloat(v.valorMensalRastreador) || 0) * 12 : 0;
 
-                const grandTotal = cSupplies + cMaint + cMultas + cPneus + cSeg + cRast;
+                const grandTotal = cSupplies + cMaint + cMultas + cPneus + cSeg + cRast + cOleos;
 
                 // KM rodado
                 const vehicleViagens = viagens.filter(vi => vi.veiculoId === v.id && checkPeriodRange(vi.dataSaida, periodVal, dateStartVal, dateEndVal));
@@ -2022,10 +2061,10 @@
                         dataFormatted: o.dataTroca.split('-').reverse().join('/'),
                         categoria: 'Troca de Óleo',
                         detalhe: `Lubrificante ${o.tipoOleo || ''} (${o.estabelecimento || ''})`,
-                        valor: '-',
+                        valor: `${window.movixApp.formatCurrency(parseFloat(o.valor) || 0)}`,
                         km: `${(parseFloat(o.kmTroca) || 0).toLocaleString('pt-BR')} km`,
                         _rawDate: o.dataTroca,
-                        _rawTotal: 0
+                        _rawTotal: parseFloat(o.valor) || 0
                     });
                 });
 
@@ -2500,7 +2539,16 @@
                 const values = [];
                 Object.keys(row).forEach(key => {
                     if (key.startsWith('_') || key === 'id' || key === 'data') return;
-                    let val = String(row[key] === null || row[key] === undefined ? '' : row[key]).replace(/"/g, '""');
+                    let rawVal = row[key] === null || row[key] === undefined ? '' : String(row[key]);
+                    // Strip HTML tags and replace multiple spaces/newlines with single spaces
+                    let cleanVal = rawVal
+                        .replace(/<\/div>/gi, ' ')
+                        .replace(/<\/p>/gi, ' ')
+                        .replace(/<br\s*\/?>/gi, ' ')
+                        .replace(/<[^>]*>/g, '')
+                        .replace(/\s+/g, ' ')
+                        .trim();
+                    let val = cleanVal.replace(/"/g, '""');
                     if (val.includes(';') || val.includes('\n')) val = `"${val}"`;
                     values.push(val);
                 });
