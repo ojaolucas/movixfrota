@@ -207,41 +207,60 @@
                 // 4. Driver Filter
                 if (motoristaVal && t.motoristaId !== motoristaVal) return false;
 
-                // 5. Period Filter
+                // 5. Period Filter (Sobreposição Total)
                 if (periodVal !== 'tudo') {
-                    const tripDateStr = t.dataSaida; // YYYY-MM-DD
+                    const tripStart = t.dataSaida; // YYYY-MM-DD
                     const localNow = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
                     const todayStr = localNow.toISOString().split('T')[0];
+                    const tripEnd = t.dataRetorno || todayStr; // Se em andamento, assume hoje
+
+                    let filterStart = '';
+                    let filterEnd = '';
 
                     if (periodVal === 'hoje') {
-                        if (tripDateStr !== todayStr) return false;
+                        filterStart = todayStr;
+                        filterEnd = todayStr;
                     } else if (periodVal === 'ontem') {
                         const yesterday = new Date(localNow);
                         yesterday.setDate(yesterday.getDate() - 1);
-                        const yesterdayStr = yesterday.toISOString().split('T')[0];
-                        if (tripDateStr !== yesterdayStr) return false;
+                        filterStart = yesterday.toISOString().split('T')[0];
+                        filterEnd = filterStart;
                     } else if (periodVal === '7dias') {
                         const limit = new Date(localNow);
                         limit.setDate(limit.getDate() - 7);
-                        const limitStr = limit.toISOString().split('T')[0];
-                        if (tripDateStr < limitStr || tripDateStr > todayStr) return false;
+                        filterStart = limit.toISOString().split('T')[0];
+                        filterEnd = todayStr;
                     } else if (periodVal === '30dias') {
                         const limit = new Date(localNow);
                         limit.setDate(limit.getDate() - 30);
-                        const limitStr = limit.toISOString().split('T')[0];
-                        if (tripDateStr < limitStr || tripDateStr > todayStr) return false;
+                        filterStart = limit.toISOString().split('T')[0];
+                        filterEnd = todayStr;
                     } else if (periodVal === 'este_mes') {
-                        const yearMonth = todayStr.substring(0, 7); // "YYYY-MM"
-                        if (!tripDateStr.startsWith(yearMonth)) return false;
+                        // Início e fim do mês atual de forma segura
+                        const year = localNow.getFullYear();
+                        const month = localNow.getMonth();
+                        const start = new Date(year, month, 1, 12, 0, 0);
+                        const end = new Date(year, month + 1, 0, 12, 0, 0);
+                        filterStart = start.toISOString().split('T')[0];
+                        filterEnd = end.toISOString().split('T')[0];
                     } else if (periodVal === 'mes_anterior') {
-                        const prevMonthDate = new Date(localNow);
-                        prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
-                        const prevYearMonth = prevMonthDate.toISOString().split('T')[0].substring(0, 7);
-                        if (!tripDateStr.startsWith(prevYearMonth)) return false;
+                        // Início e fim do mês anterior de forma segura
+                        const year = localNow.getFullYear();
+                        const month = localNow.getMonth() - 1;
+                        const start = new Date(year, month, 1, 12, 0, 0);
+                        const end = new Date(year, month + 1, 0, 12, 0, 0);
+                        filterStart = start.toISOString().split('T')[0];
+                        filterEnd = end.toISOString().split('T')[0];
                     } else if (periodVal === 'personalizado') {
-                        if (deVal && tripDateStr < deVal) return false;
-                        if (ateVal && tripDateStr > ateVal) return false;
+                        filterStart = deVal || '';
+                        filterEnd = ateVal || '';
                     }
+
+                    // Regra de Sobreposição:
+                    // A viagem se sobrepõe ao filtro se ela começou antes ou durante o filtro (tripStart <= filterEnd)
+                    // E se ela terminou depois ou durante o início do filtro (tripEnd >= filterStart).
+                    if (filterEnd && tripStart > filterEnd) return false;
+                    if (filterStart && tripEnd < filterStart) return false;
                 }
 
                 return true;

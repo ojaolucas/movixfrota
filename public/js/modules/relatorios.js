@@ -257,37 +257,57 @@
             return new Date(dateStr + 'T12:00:00');
         }
 
-        // Check if date is in selected filter range
-        function checkPeriodRange(dateStr, periodSelVal, startVal, endVal) {
+        // Check if date is in selected filter range (supports date intervals for trips)
+        function checkPeriodRange(dateStr, periodSelVal, startVal, endVal, endDateStr = null) {
             if (!dateStr) return false;
-            const itemDate = parseDate(dateStr);
-            if (!itemDate || isNaN(itemDate.getTime())) return false;
+            const itemStartDate = parseDate(dateStr);
+            if (!itemStartDate || isNaN(itemStartDate.getTime())) return false;
 
             const today = new Date();
-            let startLimit = null;
-            let endLimit = null;
+            let filterStart = null;
+            let filterEnd = null;
 
             if (periodSelVal === 'custom') {
-                if (startVal) startLimit = parseDate(startVal);
+                if (startVal) {
+                    filterStart = parseDate(startVal);
+                }
                 if (endVal) {
-                    endLimit = parseDate(endVal);
-                    endLimit.setHours(23, 59, 59, 999);
+                    filterEnd = parseDate(endVal);
+                    filterEnd.setHours(23, 59, 59, 999);
                 }
             } else if (periodSelVal !== 'all') {
                 if (periodSelVal === '1') {
                     // Este mês: a partir do dia 1 do mês atual
-                    startLimit = new Date(today.getFullYear(), today.getMonth(), 1, 0, 0, 0, 0);
+                    filterStart = new Date(today.getFullYear(), today.getMonth(), 1, 0, 0, 0, 0);
+                    // Fim do mês atual
+                    filterEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
                 } else {
                     const months = parseInt(periodSelVal) || 12;
                     // Inicialização segura no dia 1 para evitar overflows do setMonth no JS
-                    startLimit = new Date(today.getFullYear(), today.getMonth() - months, 1, 0, 0, 0, 0);
+                    filterStart = new Date(today.getFullYear(), today.getMonth() - months, 1, 0, 0, 0, 0);
                     const maxDays = new Date(today.getFullYear(), today.getMonth() - months + 1, 0).getDate();
-                    startLimit.setDate(Math.min(today.getDate(), maxDays));
+                    filterStart.setDate(Math.min(today.getDate(), maxDays));
+                    // Fim do dia de hoje
+                    filterEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
                 }
             }
 
-            if (startLimit && itemDate < startLimit) return false;
-            if (endLimit && itemDate > endLimit) return false;
+            // Se for fornecido endDateStr, temos uma faixa (ex: viagem)
+            if (endDateStr) {
+                const itemEndDate = parseDate(endDateStr);
+                if (itemEndDate && !isNaN(itemEndDate.getTime())) {
+                    // Sobreposição total:
+                    // Início do item <= Fim do filtro
+                    // Fim do item >= Início do filtro
+                    if (filterEnd && itemStartDate > filterEnd) return false;
+                    if (filterStart && itemEndDate < filterStart) return false;
+                    return true;
+                }
+            }
+
+            // Fallback tradicional para data única (ex: abastecimentos, multas, etc)
+            if (filterStart && itemStartDate < filterStart) return false;
+            if (filterEnd && itemStartDate > filterEnd) return false;
             return true;
         }
 
@@ -1263,7 +1283,7 @@
                 const filtered = viagens.filter(vi => {
                     const matchVeic = !filterVeic || vi.veiculoId === filterVeic;
                     const matchDriver = !filterDriver || vi.motoristaId === filterDriver;
-                    const matchDate = checkPeriodRange(vi.dataSaida, periodVal, dateStartVal, dateEndVal);
+                    const matchDate = checkPeriodRange(vi.dataSaida, periodVal, dateStartVal, dateEndVal, vi.dataRetorno || new Date().toISOString().split('T')[0]);
                     return matchVeic && matchDriver && matchDate;
                 });
 

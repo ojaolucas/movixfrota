@@ -1722,6 +1722,7 @@
     // --- FICHA DE VIDA ÚTIL VIEW ---
     function renderFichaVidaUtil(container, veiculoId) {
         const vehicle = window.movixStore.getVeiculo(veiculoId);
+        const activeUser = window.movixStore.getActiveUser();
         const activeTrips = window.movixStore.getViagens().filter(t => t.status && t.status.toLowerCase() === 'em andamento');
         const isCurrentlyTraveling = activeTrips.some(t => t.veiculoId === veiculoId);
         if (!vehicle) {
@@ -2429,6 +2430,287 @@
 
                 </section>
             </div>
+
+            <!-- ESTILOS E CONTAINER DE IMPRESSÃO EXCLUSIVO (PDF) -->
+            <style>
+                /* Estilos específicos para a impressão da Ficha de Vida Útil */
+                @media print {
+                    /* Ocultar elementos interativos e comuns do ERP */
+                    .not-logged-in, .sidebar, .header, .page-header, .page-actions, .detail-sheet-grid, .detail-tab-wrapper, #view-content-wrapper > .page-header, #view-content-wrapper > .detail-sheet-grid {
+                        display: none !important;
+                    }
+                    body, .app-container, .content-wrapper, #view-content-wrapper {
+                        background: #fff !important;
+                        color: #000 !important;
+                        padding: 0 !important;
+                        margin: 0 !important;
+                        box-shadow: none !important;
+                    }
+                    /* Exibir o container especial da ficha em PDF */
+                    .print-ficha-container {
+                        display: block !important;
+                    }
+                    /* Ajustar tabelas para impressão no papel */
+                    .smart-table th {
+                        background-color: #f1f5f9 !important;
+                        color: #0f172a !important;
+                        font-weight: 700 !important;
+                        border-bottom: 2px solid #cbd5e1 !important;
+                    }
+                    .smart-table td, .smart-table th {
+                        padding: 8px !important;
+                        border-bottom: 1px solid #cbd5e1 !important;
+                    }
+                    /* Evitar quebras de linha desagradáveis */
+                    .print-ficha-container h3 {
+                        page-break-after: avoid !important;
+                        break-after: avoid !important;
+                    }
+                    .print-ficha-container table, .print-ficha-container div {
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
+                    }
+                    * {
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
+                }
+            </style>
+
+            <div class="print-ficha-container" style="display: none; font-family: var(--font-main); color: #1e293b; padding: 20px;">
+                <!-- CABEÇALHO DA FICHA (Estilo Relatório) -->
+                <div style="border-bottom: 2px solid #3b82f6; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <img src="favicon.png" style="width: 48px; height: 48px; border-radius: 10px; object-fit: cover;">
+                        <div>
+                            <h2 style="margin: 0; font-family: var(--font-heading); font-size: 1.4rem; color: #3b82f6; font-weight: 800;">MovixFrota ERP</h2>
+                            <span style="font-size: 0.8rem; color: #64748b;">Ficha Técnica & Histórico de Vida Útil</span>
+                        </div>
+                    </div>
+                    <div style="text-align: right; font-size: 0.8rem; color: #64748b; line-height: 1.4;">
+                        <div><strong>Veículo:</strong> <span style="color:#0f172a; font-weight:700;">${vehicle.placa}</span></div>
+                        <div><strong>Gerado por:</strong> <span>${activeUser ? activeUser.nome : 'Usuário ERP'}</span></div>
+                        <div><strong>Emitido em:</strong> <span>${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}</span></div>
+                    </div>
+                </div>
+
+                <!-- TÍTULO DA FICHA -->
+                <div style="margin-bottom: 24px; text-align: center; background: #f1f5f9; padding: 12px; border-radius: 8px;">
+                    <h1 style="margin: 0; font-size: 1.5rem; font-family: var(--font-heading); color: #0f172a; font-weight: 800; text-transform: uppercase;">
+                        Ficha de Vida Útil do Veículo
+                    </h1>
+                    <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: #64748b;">
+                        Histórico Consolidado de Manutenções, Abastecimentos, Seguros e Equipamentos
+                    </p>
+                </div>
+
+                <!-- 1. IDENTIFICAÇÃO DO VEÍCULO -->
+                <div style="margin-bottom: 24px;">
+                    <h3 style="font-family: var(--font-heading); color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 12px; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+                        <span style="color: #3b82f6;">■</span> Identificação & Dados Técnicos
+                    </h3>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <div><span style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 2px;">Placa</span><strong style="font-size: 1rem; color: #0f172a;">${vehicle.placa}</strong></div>
+                        <div><span style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 2px;">Marca / Modelo</span><strong style="font-size: 1rem; color: #0f172a;">${vehicle.marca} ${vehicle.modelo}</strong></div>
+                        <div><span style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 2px;">Status Atual</span><strong style="font-size: 1rem; color: #0f172a;">${isCurrentlyTraveling ? 'Em Viagem' : (vehicle.status === 'disponivel' ? 'Disponível' : (vehicle.status === 'em_manutencao' ? 'Em Manutenção' : 'Inativo'))}</strong></div>
+                        
+                        <div><span style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 2px;">Tipo Unidade</span><strong style="color: #0f172a;">${vehicle.tipoUnidade || '-'}</strong></div>
+                        <div><span style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 2px;">Ano / Modelo</span><strong style="color: #0f172a;">${vehicle.ano}</strong></div>
+                        <div><span style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 2px;">Cor</span><strong style="color: #0f172a;">${vehicle.cor || '-'}</strong></div>
+
+                        <div><span style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 2px;">Odômetro Atual</span><strong style="color: #0f172a;">${parseFloat(vehicle.kmAtual || 0).toLocaleString('pt-BR')} km</strong></div>
+                        <div><span style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 2px;">Data de Aquisição</span><strong style="color: #0f172a;">${vehicle.dataAquisicao ? vehicle.dataAquisicao.split('-').reverse().join('/') : '-'}</strong></div>
+                        <div><span style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 2px;">Combustível</span><strong style="color: #0f172a;">${vehicle.combustivel || '-'}</strong></div>
+
+                        <div><span style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 2px;">Qtd. Eixos</span><strong style="color: #0f172a;">${vehicle.qtdEixos || 2}</strong></div>
+                        <div><span style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 2px;">Renavam</span><strong style="color: #0f172a;">${vehicle.renavam || '-'}</strong></div>
+                        <div><span style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 2px;">Chassi</span><strong style="color: #0f172a;">${vehicle.chassi || '-'}</strong></div>
+                    </div>
+                </div>
+
+                <!-- 2. RESUMO FINANCEIRO -->
+                <div style="margin-bottom: 24px;">
+                    <h3 style="font-family: var(--font-heading); color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 12px; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+                        <span style="color: #22c55e;">■</span> Balanço Financeiro Acumulado
+                    </h3>
+                    <div style="display: flex; gap: 16px; width: 100%;">
+                        <div style="flex: 1; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; background: #fafafa; border-left: 4px solid #ef4444;">
+                            <span style="font-size: 0.72rem; color: #64748b; text-transform: uppercase; font-weight: 700; display: block;">Total Oficina / Manutenção</span>
+                            <span style="font-size: 1.25rem; font-weight: 800; color: #b91c1c; display: block; margin-top: 4px;">${window.movixApp.formatCurrency(totalMaintenanceSpent)}</span>
+                        </div>
+                        ${vehicle.tipoUnidade === 'Implemento/Reboque' ? '' : `
+                        <div style="flex: 1; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; background: #fafafa; border-left: 4px solid #22c55e;">
+                            <span style="font-size: 0.72rem; color: #64748b; text-transform: uppercase; font-weight: 700; display: block;">Total Abastecimento</span>
+                            <span style="font-size: 1.25rem; font-weight: 800; color: #15803d; display: block; margin-top: 4px;">${window.movixApp.formatCurrency(totalFuelSpent)}</span>
+                        </div>
+                        <div style="flex: 1; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; background: #fafafa; border-left: 4px solid #3b82f6;">
+                            <span style="font-size: 0.72rem; color: #64748b; text-transform: uppercase; font-weight: 700; display: block;">Custo Estimado por KM</span>
+                            <span style="font-size: 1.25rem; font-weight: 800; color: #1d4ed8; display: block; margin-top: 4px;">${window.movixApp.formatCurrency(vehicle.kmAtual > 0 ? (combinedVehicleCost / vehicle.kmAtual) : 0)} / km</span>
+                        </div>
+                        `}
+                    </div>
+                    ${vehicle.tipoUnidade === 'Implemento/Reboque' ? '' : `
+                    <div style="margin-top: 12px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px; text-align: center;">
+                        <span style="font-size: 0.85rem; color: #1e40af;"><strong>Custo Total de Vida Acumulado:</strong> ${window.movixApp.formatCurrency(combinedVehicleCost)} (Combustível + Manutenções)</span>
+                    </div>
+                    `}
+                </div>
+
+                <!-- 3. SEGUROS E EQUIPAMENTOS -->
+                <div style="margin-bottom: 24px; page-break-inside: avoid; break-inside: avoid;">
+                    <h3 style="font-family: var(--font-heading); color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 12px; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+                        <span style="color: #8b5cf6;">■</span> Apólice de Seguro & Acessórios
+                    </h3>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+                        <!-- Seguro -->
+                        <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; background: #fff;">
+                            <h4 style="margin: 0 0 10px 0; color: #1e3a8a; font-size: 0.95rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;">
+                                🛡️ Seguro Cobertura
+                            </h4>
+                            ${vehicle.possuiSeguro === 'Sim' ? `
+                                <table style="width: 100%; font-size: 0.8rem; border-collapse: collapse;">
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 4px 0; color: #64748b;">Seguradora:</td><td style="padding: 4px 0; font-weight:700; text-align:right;">${vehicle.seguradora || '-'}</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 4px 0; color: #64748b;">Nº Apólice:</td><td style="padding: 4px 0; font-weight:700; text-align:right;">${vehicle.apolice || '-'}</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 4px 0; color: #64748b;">Validade:</td><td style="padding: 4px 0; font-weight:700; text-align:right;">${vehicle.validadeContratoSeguro ? vehicle.validadeContratoSeguro.split('-').reverse().join('/') : '-'}</td></tr>
+                                    <tr><td style="padding: 4px 0; color: #64748b;">Custo Mensal:</td><td style="padding: 4px 0; font-weight:700; text-align:right;">${window.movixApp.formatCurrency(parseFloat(vehicle.valorMensalSeguro) || 0)}</td></tr>
+                                </table>
+                            ` : '<span style="font-size:0.8rem; color:#94a3b8; font-style:italic;">Sem seguro contratado.</span>'}
+                        </div>
+
+                        <!-- Rastreador -->
+                        <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; background: #fff;">
+                            <h4 style="margin: 0 0 10px 0; color: #0d9488; font-size: 0.95rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;">
+                                📡 Sistema de Rastreamento
+                            </h4>
+                            ${vehicle.possuiRastreador === 'Sim' ? `
+                                <table style="width: 100%; font-size: 0.8rem; border-collapse: collapse;">
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 4px 0; color: #64748b;">Fornecedor:</td><td style="padding: 4px 0; font-weight:700; text-align:right;">${vehicle.empresaRastreador || '-'}</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 4px 0; color: #64748b;">Modelo/IMEI:</td><td style="padding: 4px 0; font-weight:700; text-align:right;">${vehicle.modeloRastreador || '-'}/${vehicle.imeiRastreador || '-'}</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 4px 0; color: #64748b;">Instalação:</td><td style="padding: 4px 0; font-weight:700; text-align:right;">${vehicle.dataInstalacaoRastreador ? vehicle.dataInstalacaoRastreador.split('-').reverse().join('/') : '-'}</td></tr>
+                                    <tr><td style="padding: 4px 0; color: #64748b;">Mensalidade:</td><td style="padding: 4px 0; font-weight:700; text-align:right;">${window.movixApp.formatCurrency(parseFloat(vehicle.valorMensalRastreador) || 0)}</td></tr>
+                                </table>
+                            ` : '<span style="font-size:0.8rem; color:#94a3b8; font-style:italic;">Sem rastreador instalado.</span>'}
+                        </div>
+
+                        <!-- Extintor -->
+                        <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; background: #fff;">
+                            <h4 style="margin: 0 0 10px 0; color: #b91c1c; font-size: 0.95rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;">
+                                🧯 Extintor de Incêndio
+                            </h4>
+                            ${vehicle.possuiExtintor === 'Sim' ? `
+                                <table style="width: 100%; font-size: 0.8rem; border-collapse: collapse;">
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 4px 0; color: #64748b;">Tipo / Cap.:</td><td style="padding: 4px 0; font-weight:700; text-align:right;">${vehicle.tipoExtintor || '-'}/${vehicle.capacidadeExtintor || '-'}</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 4px 0; color: #64748b;">INMETRO Selo:</td><td style="padding: 4px 0; font-weight:700; text-align:right;">${vehicle.seloExtintor || '-'}</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 4px 0; color: #64748b;">Validade Ext.:</td><td style="padding: 4px 0; font-weight:700; text-align:right;">${vehicle.validadeExtintor ? vehicle.validadeExtintor.split('-').reverse().join('/') : '-'}</td></tr>
+                                    <tr><td style="padding: 4px 0; color: #64748b;">Prox. Recarga:</td><td style="padding: 4px 0; font-weight:700; text-align:right; color:#b91c1c;">${vehicle.proximaRecargaExtintor ? vehicle.proximaRecargaExtintor.split('-').reverse().join('/') : '-'}</td></tr>
+                                </table>
+                            ` : '<span style="font-size:0.8rem; color:#94a3b8; font-style:italic;">Sem controle de extintor.</span>'}
+                        </div>
+
+                        <!-- Tacógrafo -->
+                        <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; background: #fff;">
+                            <h4 style="margin: 0 0 10px 0; color: #0284c7; font-size: 0.95rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;">
+                                ⏱️ Tacógrafo
+                            </h4>
+                            ${vehicle.possuiTacografo === 'Sim' ? `
+                                <table style="width: 100%; font-size: 0.8rem; border-collapse: collapse;">
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 4px 0; color: #64748b;">Marca / Modelo:</td><td style="padding: 4px 0; font-weight:700; text-align:right;">${vehicle.marcaTacografo || '-'}/${vehicle.modeloTacografo || '-'}</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 4px 0; color: #64748b;">Série Nº:</td><td style="padding: 4px 0; font-weight:700; text-align:right;">${vehicle.numSerieTacografo || '-'}</td></tr>
+                                    <tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 4px 0; color: #64748b;">Última Aferição:</td><td style="padding: 4px 0; font-weight:700; text-align:right;">${vehicle.dataUltimaAfericaoTacografo ? vehicle.dataUltimaAfericaoTacografo.split('-').reverse().join('/') : '-'}</td></tr>
+                                    <tr><td style="padding: 4px 0; color: #64748b;">Validade Aferição:</td><td style="padding: 4px 0; font-weight:700; text-align:right; color:#0284c7;">${vehicle.validadeAfericaoTacografo ? vehicle.validadeAfericaoTacografo.split('-').reverse().join('/') : '-'}</td></tr>
+                                </table>
+                            ` : '<span style="font-size:0.8rem; color:#94a3b8; font-style:italic;">Sem controle de tacógrafo.</span>'}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. PNEUS VINCULADOS -->
+                <div style="margin-bottom: 24px; page-break-inside: avoid; break-inside: avoid;">
+                    <h3 style="font-family: var(--font-heading); color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 12px; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+                        <span style="color: #ea580c;">■</span> Pneus Vinculados Ativos
+                    </h3>
+                    <table class="smart-table" style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
+                        <thead>
+                            <tr style="background: #f1f5f9; border-bottom: 2px solid #cbd5e1;">
+                                <th style="padding: 8px; text-align: left; font-weight: 700; color: #0f172a;">Código</th>
+                                <th style="padding: 8px; text-align: left; font-weight: 700; color: #0f172a;">Marca/Modelo</th>
+                                <th style="padding: 8px; text-align: left; font-weight: 700; color: #0f172a;">Posição</th>
+                                <th style="padding: 8px; text-align: left; font-weight: 700; color: #0f172a;">KM Restante</th>
+                                <th style="padding: 8px; text-align: left; font-weight: 700; color: #0f172a;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${vehicleTires.length === 0 ? '<tr><td colspan="5" style="padding: 8px; text-align: center; color: #64748b;">Nenhum pneu vinculado a este veículo.</td></tr>' : vehicleTires.map(p => `
+                                <tr style="border-bottom: 1px solid #e2e8f0;">
+                                    <td style="padding: 8px; font-weight:700;">${p.codigo}</td>
+                                    <td style="padding: 8px;">${p.marca} ${p.modelo} (${p.medida || '-'})</td>
+                                    <td style="padding: 8px; font-weight:600;">${p.posicao}</td>
+                                    <td style="padding: 8px;">${p.posicao.startsWith('Estepe') ? '-' : `${window.movixStore.getRemainingKMForTire(p.id).toLocaleString('pt-BR')} km`}</td>
+                                    <td style="padding: 8px;"><span style="font-weight:600; text-transform:uppercase; font-size:0.75rem; color:${p.status === 'vencido' ? '#ef4444' : (p.status === 'atencao' ? '#f59e0b' : '#10b981')}">${p.status === 'vencido' ? 'Vencido' : (p.status === 'atencao' ? 'Atenção' : 'Regular (OK)')}</span></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 5. HISTÓRICO DE MANUTENÇÕES -->
+                <div style="margin-bottom: 24px; page-break-inside: avoid; break-inside: avoid;">
+                    <h3 style="font-family: var(--font-heading); color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 12px; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+                        <span style="color: #ef4444;">■</span> Manutenções Executadas
+                    </h3>
+                    <table class="smart-table" style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
+                         <thead>
+                             <tr style="background: #f1f5f9; border-bottom: 2px solid #cbd5e1;">
+                                 <th style="padding: 8px; text-align: left; font-weight: 700; color: #0f172a;">Data</th>
+                                 <th style="padding: 8px; text-align: left; font-weight: 700; color: #0f172a;">Tipo / Categoria</th>
+                                 <th style="padding: 8px; text-align: left; font-weight: 700; color: #0f172a;">Descrição</th>
+                                 <th style="padding: 8px; text-align: left; font-weight: 700; color: #0f172a;">Oficina</th>
+                                 <th style="padding: 8px; text-align: right; font-weight: 700; color: #0f172a;">Valor</th>
+                             </tr>
+                         </thead>
+                         <tbody>
+                             ${maintenance.length === 0 ? '<tr><td colspan="5" style="padding: 8px; text-align: center; color: #64748b;">Nenhuma manutenção registrada.</td></tr>' : maintenance.map(m => `
+                                 <tr style="border-bottom: 1px solid #e2e8f0;">
+                                     <td style="padding: 8px;">${m.data.split('-').reverse().join('/')}</td>
+                                     <td style="padding: 8px; font-weight:600;">${m.tipo} (${m.categoria})</td>
+                                     <td style="padding: 8px;">${m.descricao || '-'}</td>
+                                     <td style="padding: 8px;">${m.oficina || '-'}</td>
+                                     <td style="padding: 8px; text-align: right; font-weight:600;">${window.movixApp.formatCurrency(m.valor)}</td>
+                                 </tr>
+                             `).join('')}
+                         </tbody>
+                     </table>
+                 </div>
+
+                 <!-- 6. HISTÓRICO OPERACIONAL RECENTE -->
+                 <div style="page-break-inside: avoid; break-inside: avoid;">
+                     <h3 style="font-family: var(--font-heading); color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 12px; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+                         <span style="color: #64748b;">■</span> Histórico Operacional Recente (Últimos 15 Eventos)
+                     </h3>
+                     <table class="smart-table" style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
+                         <thead>
+                             <tr style="background: #f1f5f9; border-bottom: 2px solid #cbd5e1;">
+                                 <th style="padding: 8px; text-align: left; font-weight: 700; color: #0f172a; width: 100px;">Data</th>
+                                 <th style="padding: 8px; text-align: left; font-weight: 700; color: #0f172a; width: 150px;">Tipo de Evento</th>
+                                 <th style="padding: 8px; text-align: left; font-weight: 700; color: #0f172a;">Detalhamento / Descrição</th>
+                             </tr>
+                         </thead>
+                         <tbody>
+                             ${events.slice(0, 15).length === 0 ? '<tr><td colspan="3" style="padding: 8px; text-align: center; color: #64748b;">Nenhum evento registrado na vida útil.</td></tr>' : events.slice(0, 15).map(ev => `
+                                 <tr style="border-bottom: 1px solid #e2e8f0;">
+                                     <td style="padding: 8px;">${ev.date.split('-').reverse().join('/')}</td>
+                                     <td style="padding: 8px; font-weight: 600;">
+                                         ${ev.type === 'abastecimento' ? '⛽ Abastecimento' : 
+                                           ev.type === 'manutencao' ? '🔧 Manutenção' : 
+                                           ev.type === 'oleo' ? '🛢️ Troca de Óleo' : '🗺️ Viagem'}
+                                     </td>
+                                     <td style="padding: 8px; color: #475569;">${ev.title}: ${ev.desc}</td>
+                                 </tr>
+                             `).join('')}
+                         </tbody>
+                     </table>
+                 </div>
+             </div>
         `;
 
         // Tab click behavior
