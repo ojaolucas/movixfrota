@@ -274,10 +274,15 @@
                     endLimit.setHours(23, 59, 59, 999);
                 }
             } else if (periodSelVal !== 'all') {
-                const months = parseInt(periodSelVal) || 12;
-                startLimit = new Date();
-                startLimit.setMonth(today.getMonth() - months);
-                startLimit.setHours(0, 0, 0, 0);
+                if (periodSelVal === '1') {
+                    // Este mês: a partir do dia 1 do mês atual
+                    startLimit = new Date(today.getFullYear(), today.getMonth(), 1, 0, 0, 0, 0);
+                } else {
+                    const months = parseInt(periodSelVal) || 12;
+                    startLimit = new Date();
+                    startLimit.setMonth(today.getMonth() - months);
+                    startLimit.setHours(0, 0, 0, 0);
+                }
             }
 
             if (startLimit && itemDate < startLimit) return false;
