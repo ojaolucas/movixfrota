@@ -279,9 +279,10 @@
                     startLimit = new Date(today.getFullYear(), today.getMonth(), 1, 0, 0, 0, 0);
                 } else {
                     const months = parseInt(periodSelVal) || 12;
-                    startLimit = new Date();
-                    startLimit.setMonth(today.getMonth() - months);
-                    startLimit.setHours(0, 0, 0, 0);
+                    // Inicialização segura no dia 1 para evitar overflows do setMonth no JS
+                    startLimit = new Date(today.getFullYear(), today.getMonth() - months, 1, 0, 0, 0, 0);
+                    const maxDays = new Date(today.getFullYear(), today.getMonth() - months + 1, 0).getDate();
+                    startLimit.setDate(Math.min(today.getDate(), maxDays));
                 }
             }
 
