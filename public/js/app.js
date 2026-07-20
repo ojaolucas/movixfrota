@@ -669,6 +669,30 @@ class MovixApp {
         overlay.addEventListener('click', (e) => {
             // Disabled to keep modal open when clicking outside. Close only via button clicks (X, Cancelar, Salvar).
         });
+
+        // Reset scroll position when modal is opened to prevent starting scrolled down
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'class' && overlay.classList.contains('active')) {
+                    const modalBody = document.getElementById('modal-body-content');
+                    if (modalBody) {
+                        modalBody.scrollTop = 0;
+                        // Use microtask or timeout to ensure scroll resets even if inputs are auto-focused
+                        setTimeout(() => {
+                            modalBody.scrollTop = 0;
+                        }, 50);
+                    }
+                    const container = document.getElementById('global-modal-container');
+                    if (container) {
+                        container.scrollTop = 0;
+                        setTimeout(() => {
+                            container.scrollTop = 0;
+                        }, 50);
+                    }
+                }
+            });
+        });
+        observer.observe(overlay, { attributes: true });
     }
 
     // --- CUSTOM CONFIRMATION DIALOG (REGRA 2 OVERLAY) ---
