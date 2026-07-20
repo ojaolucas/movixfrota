@@ -15,7 +15,7 @@
                 currentSort: { column: 'nome', direction: 'asc' },
                 filters: {
                     search: '',
-                    cnhCat: '',
+                    categoria: '',
                     cnhStatus: '',
                     motStatus: ''
                 },
@@ -23,8 +23,9 @@
                 scroll: 0
             };
             window.movixApp.saveListState('motoristas', state);
-        } else if (state.itemsPerPage === undefined) {
-            state.itemsPerPage = 10;
+        } else {
+            if (state.filters.categoria === undefined) state.filters.categoria = '';
+            if (state.itemsPerPage === undefined) state.itemsPerPage = 10;
             window.movixApp.saveListState('motoristas', state);
         }
         
@@ -51,13 +52,13 @@
                         <input type="text" class="filter-input" id="search-motoristas" placeholder="Nome, CNH ou E-mail..." value="${state.filters.search || ''}">
                     </div>
                     <div class="filter-group">
-                        <label>Categoria CNH</label>
-                        <select class="filter-input" id="filter-cnh-cat">
+                        <label>Categoria do Condutor</label>
+                        <select class="filter-input" id="filter-categoria-condutor">
                             <option value="">Todas</option>
-                            <option value="B" ${state.filters.cnhCat === 'B' ? 'selected' : ''}>B</option>
-                            <option value="C" ${state.filters.cnhCat === 'C' ? 'selected' : ''}>C</option>
-                            <option value="D" ${state.filters.cnhCat === 'D' ? 'selected' : ''}>D</option>
-                            <option value="E" ${state.filters.cnhCat === 'E' ? 'selected' : ''}>E</option>
+                            <option value="Motorista Efetivo" ${state.filters.categoria === 'Motorista Efetivo' ? 'selected' : ''}>Motorista Efetivo</option>
+                            <option value="Motorista Temporário (Diarista)" ${state.filters.categoria === 'Motorista Temporário (Diarista)' ? 'selected' : ''}>Motorista Temporário (Diarista)</option>
+                            <option value="Condutor Interno" ${state.filters.categoria === 'Condutor Interno' ? 'selected' : ''}>Condutor Interno</option>
+                            <option value="Condutor Externo" ${state.filters.categoria === 'Condutor Externo' ? 'selected' : ''}>Condutor Externo</option>
                         </select>
                     </div>
                     <div class="filter-group">
@@ -122,14 +123,14 @@
             const driversInUseIds = new Set(activeTrips.map(t => t.motoristaId));
 
             const searchVal = document.getElementById('search-motoristas').value.toLowerCase();
-            const catVal = document.getElementById('filter-cnh-cat').value;
+            const categoriaVal = document.getElementById('filter-categoria-condutor').value;
             const cnhStatusVal = document.getElementById('filter-cnh-status').value;
             const motStatusVal = document.getElementById('filter-mot-status').value;
 
             // Save filter state
             state.filters = {
                 search: document.getElementById('search-motoristas').value,
-                cnhCat: catVal,
+                categoria: categoriaVal,
                 cnhStatus: cnhStatusVal,
                 motStatus: motStatusVal
             };
@@ -159,7 +160,7 @@
                                     m.cnh.toLowerCase().includes(searchVal) ||
                                     m.email.toLowerCase().includes(searchVal);
                 
-                const matchCat = !catVal || m.categoriaCNH === catVal;
+                const matchCat = !categoriaVal || m.categoria === categoriaVal;
                 
                 let actualStatus = m.status;
                 if (m.status === 'ativo' && driversInUseIds.has(m.id)) {
@@ -307,12 +308,12 @@
 
         // Hook filters
         document.getElementById('search-motoristas').addEventListener('input', () => { currentPage = 1; updateTable(); });
-        document.getElementById('filter-cnh-cat').addEventListener('change', () => { currentPage = 1; updateTable(); });
+        document.getElementById('filter-categoria-condutor').addEventListener('change', () => { currentPage = 1; updateTable(); });
         document.getElementById('filter-cnh-status').addEventListener('change', () => { currentPage = 1; updateTable(); });
         document.getElementById('filter-mot-status').addEventListener('change', () => { currentPage = 1; updateTable(); });
         document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
             document.getElementById('search-motoristas').value = '';
-            document.getElementById('filter-cnh-cat').value = '';
+            document.getElementById('filter-categoria-condutor').value = '';
             document.getElementById('filter-cnh-status').value = '';
             document.getElementById('filter-mot-status').value = '';
             currentSort = { column: 'nome', direction: 'asc' };

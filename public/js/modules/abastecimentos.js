@@ -17,14 +17,20 @@
                 filters: {
                     veiculoId: '',
                     motoristaId: '',
-                    combustivel: ''
+                    combustivel: '',
+                    periodo: 'tudo',
+                    de: '',
+                    ate: ''
                 },
                 itemsPerPage: 10,
                 scroll: 0
             };
             window.movixApp.saveListState('abastecimentos', state);
-        } else if (state.itemsPerPage === undefined) {
-            state.itemsPerPage = 10;
+        } else {
+            if (state.filters.periodo === undefined) state.filters.periodo = 'tudo';
+            if (state.filters.de === undefined) state.filters.de = '';
+            if (state.filters.ate === undefined) state.filters.ate = '';
+            if (state.itemsPerPage === undefined) state.itemsPerPage = 10;
             window.movixApp.saveListState('abastecimentos', state);
         }
 
@@ -72,8 +78,34 @@
                             <option value="Arla 32" ${state.filters.combustivel === 'Arla 32' ? 'selected' : ''}>Arla 32</option>
                         </select>
                     </div>
-                    <div class="filter-group" style="justify-content: flex-end;">
-                        <button class="btn btn-secondary" id="btn-limpar-filtros" style="height: 38px; width: 100%; white-space: nowrap; justify-content: center;">
+                </div>
+
+                <div class="filters-row" style="margin-top: 12px; border-top: 1px solid var(--border-color); padding-top: 12px; display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end;">
+                    <div class="filter-group" style="max-width: 220px; flex: 1 1 200px;">
+                        <label>Período Temporal</label>
+                        <select class="filter-input" id="filter-periodo-abastecimento">
+                            <option value="tudo" ${state.filters.periodo === 'tudo' ? 'selected' : ''}>Todo o histórico</option>
+                            <option value="hoje" ${state.filters.periodo === 'hoje' ? 'selected' : ''}>Hoje</option>
+                            <option value="ontem" ${state.filters.periodo === 'ontem' ? 'selected' : ''}>Ontem</option>
+                            <option value="7dias" ${state.filters.periodo === '7dias' ? 'selected' : ''}>Últimos 7 dias</option>
+                            <option value="30dias" ${state.filters.periodo === '30dias' ? 'selected' : ''}>Últimos 30 dias</option>
+                            <option value="este_mes" ${state.filters.periodo === 'este_mes' ? 'selected' : ''}>Este mês</option>
+                            <option value="mes_anterior" ${state.filters.periodo === 'mes_anterior' ? 'selected' : ''}>Mês anterior</option>
+                            <option value="personalizado" ${state.filters.periodo === 'personalizado' ? 'selected' : ''}>Personalizado...</option>
+                        </select>
+                    </div>
+                    <div id="custom-date-container-abastecimento" style="display: ${state.filters.periodo === 'personalizado' ? 'flex' : 'none'}; flex-wrap: wrap; gap: 16px; align-items: flex-end; flex-grow: 1;">
+                        <div class="filter-group" style="max-width: 180px; flex: 1 1 140px;">
+                            <label>De</label>
+                            <input type="date" class="filter-input" id="filter-data-de" value="${state.filters.de || ''}">
+                        </div>
+                        <div class="filter-group" style="max-width: 180px; flex: 1 1 140px;">
+                            <label>Até</label>
+                            <input type="date" class="filter-input" id="filter-data-ate" value="${state.filters.ate || ''}">
+                        </div>
+                    </div>
+                    <div class="filter-group" style="margin-left: auto; display: flex; align-items: flex-end; flex-shrink: 0;">
+                        <button class="btn btn-secondary" id="btn-limpar-filtros" style="height: 38px; white-space: nowrap;">
                             <i class="fa-solid fa-filter-circle-xmark"></i> Limpar Filtros
                         </button>
                     </div>
@@ -114,12 +146,18 @@
             const veiculoVal = document.getElementById('filter-veiculo').value;
             const motoristaVal = document.getElementById('filter-motorista').value;
             const fuelVal = document.getElementById('filter-fuel-type').value;
+            const periodVal = document.getElementById('filter-periodo-abastecimento').value;
+            const dataDeVal = document.getElementById('filter-data-de').value;
+            const dataAteVal = document.getElementById('filter-data-ate').value;
 
             // Save filter state
             state.filters = {
                 veiculoId: veiculoVal,
                 motoristaId: motoristaVal,
-                combustivel: fuelVal
+                combustivel: fuelVal,
+                periodo: periodVal,
+                de: dataDeVal,
+                ate: dataAteVal
             };
             state.currentPage = currentPage;
             window.movixApp.saveListState('abastecimentos', state);
@@ -128,7 +166,46 @@
                 const matchVeiculo = !veiculoVal || a.veiculoId === veiculoVal;
                 const matchMotorista = !motoristaVal || a.motoristaId === motoristaVal;
                 const matchFuel = !fuelVal || a.combustivel === fuelVal;
-                return matchVeiculo && matchMotorista && matchFuel;
+
+                // Date period matching
+                let matchDate = true;
+                if (periodVal !== 'tudo') {
+                    const supplyDateStr = a.data; // YYYY-MM-DD
+                    const localNow = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
+                    const todayStr = localNow.toISOString().split('T')[0];
+
+                    if (periodVal === 'hoje') {
+                        if (supplyDateStr !== todayStr) matchDate = false;
+                    } else if (periodVal === 'ontem') {
+                        const yesterday = new Date(localNow);
+                        yesterday.setDate(yesterday.getDate() - 1);
+                        const yesterdayStr = yesterday.toISOString().split('T')[0];
+                        if (supplyDateStr !== yesterdayStr) matchDate = false;
+                    } else if (periodVal === '7dias') {
+                        const limit = new Date(localNow);
+                        limit.setDate(limit.getDate() - 7);
+                        const limitStr = limit.toISOString().split('T')[0];
+                        if (supplyDateStr < limitStr || supplyDateStr > todayStr) matchDate = false;
+                    } else if (periodVal === '30dias') {
+                        const limit = new Date(localNow);
+                        limit.setDate(limit.getDate() - 30);
+                        const limitStr = limit.toISOString().split('T')[0];
+                        if (supplyDateStr < limitStr || supplyDateStr > todayStr) matchDate = false;
+                    } else if (periodVal === 'este_mes') {
+                        const yearMonth = todayStr.substring(0, 7); // "YYYY-MM"
+                        if (!supplyDateStr.startsWith(yearMonth)) matchDate = false;
+                    } else if (periodVal === 'mes_anterior') {
+                        const prevMonthDate = new Date(localNow);
+                        prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
+                        const prevYearMonth = prevMonthDate.toISOString().split('T')[0].substring(0, 7);
+                        if (!supplyDateStr.startsWith(prevYearMonth)) matchDate = false;
+                    } else if (periodVal === 'personalizado') {
+                        if (dataDeVal && supplyDateStr < dataDeVal) matchDate = false;
+                        if (dataAteVal && supplyDateStr > dataAteVal) matchDate = false;
+                    }
+                }
+
+                return matchVeiculo && matchMotorista && matchFuel && matchDate;
             });
 
             const itemsPerPageVal = state.itemsPerPage === 'Todos' ? Infinity : (parseInt(state.itemsPerPage) || 10);
@@ -228,20 +305,46 @@
         window.movixApp.initAutocomplete(document.getElementById('filter-veiculo'), 'Filtrar veículo...');
         window.movixApp.initAutocomplete(document.getElementById('filter-motorista'), 'Filtrar motorista...');
 
+        const dateContainer = document.getElementById('custom-date-container-abastecimento');
+        const periodSel = document.getElementById('filter-periodo-abastecimento');
+
+        if (periodSel && dateContainer) {
+            periodSel.addEventListener('change', () => {
+                if (periodSel.value === 'personalizado') {
+                    dateContainer.style.display = 'flex';
+                } else {
+                    dateContainer.style.display = 'none';
+                    document.getElementById('filter-data-de').value = '';
+                    document.getElementById('filter-data-ate').value = '';
+                }
+                currentPage = 1;
+                updateTable();
+            });
+        }
+
         // Filters events hooks
         document.getElementById('filter-veiculo').addEventListener('change', () => { currentPage = 1; updateTable(); });
         document.getElementById('filter-motorista').addEventListener('change', () => { currentPage = 1; updateTable(); });
         document.getElementById('filter-fuel-type').addEventListener('change', () => { currentPage = 1; updateTable(); });
+        document.getElementById('filter-data-de').addEventListener('change', () => { currentPage = 1; updateTable(); });
+        document.getElementById('filter-data-ate').addEventListener('change', () => { currentPage = 1; updateTable(); });
         document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
             const fV = document.getElementById('filter-veiculo');
             const fM = document.getElementById('filter-motorista');
             const fF = document.getElementById('filter-fuel-type');
+            const fP = document.getElementById('filter-periodo-abastecimento');
+            const fD = document.getElementById('filter-data-de');
+            const fA = document.getElementById('filter-data-ate');
             fV.value = '';
             fM.value = '';
             fF.value = '';
+            fP.value = 'tudo';
+            fD.value = '';
+            fA.value = '';
             fV.dispatchEvent(new Event('change'));
             fM.dispatchEvent(new Event('change'));
             fF.dispatchEvent(new Event('change'));
+            fP.dispatchEvent(new Event('change'));
             currentPage = 1;
             updateTable();
         });
