@@ -2955,7 +2955,24 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(item.payload)
                     });
-                    if (!res.ok) throw new Error();
+                    if (!res.ok) {
+                        if (res.status === 400) {
+                            const errData = await res.json().catch(() => ({}));
+                            if (errData.conflictTripId) {
+                                const realViagemId = errData.conflictTripId;
+                                // Propagar o ID real da viagem já existente no servidor
+                                for (const subItem of queue) {
+                                    if (subItem.payload && subItem.payload.viagemId === 'TEMP-VIA') {
+                                        subItem.payload.viagemId = realViagemId;
+                                    }
+                                }
+                                continue; // Sucesso alternativo: a viagem já existia
+                            }
+                            console.warn("Descartando viagem inválida da fila (400):", item, errData.error);
+                            continue; // Descarta erro de cliente
+                        }
+                        throw new Error();
+                    }
                     const createdTrip = await res.json();
                     const realViagemId = createdTrip.id;
 
@@ -2971,35 +2988,65 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(item.payload)
                     });
-                    if (!res.ok) throw new Error();
+                    if (!res.ok) {
+                        if (res.status === 400) {
+                            console.warn("Descartando abastecimento inválido da fila (400):", item);
+                            continue; // Descarta erro de cliente
+                        }
+                        throw new Error();
+                    }
                 } else if (item.action === 'incident') {
                     const res = await fetch('/api/ocorrencias-viagem', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(item.payload)
                     });
-                    if (!res.ok) throw new Error();
+                    if (!res.ok) {
+                        if (res.status === 400) {
+                            console.warn("Descartando ocorrência inválida da fila (400):", item);
+                            continue; // Descarta erro de cliente
+                        }
+                        throw new Error();
+                    }
                 } else if (item.action === 'expense') {
                     const res = await fetch(`/api/viagens/${item.payload.viagemId}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ custos: item.payload.custos, observacoes: item.payload.observacoes })
                     });
-                    if (!res.ok) throw new Error();
+                    if (!res.ok) {
+                        if (res.status === 400 || res.status === 404) {
+                            console.warn("Descartando despesa inválida da fila (400/404):", item);
+                            continue; // Descarta erro de cliente
+                        }
+                        throw new Error();
+                    }
                 } else if (item.action === 'end_trip') {
                     const res = await fetch(`/api/viagens/${item.payload.viagemId}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(item.payload)
                     });
-                    if (!res.ok) throw new Error();
+                    if (!res.ok) {
+                        if (res.status === 400 || res.status === 404) {
+                            console.warn("Descartando encerramento inválido da fila (400/404):", item);
+                            continue; // Descarta erro de cliente
+                        }
+                        throw new Error();
+                    }
                 } else if (item.action === 'maintenance_request') {
                     const res = await fetch('/api/solicitacoes-manutencao', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(item.payload)
                     });
-                    if (!res.ok) throw new Error();
+                    if (!res.ok) {
+                        if (res.status === 400) {
+                            console.warn("Descartando solicitação de manutenção inválida da fila (400):", item);
+                            continue; // Descarta erro de cliente
+                        }
+                        throw new Error();
+                    }
                 }
             } catch (err) {
                 console.error("Falha ao sincronizar item offline. Re-enfileirando:", item, err);

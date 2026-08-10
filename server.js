@@ -1416,11 +1416,13 @@ app.post('/api/viagens', requireAuth, async (req, res) => {
                 const driverName = driverRes.rows[0] ? driverRes.rows[0].nome : 'Motorista';
                 const dataFmt = conflict.dataSaida.split('-').reverse().join('/');
                 return res.status(400).json({
-                    error: `Veículo em uso pelo motorista ${driverName} com destino a ${conflict.destino} (Saída: ${dataFmt} às ${conflict.horaSaida}).`
+                    error: `Veículo em uso pelo motorista ${driverName} com destino a ${conflict.destino} (Saída: ${dataFmt} às ${conflict.horaSaida}).`,
+                    conflictTripId: conflict.id
                 });
             } else {
                 return res.status(400).json({
-                    error: `Você já possui uma viagem ativa em andamento no mesmo período (${conflict.origem} → ${conflict.destino}). Encerre-a primeiro.`
+                    error: `Você já possui uma viagem ativa em andamento no mesmo período (${conflict.origem} → ${conflict.destino}). Encerre-a primeiro.`,
+                    conflictTripId: conflict.id
                 });
             }
         }
