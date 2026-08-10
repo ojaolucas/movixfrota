@@ -128,16 +128,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(UPLOADS_PATH));
 
 // ─── Configuração Multer (Upload de Fotos) ────────────────
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, UPLOADS_PATH),
-    filename: (req, file, cb) => {
-        const ext = path.extname(file.originalname);
-        cb(null, `foto_${uuidv4()}${ext}`);
-    }
-});
-
 const upload = multer({
-    storage,
+    storage: multer.memoryStorage(),
     limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
     fileFilter: (req, file, cb) => {
         const allowed = /jpeg|jpg|png|gif|webp/;
@@ -313,24 +305,56 @@ app.get('/api/auth/me', requireAuth, async (req, res) => {
     }
 });
 
-// ─── UPLOAD DE FOTO ───────────────────────────────────────
-app.post('/api/upload/foto', requireAuth, upload.single('foto'), (req, res) => {
-    if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
-    const url = `/uploads/${req.file.filename}`;
-    res.json({ success: true, url });
-});
+// Helper function for uploading to Supabase Storage or falling back to Local Disk
+async function uploadToSupabaseOrLocal(file, prefix = 'doc') {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_KEY;
+    const ext = path.extname(file.originalname);
+    const filename = `${prefix}_${uuidv4()}${ext}`;
 
-// Configuração Multer Genérica para Documentos e PDFs (Manutenção, CRLV, CNH, Seguro)
-const storageDoc = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, UPLOADS_PATH),
-    filename: (req, file, cb) => {
-        const ext = path.extname(file.originalname);
-        cb(null, `doc_${uuidv4()}${ext}`);
+    if (supabaseUrl && supabaseKey) {
+        const bucket = 'uploads';
+        const baseUrl = supabaseUrl.replace(/\/$/, '');
+        const uploadUrl = `${baseUrl}/storage/v1/object/${bucket}/${filename}`;
+
+        const response = await fetch(uploadUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${supabaseKey}`,
+                'API-Key': supabaseKey,
+                'Content-Type': file.mimetype
+            },
+            body: file.buffer
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Erro ao fazer upload para o Supabase: ${response.statusText} (${errText})`);
+        }
+
+        return `${baseUrl}/storage/v1/object/public/${bucket}/${filename}`;
+    } else {
+        const localPath = path.join(UPLOADS_PATH, filename);
+        await fs.promises.writeFile(localPath, file.buffer);
+        return `/uploads/${filename}`;
+    }
+}
+
+// ─── UPLOAD DE FOTO ───────────────────────────────────────
+app.post('/api/upload/foto', requireAuth, upload.single('foto'), async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
+    try {
+        const url = await uploadToSupabaseOrLocal(req.file, 'foto');
+        res.json({ success: true, url });
+    } catch (err) {
+        console.error("Erro no upload de foto:", err);
+        res.status(500).json({ error: err.message });
     }
 });
 
+// Configuração Multer Genérica para Documentos e PDFs (Manutenção, CRLV, CNH, Seguro)
 const uploadDoc = multer({
-    storage: storageDoc,
+    storage: multer.memoryStorage(),
     limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
     fileFilter: (req, file, cb) => {
         const allowed = /jpeg|jpg|png|pdf/;
@@ -345,10 +369,15 @@ const uploadDoc = multer({
 });
 
 // Rota genérica de upload para documentos e comprovantes
-app.post('/api/upload', requireAuth, uploadDoc.single('file'), (req, res) => {
+app.post('/api/upload', requireAuth, uploadDoc.single('file'), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
-    const url = `/uploads/${req.file.filename}`;
-    res.json({ success: true, url, name: req.file.originalname });
+    try {
+        const url = await uploadToSupabaseOrLocal(req.file, 'doc');
+        res.json({ success: true, url, name: req.file.originalname });
+    } catch (err) {
+        console.error("Erro no upload de documento:", err);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // ─── VEÍCULOS ─────────────────────────────────────────────
