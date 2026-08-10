@@ -514,8 +514,14 @@
                 const userCpfClean = AppState.activeUser.cpf.replace(/\D/g, '');
                 
                 AppState.activeMotorista = motoristas.find(m => {
-                    const mCpfClean = m.cpf.replace(/\D/g, '');
-                    return mCpfClean === userCpfClean || m.email === AppState.activeUser.email;
+                    const mCpfClean = m.cpf ? m.cpf.replace(/\D/g, '') : '';
+                    const matchCpf = userCpfClean && mCpfClean && mCpfClean === userCpfClean;
+                    
+                    const userEmail = AppState.activeUser.email ? AppState.activeUser.email.trim().toLowerCase() : '';
+                    const mEmail = m.email ? m.email.trim().toLowerCase() : '';
+                    const matchEmail = userEmail && mEmail && mEmail === userEmail;
+                    
+                    return matchCpf || matchEmail;
                 });
 
                 if (AppState.activeMotorista) {
@@ -532,6 +538,16 @@
         if (!navigator.onLine) {
             loadOfflineAppData();
             return;
+        }
+
+        // Tenta sincronizar a fila offline antes de carregar do servidor
+        const queue = JSON.parse(localStorage.getItem("movix_offline_queue") || "[]");
+        if (queue.length > 0) {
+            try {
+                await syncOfflineQueue(true);
+            } catch (err) {
+                console.error("Erro durante a sincronização automática no load:", err);
+            }
         }
 
         try {
@@ -561,6 +577,30 @@
                         v.motoristaId === AppState.activeMotorista.id &&
                         v.status === 'Realizada'
                     );
+
+                    // Mesclar estado da fila offline pendente se a sincronização falhou/está pendente
+                    const pendingQueue = JSON.parse(localStorage.getItem("movix_offline_queue") || "[]");
+                    const startItem = pendingQueue.find(item => item.action === 'start_trip');
+                    if (startItem) {
+                        AppState.activeTrip = {
+                            id: 'TEMP-VIA',
+                            veiculoId: startItem.payload.veiculoId,
+                            motoristaId: startItem.payload.motoristaId,
+                            dataSaida: startItem.payload.dataSaida,
+                            horaSaida: startItem.payload.horaSaida,
+                            kmInicial: startItem.payload.kmInicial,
+                            origem: startItem.payload.origem,
+                            destino: startItem.payload.destino,
+                            observacoes: startItem.payload.observacoes,
+                            status: 'Em Andamento',
+                            custos: 0,
+                            ocorrencias: []
+                        };
+                    }
+                    const endItem = pendingQueue.find(item => item.action === 'end_trip');
+                    if (endItem && AppState.activeTrip) {
+                        AppState.activeTrip = null;
+                    }
 
                     localStorage.setItem("movix_cached_active_trip", JSON.stringify(AppState.activeTrip || null));
                     localStorage.setItem("movix_cached_viagens_hist", JSON.stringify(AppState.viagensHistorico));
@@ -2883,7 +2923,7 @@
         localStorage.setItem("movix_offline_queue", JSON.stringify(queue));
     }
 
-    async function syncOfflineQueue() {
+    async function syncOfflineQueue(isCalledFromLoadAppData = false) {
         if (!navigator.onLine) return;
         const queue = JSON.parse(localStorage.getItem("movix_offline_queue") || "[]");
         if (queue.length === 0) return;
@@ -2916,6 +2956,15 @@
                         body: JSON.stringify(item.payload)
                     });
                     if (!res.ok) throw new Error();
+                    const createdTrip = await res.json();
+                    const realViagemId = createdTrip.id;
+
+                    // Propagar o ID real da viagem criada offline para os itens subsequentes na fila
+                    for (const subItem of queue) {
+                        if (subItem.payload && subItem.payload.viagemId === 'TEMP-VIA') {
+                            subItem.payload.viagemId = realViagemId;
+                        }
+                    }
                 } else if (item.action === 'refuel') {
                     const res = await fetch('/api/abastecimentos', {
                         method: 'POST',
@@ -2962,8 +3011,10 @@
         
         if (newQueue.length === 0) {
             showToast("Sincronização offline concluída com sucesso!", "success");
-            await loadAppData();
-            renderDashboard();
+            if (!isCalledFromLoadAppData) {
+                await loadAppData();
+                renderDashboard();
+            }
         } else {
             showToast("Alguns registros offline aguardam nova tentativa de rede.", "warning");
         }
