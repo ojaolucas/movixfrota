@@ -69,88 +69,122 @@
                 </div>
             </div>
 
-            <!-- FILTERS -->
-            <div class="filters-card" style="margin-top: 12px;">
-                <div class="filters-row">
-                    <div class="filter-group">
-                        <label>Placa Veículo</label>
-                        <select class="filter-input" id="filter-veiculo-manut">
-                            <option value="">Todos</option>
-                            ${vehicles.map(v => `<option value="${v.id}" ${state.filters.veiculoId === v.id ? 'selected' : ''}>${v.placa}</option>`).join('')}
-                        </select>
+            <!-- TABS SUPERIORES -->
+            <div class="tabs-container" style="display:flex; gap:16px; margin: 24px 0 12px 0; border-bottom: 2px solid var(--border-color); padding-bottom: 0;">
+                <button class="btn btn-secondary active-tab" id="tab-manutencoes-historico" style="background:none; border:none; color:var(--primary); font-weight:700; border-bottom: 3px solid var(--primary); padding: 8px 16px; border-radius:0; cursor:pointer; font-size:0.9rem;">
+                    Histórico de Manutenções
+                </button>
+                <button class="btn btn-secondary" id="tab-manutencoes-solicitacoes" style="background:none; border:none; color:var(--text-muted); font-weight:600; padding: 8px 16px; border-radius:0; cursor:pointer; font-size:0.9rem; display:inline-flex; align-items:center; gap:8px;">
+                    Solicitações de Motoristas <span class="badge" id="solicitacoes-count-badge" style="background:var(--warning-light); color:var(--warning); font-size:0.7rem; padding: 2px 6px; border-radius:10px; display:none;">0</span>
+                </button>
+            </div>
+
+            <div id="container-manutencoes-historico">
+                <!-- FILTERS -->
+                <div class="filters-card" style="margin-top: 12px;">
+                    <div class="filters-row">
+                        <div class="filter-group">
+                            <label>Placa Veículo</label>
+                            <select class="filter-input" id="filter-veiculo-manut">
+                                <option value="">Todos</option>
+                                ${vehicles.map(v => `<option value="${v.id}" ${state.filters.veiculoId === v.id ? 'selected' : ''}>${v.placa}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Tipo</label>
+                            <select class="filter-input" id="filter-tipo-manut">
+                                <option value="">Todos</option>
+                                <option value="Preventiva" ${state.filters.tipo === 'Preventiva' ? 'selected' : ''}>Preventiva</option>
+                                <option value="Corretiva" ${state.filters.tipo === 'Corretiva' ? 'selected' : ''}>Corretiva</option>
+                                <option value="Despesa Operacional" ${state.filters.tipo === 'Despesa Operacional' ? 'selected' : ''}>Despesa Operacional</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Categoria</label>
+                            <select class="filter-input" id="filter-cat-manut">
+                                <option value="">Todas</option>
+                                <optgroup label="— Manutenção Mecânica —">
+                                    <option value="Mecânica" ${state.filters.categoria === 'Mecânica' ? 'selected' : ''}>Mecânica Geral</option>
+                                    <option value="Pneus" ${state.filters.categoria === 'Pneus' ? 'selected' : ''}>Pneus / Alinhamento / Balanceamento</option>
+                                    <option value="Lubrificantes" ${state.filters.categoria === 'Lubrificantes' ? 'selected' : ''}>Lubrificantes / Filtros</option>
+                                    <option value="Freios" ${state.filters.categoria === 'Freios' ? 'selected' : ''}>Freios / Segurança</option>
+                                    <option value="Suspensão" ${state.filters.categoria === 'Suspensão' ? 'selected' : ''}>Suspensão / Direção</option>
+                                </optgroup>
+                                <optgroup label="— Despesa Operacional —">
+                                    <option value="Elétrica" ${state.filters.categoria === 'Elétrica' ? 'selected' : ''}>Elétrica / Bateria</option>
+                                    <option value="Estética" ${state.filters.categoria === 'Estética' ? 'selected' : ''}>Estética / Lavagem</option>
+                                    <option value="Funilaria" ${state.filters.categoria === 'Funilaria' ? 'selected' : ''}>Funilaria / Pintura</option>
+                                    <option value="Guincho" ${state.filters.categoria === 'Guincho' ? 'selected' : ''}>Guincho / Reboque</option>
+                                </optgroup>
+                                <optgroup label="— Taxas e Documentação —">
+                                    <option value="Licenciamento" ${state.filters.categoria === 'Licenciamento' ? 'selected' : ''}>Licenciamento</option>
+                                    <option value="IPVA" ${state.filters.categoria === 'IPVA' ? 'selected' : ''}>IPVA / DPVAT</option>
+                                    <option value="Vistoria" ${state.filters.categoria === 'Vistoria' ? 'selected' : ''}>Vistoria / Laudo</option>
+                                    <option value="Outros" ${state.filters.categoria === 'Outros' ? 'selected' : ''}>Outros</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label>Situação da O.S.</label>
+                            <select class="filter-input" id="filter-status-manut">
+                                <option value="">Todas</option>
+                                <option value="Programada" ${state.filters.status === 'Programada' ? 'selected' : ''}>Programada</option>
+                                <option value="Em andamento" ${state.filters.status === 'Em andamento' ? 'selected' : ''}>Em andamento</option>
+                                <option value="Realizada" ${state.filters.status === 'Realizada' ? 'selected' : ''}>Realizada</option>
+                                <option value="Atrasada" ${state.filters.status === 'Atrasada' ? 'selected' : ''}>Atrasada</option>
+                            </select>
+                        </div>
+                        <div class="filter-group" style="justify-content: flex-end;">
+                            <button class="btn btn-secondary" id="btn-limpar-filtros" style="height: 38px; width: 100%; white-space: nowrap; justify-content: center;">
+                                <i class="fa-solid fa-filter-circle-xmark"></i> Limpar Filtros
+                            </button>
+                        </div>
                     </div>
-                    <div class="filter-group">
-                        <label>Tipo</label>
-                        <select class="filter-input" id="filter-tipo-manut">
-                            <option value="">Todos</option>
-                            <option value="Preventiva" ${state.filters.tipo === 'Preventiva' ? 'selected' : ''}>Preventiva</option>
-                            <option value="Corretiva" ${state.filters.tipo === 'Corretiva' ? 'selected' : ''}>Corretiva</option>
-                            <option value="Despesa Operacional" ${state.filters.tipo === 'Despesa Operacional' ? 'selected' : ''}>Despesa Operacional</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label>Categoria</label>
-                        <select class="filter-input" id="filter-cat-manut">
-                            <option value="">Todas</option>
-                            <optgroup label="— Manutenção Mecânica —">
-                                <option value="Mecânica" ${state.filters.categoria === 'Mecânica' ? 'selected' : ''}>Mecânica Geral</option>
-                                <option value="Pneus" ${state.filters.categoria === 'Pneus' ? 'selected' : ''}>Pneus / Alinhamento / Balanceamento</option>
-                                <option value="Lubrificantes" ${state.filters.categoria === 'Lubrificantes' ? 'selected' : ''}>Lubrificantes / Filtros</option>
-                                <option value="Freios" ${state.filters.categoria === 'Freios' ? 'selected' : ''}>Freios / Segurança</option>
-                                <option value="Suspensão" ${state.filters.categoria === 'Suspensão' ? 'selected' : ''}>Suspensão / Direção</option>
-                            </optgroup>
-                            <optgroup label="— Despesa Operacional —">
-                                <option value="Elétrica" ${state.filters.categoria === 'Elétrica' ? 'selected' : ''}>Elétrica / Bateria</option>
-                                <option value="Estética" ${state.filters.categoria === 'Estética' ? 'selected' : ''}>Estética / Lavagem</option>
-                                <option value="Funilaria" ${state.filters.categoria === 'Funilaria' ? 'selected' : ''}>Funilaria / Pintura</option>
-                                <option value="Guincho" ${state.filters.categoria === 'Guincho' ? 'selected' : ''}>Guincho / Reboque</option>
-                            </optgroup>
-                            <optgroup label="— Taxas e Documentação —">
-                                <option value="Licenciamento" ${state.filters.categoria === 'Licenciamento' ? 'selected' : ''}>Licenciamento</option>
-                                <option value="IPVA" ${state.filters.categoria === 'IPVA' ? 'selected' : ''}>IPVA / DPVAT</option>
-                                <option value="Vistoria" ${state.filters.categoria === 'Vistoria' ? 'selected' : ''}>Vistoria / Laudo</option>
-                                <option value="Outros" ${state.filters.categoria === 'Outros' ? 'selected' : ''}>Outros</option>
-                            </optgroup>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label>Situação da O.S.</label>
-                        <select class="filter-input" id="filter-status-manut">
-                            <option value="">Todas</option>
-                            <option value="Programada" ${state.filters.status === 'Programada' ? 'selected' : ''}>Programada</option>
-                            <option value="Em andamento" ${state.filters.status === 'Em andamento' ? 'selected' : ''}>Em andamento</option>
-                            <option value="Realizada" ${state.filters.status === 'Realizada' ? 'selected' : ''}>Realizada</option>
-                            <option value="Atrasada" ${state.filters.status === 'Atrasada' ? 'selected' : ''}>Atrasada</option>
-                        </select>
-                    </div>
-                    <div class="filter-group" style="justify-content: flex-end;">
-                        <button class="btn btn-secondary" id="btn-limpar-filtros" style="height: 38px; width: 100%; white-space: nowrap; justify-content: center;">
-                            <i class="fa-solid fa-filter-circle-xmark"></i> Limpar Filtros
-                        </button>
-                    </div>
+                </div>
+
+                <!-- TABLE -->
+                <div class="table-responsive">
+                    <table class="smart-table" id="table-manutencoes">
+                        <thead>
+                            <tr>
+                                <th>Veículo</th>
+                                <th>Tipo / Categoria</th>
+                                <th>Data Programada</th>
+                                <th>KM Agendado</th>
+                                <th>Oficina</th>
+                                <th>Custo Total</th>
+                                <th>Situação</th>
+                                <th style="width: 100px; text-align: center;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-manutencoes">
+                            <!-- Loaded dynamically -->
+                        </tbody>
+                    </table>
+                    <div class="table-pagination" id="pagination-manutencoes"></div>
                 </div>
             </div>
 
-            <!-- TABLE -->
-            <div class="table-responsive">
-                <table class="smart-table" id="table-manutencoes">
-                    <thead>
-                        <tr>
-                            <th>Veículo</th>
-                            <th>Tipo / Categoria</th>
-                            <th>Data Programada</th>
-                            <th>KM Agendado</th>
-                            <th>Oficina</th>
-                            <th>Custo Total</th>
-                            <th>Situação</th>
-                            <th style="width: 100px; text-align: center;">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tbody-manutencoes">
-                        <!-- Loaded dynamically -->
-                    </tbody>
-                </table>
-                <div class="table-pagination" id="pagination-manutencoes"></div>
+            <div id="container-manutencoes-solicitacoes" style="display:none;">
+                <div class="table-responsive" style="margin-top:12px;">
+                    <table class="smart-table" id="table-manutencoes-sol">
+                        <thead>
+                            <tr>
+                                <th>Veículo</th>
+                                <th>Motorista</th>
+                                <th>Data</th>
+                                <th>Tipo / Avaria</th>
+                                <th>Descrição do Problema</th>
+                                <th>Anexo</th>
+                                <th>Status</th>
+                                <th style="width: 200px; text-align: center;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-manutencoes-sol">
+                            <!-- Loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         `;
 
@@ -312,6 +346,185 @@
 
         // Pagination handled by MovixApp.renderPagination helper
 
+        // Tab elements and click handlers
+        const tabHistorico = document.getElementById('tab-manutencoes-historico');
+        const tabSolicitacoes = document.getElementById('tab-manutencoes-solicitacoes');
+        const containerHistorico = document.getElementById('container-manutencoes-historico');
+        const containerSolicitacoes = document.getElementById('container-manutencoes-solicitacoes');
+
+        async function loadSolicitacoes() {
+            try {
+                const res = await fetch('/api/solicitacoes-manutencao');
+                if (!res.ok) throw new Error('Falha ao buscar solicitações.');
+                const solicitacoes = await res.json();
+                
+                // Update badge count
+                const pendentes = solicitacoes.filter(s => s.status === 'Pendente');
+                const badge = document.getElementById('solicitacoes-count-badge');
+                if (badge) {
+                    if (pendentes.length > 0) {
+                        badge.innerText = pendentes.length;
+                        badge.style.display = 'inline-block';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+
+                const tbody = document.getElementById('tbody-manutencoes-sol');
+                if (!tbody) return;
+                
+                tbody.innerHTML = '';
+                if (solicitacoes.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:var(--text-muted);">Nenhuma solicitação enviada pelos motoristas.</td></tr>';
+                    return;
+                }
+
+                solicitacoes.forEach(s => {
+                    const anexoHTML = s.anexo 
+                        ? `<a href="${s.anexo}" target="_blank" class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem; display:inline-flex; align-items:center; gap:4px; text-decoration:none;"><i class="fa-solid fa-paperclip"></i> Ver</a>`
+                        : '<span class="text-muted" style="font-size:0.75rem;">Sem anexo</span>';
+                    
+                    const isPending = s.status === 'Pendente';
+                    
+                    tbody.innerHTML += `
+                        <tr>
+                            <td style="font-weight:700; color:var(--primary);">${s.veiculoPlaca} (${s.veiculoMarca} ${s.veiculoModelo})</td>
+                            <td style="font-weight:600;">${s.motoristaNome}</td>
+                            <td>${s.data.split('-').reverse().join('/')}</td>
+                            <td><strong style="color:var(--danger);">${s.tipo}</strong></td>
+                            <td>${s.descricao}</td>
+                            <td>${anexoHTML}</td>
+                            <td>
+                                <span class="status-pill ${s.status.toLowerCase()}">${s.status}</span>
+                            </td>
+                            <td style="text-align: center; display:flex; justify-content:center; gap:8px; white-space:nowrap;">
+                                ${isPending && !isVisualizador ? `
+                                    <button class="btn btn-primary btn-aprovar-sol" data-id="${s.id}" style="padding:6px 10px; font-size:0.75rem; border-radius:4px; height:auto;">Aprovar</button>
+                                    <button class="btn btn-danger btn-rejeitar-sol" data-id="${s.id}" style="padding:6px 10px; font-size:0.75rem; border-radius:4px; height:auto;">Rejeitar</button>
+                                ` : '-'}
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                // Listeners for solicitations buttons
+                tbody.querySelectorAll('.btn-aprovar-sol').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const solId = e.currentTarget.getAttribute('data-id');
+                        const sol = solicitacoes.find(x => x.id === solId);
+                        if (!sol) return;
+
+                        openManutencaoModal(null, {
+                            veiculoId: sol.veiculoId,
+                            data: sol.data,
+                            descricao: `[Solicitação do Motorista] ${sol.descricao}`,
+                            tipo: 'Corretiva',
+                            categoria: sol.tipo,
+                            onSave: async (savedRecord) => {
+                                await fetch(`/api/solicitacoes-manutencao/${sol.id}`, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ status: 'Aprovado', observacoes: `Convertida na O.S. ${savedRecord.id}` })
+                                });
+                                loadSolicitacoes();
+                            }
+                        });
+                    });
+                });
+
+                tbody.querySelectorAll('.btn-rejeitar-sol').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const solId = e.currentTarget.getAttribute('data-id');
+                        confirmRejectSolicitacao(solId);
+                    });
+                });
+
+                function confirmRejectSolicitacao(solId) {
+                    const modal = document.getElementById('global-modal');
+                    const modalTitle = document.getElementById('modal-title');
+                    const modalBody = document.getElementById('modal-body-content');
+                    const modalFooter = document.getElementById('modal-footer-actions');
+
+                    modalTitle.innerText = 'Rejeitar Solicitação';
+                    modalBody.innerHTML = `
+                        <div style="text-align: center; padding: 16px;">
+                            <i class="fa-solid fa-circle-xmark text-danger" style="font-size: 3rem; margin-bottom: 16px;"></i>
+                            <p style="font-size: 1.05rem; font-weight: 600;">Deseja realmente rejeitar esta solicitação de manutenção?</p>
+                            <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 8px;">A solicitação passará para o status 'Rejeitado'.</p>
+                        </div>
+                    `;
+
+                    modalFooter.innerHTML = `
+                        <button class="btn btn-secondary" id="btn-cancelar-rej">Cancelar</button>
+                        <button class="btn btn-danger" id="btn-confirmar-rej">Rejeitar</button>
+                    `;
+
+                    modal.classList.add('active');
+
+                    document.getElementById('btn-cancelar-rej').addEventListener('click', () => modal.classList.remove('active'));
+                    document.getElementById('btn-confirmar-rej').addEventListener('click', async () => {
+                        const rejBtn = document.getElementById('btn-confirmar-rej');
+                        const loader = window.movixApp.startLoading(rejBtn, "Rejeitando...");
+                        try {
+                            const res = await fetch(`/api/solicitacoes-manutencao/${solId}`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ status: 'Rejeitado' })
+                            });
+                            if (res.ok) {
+                                window.movixApp.showToast('Solicitação rejeitada com sucesso.', 'warning');
+                                modal.classList.remove('active');
+                                loadSolicitacoes();
+                            } else {
+                                throw new Error('Erro ao rejeitar solicitação.');
+                            }
+                        } catch (err) {
+                            window.movixApp.showToast(err.message, 'danger');
+                        } finally {
+                            loader.stop();
+                        }
+                    });
+                }
+
+            } catch (err) {
+                console.error("Erro ao carregar solicitações de motoristas:", err);
+            }
+        }
+
+        tabHistorico.addEventListener('click', () => {
+            tabHistorico.classList.add('active-tab');
+            tabHistorico.style.color = 'var(--primary)';
+            tabHistorico.style.borderBottom = '3px solid var(--primary)';
+            tabHistorico.style.fontWeight = '700';
+
+            tabSolicitacoes.classList.remove('active-tab');
+            tabSolicitacoes.style.color = 'var(--text-muted)';
+            tabSolicitacoes.style.borderBottom = 'none';
+            tabSolicitacoes.style.fontWeight = '600';
+
+            containerHistorico.style.display = 'block';
+            containerSolicitacoes.style.display = 'none';
+        });
+
+        tabSolicitacoes.addEventListener('click', () => {
+            tabSolicitacoes.classList.add('active-tab');
+            tabSolicitacoes.style.color = 'var(--primary)';
+            tabSolicitacoes.style.borderBottom = '3px solid var(--primary)';
+            tabSolicitacoes.style.fontWeight = '700';
+
+            tabHistorico.classList.remove('active-tab');
+            tabHistorico.style.color = 'var(--text-muted)';
+            tabHistorico.style.borderBottom = 'none';
+            tabHistorico.style.fontWeight = '600';
+
+            containerHistorico.style.display = 'none';
+            containerSolicitacoes.style.display = 'block';
+            loadSolicitacoes();
+        });
+
+        // Background initial count fetch
+        loadSolicitacoes();
+
         // Add maintenance trigger
         if (document.getElementById('btn-nova-manutencao')) {
             document.getElementById('btn-nova-manutencao').addEventListener('click', () => openManutencaoModal());
@@ -329,7 +542,7 @@
         });
 
         // CRUD Modal Dialog
-        function openManutencaoModal(id = null) {
+        function openManutencaoModal(id = null, prefilledData = null) {
             const isEdit = id !== null;
             const m = isEdit ? maintenances.find(item => item.id === id) : null;
             
@@ -344,23 +557,23 @@
                 <form id="form-manutencao" class="form-grid">
                     <div class="form-group">
                         <label>Data Programada <span class="required">*</span></label>
-                        <input type="date" class="form-control" name="data" required value="${isEdit ? m.data : ''}">
+                        <input type="date" class="form-control" name="data" required value="${isEdit ? m.data : (prefilledData ? prefilledData.data : '')}">
                     </div>
 
                     <div class="form-group">
                         <label>Veículo Alvo <span class="required">*</span></label>
                         <select class="form-control" name="veiculoId" id="man-veic-sel" required>
-                            <option value="" disabled ${!isEdit ? 'selected' : ''}>Selecione um veículo</option>
-                            ${vehicles.map(v => `<option value="${v.id}" data-km="${v.kmAtual}" ${isEdit && m.veiculoId === v.id ? 'selected' : ''}>${v.placa} - ${v.marca} ${v.modelo} (KM: ${v.kmAtual})</option>`).join('')}
+                            <option value="" disabled ${!isEdit && !prefilledData ? 'selected' : ''}>Selecione um veículo</option>
+                            ${vehicles.map(v => `<option value="${v.id}" data-km="${v.kmAtual}" ${(isEdit && m.veiculoId === v.id) || (prefilledData && prefilledData.veiculoId === v.id) ? 'selected' : ''}>${v.placa} - ${v.marca} ${v.modelo} (KM: ${v.kmAtual})</option>`).join('')}
                         </select>
                     </div>
 
                     <div class="form-group">
                         <label>Tipo de Serviço <span class="required">*</span></label>
                         <select class="form-control" name="tipo" id="man-tipo-sel" required>
-                            <option value="" disabled ${!isEdit ? 'selected' : ''}>Selecione o tipo</option>
+                            <option value="" disabled ${!isEdit && !prefilledData ? 'selected' : ''}>Selecione o tipo</option>
                             <option value="Preventiva" ${isEdit && m.tipo === 'Preventiva' ? 'selected' : ''}>Preventiva (Programada por KM/Tempo)</option>
-                            <option value="Corretiva" ${isEdit && m.tipo === 'Corretiva' ? 'selected' : ''}>Corretiva (Avaria / Quebra)</option>
+                            <option value="Corretiva" ${(isEdit && m.tipo === 'Corretiva') || (prefilledData && prefilledData.tipo === 'Corretiva') ? 'selected' : ''}>Corretiva (Avaria / Quebra)</option>
                             <option value="Despesa Operacional" ${isEdit && m.tipo === 'Despesa Operacional' ? 'selected' : ''}>Despesa Operacional (Lavagem, Taxa, Guincho...)</option>
                         </select>
                     </div>
@@ -430,8 +643,8 @@
                     </div>
 
                     <div class="form-group full-width">
-                        <label>Descrição Detalhada do Serviço <span class="required">*</span></label>
-                        <textarea class="form-control" name="descricao" required placeholder="Substituição de correia dentada, troca de pastilhas de freio...">${isEdit ? m.descricao : ''}</textarea>
+                        <label>Descrição do Serviço / Despesa <span class="required">*</span></label>
+                        <textarea class="form-control" name="descricao" required placeholder="Descreva os detalhes..." style="height:80px;">${isEdit ? m.descricao : (prefilledData ? prefilledData.descricao : '')}</textarea>
                     </div>
                 </form>
             `;
@@ -519,7 +732,7 @@
                 const veicId = veicSel.value;
                 const selectedVeh = vehicles.find(v => v.id === veicId);
                 const isTrailer = selectedVeh && selectedVeh.tipoUnidade === 'Implemento/Reboque';
-                const curVal = isEdit ? m.categoria : catSel.value;
+                const curVal = isEdit ? m.categoria : (prefilledData && prefilledData.categoria ? prefilledData.categoria : catSel.value);
 
                 if (!selectedOption || selectedOption.value === '') {
                     catSel.innerHTML = '<option value="">Selecione um veículo primeiro</option>';
@@ -697,8 +910,11 @@
                              await window.movixStore.updateMaintenance(id, data);
                              window.movixApp.showToast('Ordem de serviço atualizada!', 'success');
                          } else {
-                             await window.movixStore.addMaintenance(data);
+                             const savedRecord = await window.movixStore.addMaintenance(data);
                              window.movixApp.showToast('Nova ordem registrada!', 'success');
+                             if (prefilledData && typeof prefilledData.onSave === 'function') {
+                                 await prefilledData.onSave(savedRecord);
+                             }
                          }
                          modal.classList.remove('active');
                          renderManutencoes(document.getElementById('view-content-wrapper'));

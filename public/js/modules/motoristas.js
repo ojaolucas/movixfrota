@@ -407,7 +407,7 @@
                 </div>
                 <div class="form-group">
                     <label>Telefone Contato <span class="required">*</span></label>
-                    <input type="text" class="form-control" name="telefone" required value="${isEdit ? m.telefone : ''}" placeholder="(00) 00000-0000">
+                    <input type="text" class="form-control" name="telefone" id="input-telefone-mask" required value="${isEdit ? m.telefone : ''}" placeholder="(00) 00000-0000">
                 </div>
                 <div class="form-group">
                     <label>E-mail</label>
@@ -478,6 +478,10 @@
                     <label>Observações</label>
                     <textarea class="form-control" name="observacoes" placeholder="Anotações gerais">${isEdit && m.observacoes ? m.observacoes : ''}</textarea>
                 </div>
+                <div class="form-group full-width">
+                    <label>Senha de Acesso ${isEdit ? '<span style="color:var(--text-muted); font-weight:normal;">(Preencha apenas para alterar)</span>' : '<span class="required">*</span>'}</label>
+                    <input type="password" class="form-control" name="senha" placeholder="${isEdit ? '••••••••' : 'Defina a senha do motorista'}" ${isEdit ? '' : 'required'}>
+                </div>
             </form>
         `;
 
@@ -497,6 +501,26 @@
                 if (v.length > 9) v = v.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
                 else if (v.length > 6) v = v.replace(/^(\d{3})(\d{3})(\d{1,3})$/, "$1.$2.$3");
                 else if (v.length > 3) v = v.replace(/^(\d{3})(\d{1,3})$/, "$1.$2");
+                e.target.value = v;
+            });
+        }
+
+        // Simple Phone Mask formatting
+        const telInput = document.getElementById('input-telefone-mask');
+        if (telInput) {
+            telInput.addEventListener('input', (e) => {
+                let v = e.target.value.replace(/\D/g, "");
+                if (v.length > 11) v = v.substring(0, 11);
+                
+                if (v.length > 10) {
+                    v = `(${v.substring(0, 2)}) ${v.substring(2, 7)}-${v.substring(7)}`;
+                } else if (v.length > 6) {
+                    v = `(${v.substring(0, 2)}) ${v.substring(2, 6)}-${v.substring(6)}`;
+                } else if (v.length > 2) {
+                    v = `(${v.substring(0, 2)}) ${v.substring(2)}`;
+                } else if (v.length > 0) {
+                    v = `(${v.substring(0, 2)}`;
+                }
                 e.target.value = v;
             });
         }

@@ -25,6 +25,20 @@
     transition: transform var(--transition-fast);
 }
 
+.movix-autocomplete-wrapper .autocomplete-clear {
+    position: absolute;
+    right: 12px;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    cursor: pointer;
+    z-index: 2;
+    transition: color var(--transition-fast);
+}
+
+.movix-autocomplete-wrapper .autocomplete-clear:hover {
+    color: var(--danger);
+}
+
 .movix-autocomplete-container.active .autocomplete-chevron {
     transform: rotate(180deg);
 }

@@ -165,6 +165,11 @@ class MovixApp {
             
             const user = window.movixStore.getActiveUser();
             
+            if (user && user.perfil === 'Motorista') {
+                window.location.href = '/driver/';
+                return;
+            }
+            
             // Update all UI components
             this.updateHeaderProfileBadge();
             this.refreshAlertsCount();
@@ -944,6 +949,10 @@ class MovixApp {
         const chevron = document.createElement('i');
         chevron.className = 'fa-solid fa-chevron-down autocomplete-chevron';
 
+        const clearBtn = document.createElement('i');
+        clearBtn.className = 'fa-solid fa-xmark autocomplete-clear';
+        clearBtn.style.display = 'none';
+
         const dropdown = document.createElement('div');
         dropdown.className = 'movix-autocomplete-dropdown';
 
@@ -959,6 +968,7 @@ class MovixApp {
         dropdown.appendChild(list);
         wrapper.appendChild(input);
         wrapper.appendChild(chevron);
+        wrapper.appendChild(clearBtn);
         container.appendChild(wrapper);
         container.appendChild(dropdown);
 
@@ -966,6 +976,17 @@ class MovixApp {
 
         let options = [];
         let focusedIndex = -1;
+        let isClearing = false;
+
+        const updateClearButtonVisibility = () => {
+            if (selectEl.value !== "") {
+                clearBtn.style.display = 'block';
+                chevron.style.display = 'none';
+            } else {
+                clearBtn.style.display = 'none';
+                chevron.style.display = 'block';
+            }
+        };
 
         // Function to rebuild options list from select options dynamically
         const syncOptions = () => {
@@ -976,7 +997,7 @@ class MovixApp {
                 const isSelected = opt.selected;
                 const isDisabled = opt.disabled;
 
-                if (value === "" && isDisabled) return null; // skip default placeholder option
+                if (value === "" || isDisabled) return null; // skip default placeholder option
 
                 const li = document.createElement('li');
                 li.className = 'movix-autocomplete-item';
@@ -995,6 +1016,7 @@ class MovixApp {
                 list.appendChild(li);
                 return { element: li, text, value, selectOpt: opt };
             }).filter(x => x !== null);
+            updateClearButtonVisibility();
         };
 
         const selectOption = (opt) => {
@@ -1032,7 +1054,7 @@ class MovixApp {
         };
 
         const openDropdown = () => {
-            if (selectEl.disabled) return;
+            if (selectEl.disabled || isClearing) return;
             container.classList.add('active');
             filterOptions();
         };
@@ -1048,6 +1070,24 @@ class MovixApp {
                 input.value = '';
             }
         };
+
+        // Clear button handler
+        clearBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            
+            isClearing = true;
+            selectEl.value = "";
+            input.value = "";
+            closeDropdown();
+            selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+            syncOptions();
+            input.focus();
+            
+            setTimeout(() => {
+                isClearing = false;
+            }, 50);
+        });
 
         // Event listeners
         input.addEventListener('focus', openDropdown);
@@ -1129,7 +1169,7 @@ class MovixApp {
         // Listen to native change event (sync from other modules or edits)
         selectEl.addEventListener('change', () => {
             const selectedOpt = Array.from(selectEl.options).find(o => o.selected);
-            input.value = selectedOpt ? selectedOpt.text : '';
+            input.value = (selectedOpt && selectedOpt.value !== "") ? selectedOpt.text : '';
             if (selectEl.disabled) {
                 input.disabled = true;
             } else {

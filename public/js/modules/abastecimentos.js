@@ -49,90 +49,121 @@
                 </div>
             </div>
 
-            <!-- FILTERS -->
-            <div class="filters-card">
-                <div class="filters-row">
-                    <div class="filter-group">
-                        <label>Buscar Veículo (Placa)</label>
-                        <select class="filter-input" id="filter-veiculo">
-                            <option value="">Todos</option>
-                            ${vehicles.map(v => `<option value="${v.id}" ${state.filters.veiculoId === v.id ? 'selected' : ''}>${v.placa} - ${v.marca} ${v.modelo}</option>`).join('')}
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label>Filtrar Motorista</label>
-                        <select class="filter-input" id="filter-motorista">
-                            <option value="">Todos</option>
-                            ${drivers.map(m => `<option value="${m.id}" ${state.filters.motoristaId === m.id ? 'selected' : ''}>${m.nome}</option>`).join('')}
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label>Tipo de Combustível</label>
-                        <select class="filter-input" id="filter-fuel-type">
-                            <option value="">Todos</option>
-                            <option value="Diesel" ${state.filters.combustivel === 'Diesel' ? 'selected' : ''}>Diesel</option>
-                            <option value="Diesel S10" ${state.filters.combustivel === 'Diesel S10' ? 'selected' : ''}>Diesel S10</option>
-                            <option value="Gasolina" ${state.filters.combustivel === 'Gasolina' ? 'selected' : ''}>Gasolina</option>
-                            <option value="Etanol" ${state.filters.combustivel === 'Etanol' ? 'selected' : ''}>Etanol</option>
-                            <option value="GNV" ${state.filters.combustivel === 'GNV' ? 'selected' : ''}>GNV</option>
-                            <option value="Arla 32" ${state.filters.combustivel === 'Arla 32' ? 'selected' : ''}>Arla 32</option>
-                        </select>
+            <!-- TABS SUPERIORES -->
+            <div class="tabs-container" style="display:flex; gap:16px; margin: 24px 0 12px 0; border-bottom: 2px solid var(--border-color); padding-bottom: 0;">
+                <button class="btn btn-secondary active-tab" id="tab-abastecimentos-historico" style="background:none; border:none; color:var(--primary); font-weight:700; border-bottom: 3px solid var(--primary); padding: 8px 16px; border-radius:0; cursor:pointer; font-size:0.9rem;">
+                    Histórico de Abastecimentos
+                </button>
+                <button class="btn btn-secondary" id="tab-abastecimentos-solicitacoes" style="background:none; border:none; color:var(--text-muted); font-weight:600; padding: 8px 16px; border-radius:0; cursor:pointer; font-size:0.9rem; display:inline-flex; align-items:center; gap:8px;">
+                    Solicitações de Motoristas <span class="badge" id="ab-solicitacoes-count-badge" style="background:var(--warning-light); color:var(--warning); font-size:0.7rem; padding: 2px 6px; border-radius:10px; display:none;">0</span>
+                </button>
+            </div>
+
+            <div id="container-abastecimentos-historico">
+                <div class="filters-card" style="margin-top: 12px; margin-bottom: 20px;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; width: 100%;">
+                        <div class="filter-group" style="flex: 1; min-width: 130px;">
+                            <label>VEÍCULO</label>
+                            <select class="filter-input" id="filter-veiculo">
+                                <option value="">Todos</option>
+                                ${vehicles.map(v => `<option value="${v.id}" ${state.filters.veiculoId === v.id ? 'selected' : ''}>${v.placa} - ${v.marca} ${v.modelo}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="filter-group" style="flex: 1; min-width: 130px;">
+                            <label>MOTORISTA</label>
+                            <select class="filter-input" id="filter-motorista">
+                                <option value="">Todos</option>
+                                ${drivers.map(m => `<option value="${m.id}" ${state.filters.motoristaId === m.id ? 'selected' : ''}>${m.nome}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="filter-group" style="flex: 1; min-width: 130px;">
+                            <label>COMBUSTÍVEL</label>
+                            <select class="filter-input" id="filter-fuel-type">
+                                <option value="">Todos</option>
+                                <option value="Diesel" ${state.filters.combustivel === 'Diesel' ? 'selected' : ''}>Diesel</option>
+                                <option value="Diesel S10" ${state.filters.combustivel === 'Diesel S10' ? 'selected' : ''}>Diesel S10</option>
+                                <option value="Gasolina" ${state.filters.combustivel === 'Gasolina' ? 'selected' : ''}>Gasolina</option>
+                                <option value="Etanol" ${state.filters.combustivel === 'Etanol' ? 'selected' : ''}>Etanol</option>
+                                <option value="GNV" ${state.filters.combustivel === 'GNV' ? 'selected' : ''}>GNV</option>
+                                <option value="Arla 32" ${state.filters.combustivel === 'Arla 32' ? 'selected' : ''}>Arla 32</option>
+                            </select>
+                        </div>
+                        <div class="filter-group" style="flex: 1; min-width: 130px;">
+                            <label>PERÍODO</label>
+                            <select class="filter-input" id="filter-periodo-abastecimento">
+                                <option value="tudo" ${state.filters.periodo === 'tudo' ? 'selected' : ''}>Todo o histórico</option>
+                                <option value="hoje" ${state.filters.periodo === 'hoje' ? 'selected' : ''}>Hoje</option>
+                                <option value="ontem" ${state.filters.periodo === 'ontem' ? 'selected' : ''}>Ontem</option>
+                                <option value="7dias" ${state.filters.periodo === '7dias' ? 'selected' : ''}>Últimos 7 dias</option>
+                                <option value="30dias" ${state.filters.periodo === '30dias' ? 'selected' : ''}>Últimos 30 dias</option>
+                                <option value="este_mes" ${state.filters.periodo === 'este_mes' ? 'selected' : ''}>Este mês</option>
+                                <option value="mes_anterior" ${state.filters.periodo === 'mes_anterior' ? 'selected' : ''}>Mês anterior</option>
+                                <option value="personalizado" ${state.filters.periodo === 'personalizado' ? 'selected' : ''}>Personalizado...</option>
+                            </select>
+                        </div>
+                        <div id="custom-date-container-abastecimento" style="display: ${state.filters.periodo === 'personalizado' ? 'flex' : 'none'}; flex-wrap: wrap; gap: 16px; align-items: flex-end;">
+                            <div class="filter-group" style="width: 140px; flex: 1 1 120px;">
+                                <label>De</label>
+                                <input type="date" class="filter-input" id="filter-data-de" value="${state.filters.de || ''}">
+                            </div>
+                            <div class="filter-group" style="width: 140px; flex: 1 1 120px;">
+                                <label>Até</label>
+                                <input type="date" class="filter-input" id="filter-data-ate" value="${state.filters.ate || ''}">
+                            </div>
+                        </div>
+                        <div class="filter-group" style="flex-shrink: 0;">
+                            <button class="btn btn-secondary" id="btn-limpar-filtros" style="height: 38px; white-space: nowrap; display: inline-flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-filter-circle-xmark"></i> Limpar Filtros
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <div class="filters-row" style="margin-top: 12px; border-top: 1px solid var(--border-color); padding-top: 12px; display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end;">
-                    <div class="filter-group" style="max-width: 220px; flex: 1 1 200px;">
-                        <label>Período Temporal</label>
-                        <select class="filter-input" id="filter-periodo-abastecimento">
-                            <option value="tudo" ${state.filters.periodo === 'tudo' ? 'selected' : ''}>Todo o histórico</option>
-                            <option value="hoje" ${state.filters.periodo === 'hoje' ? 'selected' : ''}>Hoje</option>
-                            <option value="ontem" ${state.filters.periodo === 'ontem' ? 'selected' : ''}>Ontem</option>
-                            <option value="7dias" ${state.filters.periodo === '7dias' ? 'selected' : ''}>Últimos 7 dias</option>
-                            <option value="30dias" ${state.filters.periodo === '30dias' ? 'selected' : ''}>Últimos 30 dias</option>
-                            <option value="este_mes" ${state.filters.periodo === 'este_mes' ? 'selected' : ''}>Este mês</option>
-                            <option value="mes_anterior" ${state.filters.periodo === 'mes_anterior' ? 'selected' : ''}>Mês anterior</option>
-                            <option value="personalizado" ${state.filters.periodo === 'personalizado' ? 'selected' : ''}>Personalizado...</option>
-                        </select>
-                    </div>
-                    <div id="custom-date-container-abastecimento" style="display: ${state.filters.periodo === 'personalizado' ? 'flex' : 'none'}; flex-wrap: wrap; gap: 16px; align-items: flex-end; flex-grow: 1;">
-                        <div class="filter-group" style="max-width: 180px; flex: 1 1 140px;">
-                            <label>De</label>
-                            <input type="date" class="filter-input" id="filter-data-de" value="${state.filters.de || ''}">
-                        </div>
-                        <div class="filter-group" style="max-width: 180px; flex: 1 1 140px;">
-                            <label>Até</label>
-                            <input type="date" class="filter-input" id="filter-data-ate" value="${state.filters.ate || ''}">
-                        </div>
-                    </div>
-                    <div class="filter-group" style="margin-left: auto; display: flex; align-items: flex-end; flex-shrink: 0;">
-                        <button class="btn btn-secondary" id="btn-limpar-filtros" style="height: 38px; white-space: nowrap;">
-                            <i class="fa-solid fa-filter-circle-xmark"></i> Limpar Filtros
-                        </button>
-                    </div>
+                <!-- TABLE -->
+                <div class="table-responsive" style="margin-top:12px;">
+                    <table class="smart-table" id="table-abastecimentos">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Veículo</th>
+                                <th>Motorista</th>
+                                <th>KM Odômetro</th>
+                                <th>Litros / Combustível</th>
+                                <th>Custo Total</th>
+                                <th>Consumo KM/L</th>
+                                <th>Custo por KM</th>
+                                <th style="width: 120px; text-align: center;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-abastecimentos">
+                            <!-- Loaded dynamically -->
+                        </tbody>
+                    </table>
+                    <div class="table-pagination" id="pagination-abastecimentos"></div>
                 </div>
             </div>
 
-            <!-- TABLE -->
-            <div class="table-responsive">
-                <table class="smart-table" id="table-abastecimentos">
-                    <thead>
-                        <tr>
-                            <th>Data</th>
-                            <th>Veículo</th>
-                            <th>Motorista</th>
-                            <th>KM Odômetro</th>
-                            <th>Litros / Combustível</th>
-                            <th>Custo Total</th>
-                            <th>Consumo KM/L</th>
-                            <th>Custo por KM</th>
-                            <th style="width: 120px; text-align: center;">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tbody-abastecimentos">
-                        <!-- Loaded dynamically -->
-                    </tbody>
-                </table>
-                <div class="table-pagination" id="pagination-abastecimentos"></div>
+            <div id="container-abastecimentos-solicitacoes" style="display:none;">
+                <div class="table-responsive" style="margin-top:12px;">
+                    <table class="smart-table" id="table-abastecimentos-sol">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Veículo</th>
+                                <th>Motorista</th>
+                                <th>KM Odômetro</th>
+                                <th>Litros / Combustível</th>
+                                <th>Custo Total</th>
+                                <th>Posto</th>
+                                <th>Comprovante</th>
+                                <th style="width: 160px; text-align: center;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-abastecimentos-sol">
+                            <!-- Loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         `;
 
@@ -163,6 +194,7 @@
             window.movixApp.saveListState('abastecimentos', state);
 
             filteredData = supplies.filter(a => {
+                if (a.status === 'Pendente') return false;
                 const matchVeiculo = !veiculoVal || a.veiculoId === veiculoVal;
                 const matchMotorista = !motoristaVal || a.motoristaId === motoristaVal;
                 const matchFuel = !fuelVal || a.combustivel === fuelVal;
@@ -301,6 +333,137 @@
             }, 0);
         }
 
+        const tabHistorico = document.getElementById('tab-abastecimentos-historico');
+        const tabSolicitacoes = document.getElementById('tab-abastecimentos-solicitacoes');
+        const containerHistorico = document.getElementById('container-abastecimentos-historico');
+        const containerSolicitacoes = document.getElementById('container-abastecimentos-solicitacoes');
+
+        function updatePendingBadge() {
+            const pending = window.movixStore.getAbastecimentos().filter(a => a.status === 'Pendente');
+            const badge = document.getElementById('ab-solicitacoes-count-badge');
+            if (badge) {
+                if (pending.length > 0) {
+                    badge.innerText = pending.length;
+                    badge.style.display = 'inline-block';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+        }
+
+        function renderPendingTable() {
+            const tbody = document.getElementById('tbody-abastecimentos-sol');
+            if (!tbody) return;
+
+            const pending = window.movixStore.getAbastecimentos().filter(a => a.status === 'Pendente');
+            tbody.innerHTML = '';
+
+            if (pending.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding: 20px; color:var(--text-muted);">Nenhuma solicitação de abastecimento pendente.</td></tr>`;
+                return;
+            }
+
+            pending.forEach(a => {
+                const v = vehicles.find(item => item.id === a.veiculoId);
+                const m = drivers.find(item => item.id === a.motoristaId);
+
+                const veicHTML = v 
+                    ? `<span style="font-weight:700; color:var(--primary); cursor:pointer;" onclick="window.movixRouter.navigateTo('veiculos', '${v.id}')">${v.placa}</span><br><span style="font-size:0.75rem; color:var(--text-muted);">${v.marca} ${v.modelo}</span>`
+                    : 'Veículo Deletado';
+
+                const compHTML = a.comprovante 
+                    ? `<a href="${a.comprovante}" target="_blank" style="color:var(--primary); font-weight:600; text-decoration:none;"><i class="fa-solid fa-paperclip"></i> Ver</a>`
+                    : '-';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${a.data.split('-').reverse().join('/')}</td>
+                        <td>${veicHTML}</td>
+                        <td style="font-weight:600;">
+                            ${m ? `${m.nome} <span style="font-size:0.75rem; color:var(--text-muted); font-weight:normal; display:block; margin-top:2px;">(${a.motoristaCategoria || m.categoria || 'Motorista Efetivo'})</span>` : 'Motorista Deletado'}
+                        </td>
+                        <td>${parseFloat(a.kmAtual).toLocaleString('pt-BR')} km</td>
+                        <td>
+                            <div style="display:flex; flex-direction:column;">
+                                <span style="font-weight:600;">${window.movixApp.formatDecimal(a.litros)} L</span>
+                                <span style="font-size:0.75rem; color:var(--text-muted);">${a.combustivel} • R$ ${a.valorLitro.toFixed(2).replace('.', ',')}/L</span>
+                            </div>
+                        </td>
+                        <td style="font-weight:700;">${window.movixApp.formatCurrency(a.valorTotal)}</td>
+                        <td>${a.posto || '-'}</td>
+                        <td>${compHTML}</td>
+                        <td style="text-align: center; display: flex; justify-content: center; gap: 8px;">
+                            <button class="btn-icon-only btn-view" data-id="${a.id}" title="Visualizar Detalhes" style="color:var(--primary);">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                            ${!isVisualizador ? `
+                                <button class="btn-icon-only success btn-approve" data-id="${a.id}" title="Aprovar" style="color:var(--success); border-color:var(--success-border);">
+                                    <i class="fa-solid fa-check"></i>
+                                </button>
+                                <button class="btn-icon-only danger btn-reject" data-id="${a.id}" title="Rejeitar" style="color:var(--danger); border-color:var(--danger-border);">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            ` : ''}
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function changeStatus(id, newStatus) {
+            try {
+                const res = await fetch(`/api/abastecimentos/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                if (!res.ok) throw new Error('Erro ao alterar status.');
+                window.movixApp.showToast(`Abastecimento ${newStatus === 'Aprovado' ? 'aprovado' : 'rejeitado'} com sucesso!`, 'success');
+                await window.movixStore.loadData();
+                updatePendingBadge();
+                renderPendingTable();
+                updateTable();
+            } catch (err) {
+                console.error(err);
+                window.movixApp.showToast(err.message, 'error');
+            }
+        }
+
+        tabHistorico.addEventListener('click', () => {
+            tabHistorico.classList.add('active-tab');
+            tabHistorico.style.color = 'var(--primary)';
+            tabHistorico.style.borderBottom = '3px solid var(--primary)';
+            tabHistorico.style.fontWeight = '700';
+
+            tabSolicitacoes.classList.remove('active-tab');
+            tabSolicitacoes.style.color = 'var(--text-muted)';
+            tabSolicitacoes.style.borderBottom = 'none';
+            tabSolicitacoes.style.fontWeight = '600';
+
+            containerHistorico.style.display = 'block';
+            containerSolicitacoes.style.display = 'none';
+            updateTable();
+        });
+
+        tabSolicitacoes.addEventListener('click', () => {
+            tabSolicitacoes.classList.add('active-tab');
+            tabSolicitacoes.style.color = 'var(--primary)';
+            tabSolicitacoes.style.borderBottom = '3px solid var(--primary)';
+            tabSolicitacoes.style.fontWeight = '700';
+
+            tabHistorico.classList.remove('active-tab');
+            tabHistorico.style.color = 'var(--text-muted)';
+            tabHistorico.style.borderBottom = 'none';
+            tabHistorico.style.fontWeight = '600';
+
+            containerHistorico.style.display = 'none';
+            containerSolicitacoes.style.display = 'block';
+            renderPendingTable();
+        });
+
+        // Initialize state
+        updatePendingBadge();
+
         // Initialize Autocompletes
         window.movixApp.initAutocomplete(document.getElementById('filter-veiculo'), 'Filtrar veículo...');
         window.movixApp.initAutocomplete(document.getElementById('filter-motorista'), 'Filtrar motorista...');
@@ -349,18 +512,18 @@
             updateTable();
         });
 
-        // Pagination handled by MovixApp.renderPagination helper
-
         // Add supply Trigger
         if (document.getElementById('btn-novo-abastecimento')) {
             document.getElementById('btn-novo-abastecimento').addEventListener('click', () => openAbastecimentoModal());
         }
 
         // Deletion and Editing Triggers
-        document.querySelector('.table-responsive').addEventListener('click', (e) => {
+        container.addEventListener('click', (e) => {
             const viewBtn = e.target.closest('.btn-view');
             const editBtn = e.target.closest('.btn-edit');
             const delBtn = e.target.closest('.btn-delete');
+            const approveBtn = e.target.closest('.btn-approve');
+            const rejectBtn = e.target.closest('.btn-reject');
             
             if (viewBtn) {
                 const id = viewBtn.getAttribute('data-id');
@@ -373,6 +536,14 @@
             if (delBtn) {
                 const id = delBtn.getAttribute('data-id');
                 confirmDeleteAbastecimento(id);
+            }
+            if (approveBtn) {
+                const id = approveBtn.getAttribute('data-id');
+                changeStatus(id, 'Aprovado');
+            }
+            if (rejectBtn) {
+                const id = rejectBtn.getAttribute('data-id');
+                changeStatus(id, 'Rejeitado');
             }
         });
 
@@ -549,6 +720,8 @@
                     formData.forEach((value, key) => data[key] = value);
                     if (isEdit) {
                         data.veiculoId = veicSel.value;
+                    } else {
+                        data.status = 'Aprovado';
                     }
 
                     if (justificativa) {

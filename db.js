@@ -15,9 +15,17 @@ if (!connectionString) {
 
 const pool = new Pool({
     connectionString,
+    max: 10,                  // Limite máximo de clientes no pool
+    idleTimeoutMillis: 10000, // Fecha conexões inativas após 10 segundos (evita queda pelo Supabase)
+    connectionTimeoutMillis: 5000, // Timeout ao tentar conectar
     ssl: connectionString.includes('supabase') || connectionString.includes('neon') || connectionString.includes('sslmode=require')
         ? { rejectUnauthorized: false }
         : false
+});
+
+// Registrar ouvinte para erros inesperados em clientes inativos do pool
+pool.on('error', (err) => {
+    console.error('❌ Erro inesperado no cliente PostgreSQL inativo do pool:', err.message);
 });
 
 // Test connection
@@ -277,6 +285,44 @@ async function initDB() {
             )
         `);
 
+        // Migrations para Viagens (Portal do Motorista)
+        await query(`ALTER TABLE viagens ADD COLUMN IF NOT EXISTS "fotoInicial" TEXT`);
+        await query(`ALTER TABLE viagens ADD COLUMN IF NOT EXISTS "fotoFinal" TEXT`);
+        await query(`ALTER TABLE viagens ADD COLUMN IF NOT EXISTS "ocorrencias" JSONB DEFAULT '[]'::jsonb`);
+        await query(`ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS "senhaHash" TEXT`);
+        await query(`ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS "rememberToken" VARCHAR(255)`);
+        await query(`ALTER TABLE abastecimentos ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'Pendente'`);
+
+        // Tabela de Solicitações de Manutenção do Motorista
+        await query(`
+            CREATE TABLE IF NOT EXISTS solicitacoes_manutencao (
+                id VARCHAR(50) PRIMARY KEY,
+                "veiculoId" VARCHAR(50) REFERENCES veiculos(id) ON DELETE CASCADE,
+                "motoristaId" VARCHAR(50) REFERENCES motoristas(id) ON DELETE CASCADE,
+                data VARCHAR(20) NOT NULL,
+                descricao TEXT NOT NULL,
+                tipo VARCHAR(100) NOT NULL,
+                status VARCHAR(50) DEFAULT 'Pendente',
+                anexo TEXT,
+                observacoes TEXT
+            )
+        `);
+
+        // Tabela de Ocorrências de Viagem do Motorista
+        await query(`
+            CREATE TABLE IF NOT EXISTS ocorrencias_viagem (
+                id VARCHAR(50) PRIMARY KEY,
+                "viagemId" VARCHAR(50) REFERENCES viagens(id) ON DELETE CASCADE,
+                "motoristaId" VARCHAR(50) REFERENCES motoristas(id) ON DELETE SET NULL,
+                data VARCHAR(20) NOT NULL,
+                hora VARCHAR(20) NOT NULL,
+                descricao TEXT NOT NULL,
+                status VARCHAR(50) DEFAULT 'Pendente',
+                fotos JSONB DEFAULT '[]'::jsonb,
+                observacoes TEXT
+            )
+        `);
+
         // 9. Multas Table
         await query(`
             CREATE TABLE IF NOT EXISTS multas (
@@ -350,7 +396,7 @@ async function initDB() {
         `);
 
         // Enable Row Level Security (RLS) on all tables to prevent unauthorized public REST API access
-        const tables = ['usuarios', 'veiculos', 'motoristas', 'abastecimentos', 'manutencoes', 'pneus', 'oleos', 'viagens', 'multas', 'logs', 'notificacoes'];
+        const tables = ['usuarios', 'veiculos', 'motoristas', 'abastecimentos', 'manutencoes', 'pneus', 'oleos', 'viagens', 'multas', 'logs', 'notificacoes', 'solicitacoes_manutencao', 'ocorrencias_viagem'];
         for (const table of tables) {
             await query(`ALTER TABLE ${table} ENABLE ROW LEVEL SECURITY`);
         }

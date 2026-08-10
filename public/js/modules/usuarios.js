@@ -77,6 +77,7 @@
                             <option value="Gestor" ${state.filters.perfil === 'Gestor' ? 'selected' : ''}>Gestor</option>
                             <option value="Operacional" ${state.filters.perfil === 'Operacional' ? 'selected' : ''}>Operacional</option>
                             <option value="Visualizador" ${state.filters.perfil === 'Visualizador' ? 'selected' : ''}>Visualizador</option>
+                            <option value="Motorista" ${state.filters.perfil === 'Motorista' ? 'selected' : ''}>Motorista</option>
                         </select>
                     </div>
                     <div class="filter-group">
@@ -357,6 +358,7 @@
                         <option value="Gestor" ${isEdit && user.perfil === 'Gestor' ? 'selected' : ''}>Gestor (Edição/Operação/Relatórios)</option>
                         <option value="Operacional" ${isEdit && user.perfil === 'Operacional' ? 'selected' : ''}>Operacional (Cadastro/Movimentações)</option>
                         <option value="Visualizador" ${isEdit && user.perfil === 'Visualizador' ? 'selected' : ''}>Visualizador (Apenas Leitura)</option>
+                        <option value="Motorista" ${isEdit && user.perfil === 'Motorista' ? 'selected' : ''}>Motorista (Portal do Motorista)</option>
                     </select>
                 </div>
                 <div class="form-group">

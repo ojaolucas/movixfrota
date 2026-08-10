@@ -60,16 +60,30 @@ app.use(async (req, res, next) => {
         const token = getCookie(req, 'remember_token');
         if (token) {
             try {
-                const result = await db.query('SELECT * FROM usuarios WHERE "rememberToken" = $1', [token]);
-                const user = result.rows[0];
+                let result = await db.query('SELECT * FROM usuarios WHERE "rememberToken" = $1', [token]);
+                let user = result.rows[0];
+                let isDriver = false;
+                
+                if (!user) {
+                    result = await db.query('SELECT * FROM motoristas WHERE "rememberToken" = $1', [token]);
+                    user = result.rows[0];
+                    if (user) {
+                        user.perfil = 'Motorista';
+                        isDriver = true;
+                    }
+                }
+
                 if (user) {
                     if (user.status === 'ativo') {
                         req.session.userId = user.id;
                         req.session.perfil = user.perfil;
                         req.session.nome = user.nome;
                     } else {
-                        // Se o usuário foi inativado, limpa o token dele
-                        await db.query('UPDATE usuarios SET "rememberToken" = NULL WHERE id = $1', [user.id]);
+                        if (isDriver) {
+                            await db.query('UPDATE motoristas SET "rememberToken" = NULL WHERE id = $1', [user.id]);
+                        } else {
+                            await db.query('UPDATE usuarios SET "rememberToken" = NULL WHERE id = $1', [user.id]);
+                        }
                         res.setHeader('Set-Cookie', 'remember_token=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax');
                     }
                 }
@@ -171,7 +185,29 @@ app.post('/api/auth/login', async (req, res) => {
             `SELECT * FROM usuarios WHERE REPLACE(REPLACE(cpf, '.', ''), '-', '') = $1 OR LOWER(email) = LOWER($2)`,
             [cleanId, identifier]
         );
-        const user = result.rows[0];
+        let user = result.rows[0];
+        let isDriver = false;
+
+        if (!user) {
+            // Tenta buscar na tabela de motoristas
+            const driverResult = await db.query(
+                `SELECT * FROM motoristas WHERE REPLACE(REPLACE(cpf, '.', ''), '-', '') = $1 OR LOWER(email) = LOWER($2)`,
+                [cleanId, identifier]
+            );
+            const driver = driverResult.rows[0];
+            if (driver) {
+                user = {
+                    id: driver.id,
+                    nome: driver.nome,
+                    cpf: driver.cpf,
+                    email: driver.email,
+                    perfil: 'Motorista',
+                    status: driver.status,
+                    senhaHash: driver.senhaHash
+                };
+                isDriver = true;
+            }
+        }
 
         if (!user) {
             return res.status(401).json({ error: 'CPF/E-mail não encontrado no sistema.' });
@@ -202,12 +238,20 @@ app.post('/api/auth/login', async (req, res) => {
             req.session.cookie.maxAge = 365 * 24 * 60 * 60 * 1000; // 365 dias para a sessão local
             // Gerar token de lembrança
             const token = uuidv4();
-            await db.query('UPDATE usuarios SET "rememberToken" = $1 WHERE id = $2', [token, user.id]);
+            if (isDriver) {
+                await db.query('UPDATE motoristas SET "rememberToken" = $1 WHERE id = $2', [token, user.id]);
+            } else {
+                await db.query('UPDATE usuarios SET "rememberToken" = $1 WHERE id = $2', [token, user.id]);
+            }
             res.setHeader('Set-Cookie', `remember_token=${token}; Max-Age=${365 * 24 * 60 * 60}; Path=/; HttpOnly; SameSite=Lax`);
         } else {
             req.session.cookie.maxAge = null; // Expira ao fechar o navegador
             // Limpar token antigo
-            await db.query('UPDATE usuarios SET "rememberToken" = NULL WHERE id = $1', [user.id]);
+            if (isDriver) {
+                await db.query('UPDATE motoristas SET "rememberToken" = NULL WHERE id = $1', [user.id]);
+            } else {
+                await db.query('UPDATE usuarios SET "rememberToken" = NULL WHERE id = $1', [user.id]);
+            }
             res.setHeader('Set-Cookie', 'remember_token=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax');
         }
 
@@ -241,7 +285,25 @@ app.post('/api/auth/logout', requireAuth, async (req, res) => {
 app.get('/api/auth/me', requireAuth, async (req, res) => {
     try {
         const result = await db.query('SELECT * FROM usuarios WHERE id = $1', [req.session.userId]);
-        const user = result.rows[0];
+        let user = result.rows[0];
+        
+        if (!user) {
+            const driverResult = await db.query('SELECT * FROM motoristas WHERE id = $1', [req.session.userId]);
+            const driver = driverResult.rows[0];
+            if (driver) {
+                user = {
+                    id: driver.id,
+                    nome: driver.nome,
+                    cpf: driver.cpf,
+                    email: driver.email,
+                    perfil: 'Motorista',
+                    status: driver.status,
+                    foto: driver.foto,
+                    cargo: 'Motorista'
+                };
+            }
+        }
+
         if (!user) return res.status(404).json({ error: 'Usuário não encontrado.' });
         const { senhaHash, senha: _, ...userSafe } = user;
         res.json(userSafe);
@@ -462,12 +524,17 @@ app.post('/api/motoristas', requireAuth, async (req, res) => {
         const historico = m.historico || [];
         const categoria = m.categoria || 'Motorista Efetivo';
 
+        let senhaHash = null;
+        if (m.senha && m.senha.length >= 4) {
+            senhaHash = bcrypt.hashSync(m.senha, 10);
+        }
+
         const result = await db.query(`
-            INSERT INTO motoristas (id, nome, cpf, rg, cnh, "categoriaCNH", "dataVencimentoCNH", status, foto, telefone, email, endereco, "cnhAnexo", "comprovanteResidenciaAnexo", observacoes, historico, "dataNascimento", categoria)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+            INSERT INTO motoristas (id, nome, cpf, rg, cnh, "categoriaCNH", "dataVencimentoCNH", status, foto, telefone, email, endereco, "cnhAnexo", "comprovanteResidenciaAnexo", observacoes, historico, "dataNascimento", categoria, "senhaHash")
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
             RETURNING *
         `, [
-            id, m.nome, m.cpf, m.rg, m.cnh, m.categoriaCNH, m.dataVencimentoCNH, m.status || 'ativo', foto, m.telefone, m.email, m.endereco, m.cnhAnexo, m.comprovanteResidenciaAnexo, m.observacoes, JSON.stringify(historico), m.dataNascimento || null, categoria
+            id, m.nome, m.cpf, m.rg, m.cnh, m.categoriaCNH, m.dataVencimentoCNH, m.status || 'ativo', foto, m.telefone, m.email, m.endereco, m.cnhAnexo, m.comprovanteResidenciaAnexo, m.observacoes, JSON.stringify(historico), m.dataNascimento || null, categoria, senhaHash
         ]);
 
         await addLog(req.session.nome, req.session.perfil, 'Cadastro', 'Motorista', `Cadastrou condutor ${m.nome} (Categoria: ${categoria}, CNH: ${m.cnh})`);
@@ -490,13 +557,18 @@ app.put('/api/motoristas/:id', requireAuth, async (req, res) => {
         const historico = m.historico || original.historico;
         const categoria = m.categoria || original.categoria || 'Motorista Efetivo';
 
+        let senhaHash = original.senhaHash;
+        if (m.senha && m.senha.length >= 4) {
+            senhaHash = bcrypt.hashSync(m.senha, 10);
+        }
+
         const result = await db.query(`
             UPDATE motoristas SET
-                nome = $1, cpf = $2, rg = $3, cnh = $4, "categoriaCNH" = $5, "dataVencimentoCNH" = $6, status = $7, foto = $8, telefone = $9, email = $10, endereco = $11, "cnhAnexo" = $12, "comprovanteResidenciaAnexo" = $13, observacoes = $14, historico = $15, "dataNascimento" = $16, categoria = $17
-            WHERE id = $18
+                nome = $1, cpf = $2, rg = $3, cnh = $4, "categoriaCNH" = $5, "dataVencimentoCNH" = $6, status = $7, foto = $8, telefone = $9, email = $10, endereco = $11, "cnhAnexo" = $12, "comprovanteResidenciaAnexo" = $13, observacoes = $14, historico = $15, "dataNascimento" = $16, categoria = $17, "senhaHash" = $18
+            WHERE id = $19
             RETURNING *
         `, [
-            m.nome, m.cpf, m.rg, m.cnh, m.categoriaCNH, m.dataVencimentoCNH, m.status || 'ativo', foto, m.telefone, m.email, m.endereco, m.cnhAnexo, m.comprovanteResidenciaAnexo, m.observacoes, JSON.stringify(historico), m.dataNascimento || null, categoria, req.params.id
+            m.nome, m.cpf, m.rg, m.cnh, m.categoriaCNH, m.dataVencimentoCNH, m.status || 'ativo', foto, m.telefone, m.email, m.endereco, m.cnhAnexo, m.comprovanteResidenciaAnexo, m.observacoes, JSON.stringify(historico), m.dataNascimento || null, categoria, senhaHash, req.params.id
         ]);
 
         await addLog(req.session.nome, req.session.perfil, 'Edição', 'Motorista', `Editou condutor ${m.nome} (Categoria: ${categoria})`);
@@ -756,7 +828,13 @@ async function recalculateVehicleRefuelings(veiculoId) {
 
 app.get('/api/abastecimentos', requireAuth, async (req, res) => {
     try {
-        const result = await db.query('SELECT * FROM abastecimentos ORDER BY data DESC');
+        const { motoristaId } = req.query;
+        let result;
+        if (motoristaId) {
+            result = await db.query('SELECT * FROM abastecimentos WHERE "motoristaId" = $1 ORDER BY data DESC', [motoristaId]);
+        } else {
+            result = await db.query('SELECT * FROM abastecimentos ORDER BY data DESC');
+        }
         res.json(result.rows);
     } catch (err) {
         console.error("Erro ao obter abastecimentos:", err);
@@ -791,11 +869,13 @@ app.post('/api/abastecimentos', requireAuth, async (req, res) => {
         const motoristaCategoria = driver ? (driver.categoria || 'Motorista Efetivo') : 'Motorista Efetivo';
         const motoristaNome = driver ? driver.nome : 'Deletado';
 
+        const status = ab.status || 'Aprovado';
+
         await db.query(`
-            INSERT INTO abastecimentos (id, "veiculoId", "motoristaId", "motoristaCategoria", data, combustivel, litros, "valorLitro", "valorTotal", "kmAtual", posto, comprovante, observacoes, "kmL", "custoKM")
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+            INSERT INTO abastecimentos (id, "veiculoId", "motoristaId", "motoristaCategoria", data, combustivel, litros, "valorLitro", "valorTotal", "kmAtual", posto, comprovante, observacoes, "kmL", "custoKM", status)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
         `, [
-            id, ab.veiculoId, ab.motoristaId, motoristaCategoria, ab.data, ab.combustivel, litros, valorLitro, valorTotal, kmAtual, ab.posto, ab.comprovante, ab.observacoes, 0, 0
+            id, ab.veiculoId, ab.motoristaId, motoristaCategoria, ab.data, ab.combustivel, litros, valorLitro, valorTotal, kmAtual, ab.posto, ab.comprovante, ab.observacoes, 0, 0, status
         ]);
 
         // Recalcular médias após o insert
@@ -843,10 +923,12 @@ app.put('/api/abastecimentos/:id', requireAuth, async (req, res) => {
         const motoristaCategoria = driver ? (driver.categoria || 'Motorista Efetivo') : 'Motorista Efetivo';
         const motoristaNome = driver ? driver.nome : 'Deletado';
 
+        const status = ab.status !== undefined ? ab.status : original.status;
+
         await db.query(`
             UPDATE abastecimentos SET
-                "veiculoId" = $1, "motoristaId" = $2, "motoristaCategoria" = $3, data = $4, combustivel = $5, litros = $6, "valorLitro" = $7, "valorTotal" = $8, "kmAtual" = $9, posto = $10, comprovante = $11, observacoes = $12
-            WHERE id = $13
+                "veiculoId" = $1, "motoristaId" = $2, "motoristaCategoria" = $3, data = $4, combustivel = $5, litros = $6, "valorLitro" = $7, "valorTotal" = $8, "kmAtual" = $9, posto = $10, comprovante = $11, observacoes = $12, status = $13
+            WHERE id = $14
         `, [
             ab.veiculoId || original.veiculoId,
             ab.motoristaId || original.motoristaId,
@@ -860,6 +942,7 @@ app.put('/api/abastecimentos/:id', requireAuth, async (req, res) => {
             ab.posto || original.posto,
             ab.comprovante || original.comprovante,
             ab.observacoes || original.observacoes,
+            status,
             req.params.id
         ]);
 
@@ -1252,7 +1335,12 @@ app.delete('/api/oleos/:id', requireAuth, requireAdmin, async (req, res) => {
 // ─── VIAGENS ──────────────────────────────────────────────
 app.get('/api/viagens', requireAuth, async (req, res) => {
     try {
-        const result = await db.query('SELECT * FROM viagens ORDER BY "dataSaida" DESC, "horaSaida" DESC');
+        const result = await db.query(`
+            SELECT v.*, m.nome AS "motoristaNome"
+            FROM viagens v
+            LEFT JOIN motoristas m ON v."motoristaId" = m.id
+            ORDER BY v."dataSaida" DESC, v."horaSaida" DESC
+        `);
         res.json(result.rows);
     } catch (err) {
         console.error("Erro ao obter viagens:", err);
@@ -1321,6 +1409,22 @@ app.post('/api/viagens', requireAuth, async (req, res) => {
             return res.status(400).json({ error: 'O horário de saída é obrigatório.' });
         }
 
+        const conflict = await checkTripConflict(v.veiculoId, v.motoristaId, v.dataSaida, v.horaSaida, v.dataRetorno, v.horaRetorno);
+        if (conflict) {
+            if (conflict.veiculoId === v.veiculoId) {
+                const driverRes = await db.query('SELECT nome FROM motoristas WHERE id = $1', [conflict.motoristaId]);
+                const driverName = driverRes.rows[0] ? driverRes.rows[0].nome : 'Motorista';
+                const dataFmt = conflict.dataSaida.split('-').reverse().join('/');
+                return res.status(400).json({
+                    error: `Veículo em uso pelo motorista ${driverName} com destino a ${conflict.destino} (Saída: ${dataFmt} às ${conflict.horaSaida}).`
+                });
+            } else {
+                return res.status(400).json({
+                    error: `Você já possui uma viagem ativa em andamento no mesmo período (${conflict.origem} → ${conflict.destino}). Encerre-a primeiro.`
+                });
+            }
+        }
+
 
         const id = 'VIA-' + uuidv4().substr(0, 8).toUpperCase();
         const kmInicial = parseFloat(v.kmInicial) || 0;
@@ -1350,11 +1454,11 @@ app.post('/api/viagens', requireAuth, async (req, res) => {
         }];
 
         const result = await db.query(`
-            INSERT INTO viagens (id, "veiculoId", "motoristaId", "motoristaCategoria", "dataSaida", "horaSaida", "dataRetorno", "horaRetorno", "kmInicial", "kmFinal", origem, destino, status, observacoes, "kmRodado", custos, "historicoCondutores")
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+            INSERT INTO viagens (id, "veiculoId", "motoristaId", "motoristaCategoria", "dataSaida", "horaSaida", "dataRetorno", "horaRetorno", "kmInicial", "kmFinal", origem, destino, status, observacoes, "kmRodado", custos, "historicoCondutores", "fotoInicial", "fotoFinal", "ocorrencias")
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
             RETURNING *
         `, [
-            id, v.veiculoId, v.motoristaId, motoristaCategoria, v.dataSaida, v.horaSaida, v.dataRetorno, v.horaRetorno, kmInicial, kmFinal, v.origem, v.destino, v.status || 'Em Andamento', v.observacoes, kmRodado, custos, JSON.stringify(firstDriverLog)
+            id, v.veiculoId, v.motoristaId, motoristaCategoria, v.dataSaida, v.horaSaida, v.dataRetorno, v.horaRetorno, kmInicial, kmFinal, v.origem, v.destino, v.status || 'Em Andamento', v.observacoes, kmRodado, custos, JSON.stringify(firstDriverLog), v.fotoInicial || null, v.fotoFinal || null, JSON.stringify(v.ocorrencias || [])
         ]);
 
         await addLog(req.session.nome, req.session.perfil, 'Cadastro', 'Viagem', `Registrou saída de viagem: veículo ${veiculoPlaca}, condutor ${motoristaNome} (${motoristaCategoria}), rota ${v.origem} → ${v.destino}`);
@@ -1444,10 +1548,17 @@ app.put('/api/viagens/:id', requireAuth, async (req, res) => {
             }
         }
 
+        const fotoInicial = updates.fotoInicial !== undefined ? updates.fotoInicial : original.fotoInicial;
+        const fotoFinal = updates.fotoFinal !== undefined ? updates.fotoFinal : original.fotoFinal;
+        let ocorrencias = original.ocorrencias || [];
+        if (updates.ocorrencias !== undefined) {
+            ocorrencias = typeof updates.ocorrencias === 'string' ? JSON.parse(updates.ocorrencias) : updates.ocorrencias;
+        }
+
         const result = await db.query(`
             UPDATE viagens SET
-                "veiculoId" = $1, "motoristaId" = $2, "motoristaCategoria" = $3, "dataSaida" = $4, "horaSaida" = $5, "dataRetorno" = $6, "horaRetorno" = $7, "kmInicial" = $8, "kmFinal" = $9, origem = $10, destino = $11, status = $12, observacoes = $13, "kmRodado" = $14, custos = $15, "historicoCondutores" = $16
-            WHERE id = $17
+                "veiculoId" = $1, "motoristaId" = $2, "motoristaCategoria" = $3, "dataSaida" = $4, "horaSaida" = $5, "dataRetorno" = $6, "horaRetorno" = $7, "kmInicial" = $8, "kmFinal" = $9, origem = $10, destino = $11, status = $12, observacoes = $13, "kmRodado" = $14, custos = $15, "historicoCondutores" = $16, "fotoInicial" = $17, "fotoFinal" = $18, "ocorrencias" = $19
+            WHERE id = $20
             RETURNING *
         `, [
             updates.veiculoId || original.veiculoId,
@@ -1466,10 +1577,18 @@ app.put('/api/viagens/:id', requireAuth, async (req, res) => {
             kmRodado,
             custos,
             JSON.stringify(historicoCondutores),
+            fotoInicial,
+            fotoFinal,
+            JSON.stringify(ocorrencias),
             req.params.id
         ]);
 
-        await addLog(req.session.nome, req.session.perfil, 'Edição', 'Viagem', `Editou/Atualizou viagem ${req.params.id}`);
+        if (updates.finalizadaPorOutroMotorista) {
+            const logMsg = `Viagem ${req.params.id} finalizada automaticamente por ${req.session.nome} em ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')} — motorista anterior não finalizou a viagem. Motivo: Outro motorista assumiu o veículo.`;
+            await addLog(req.session.nome, req.session.perfil, 'Edição', 'Viagem', logMsg);
+        } else {
+            await addLog(req.session.nome, req.session.perfil, 'Edição', 'Viagem', `Editou/Atualizou viagem ${req.params.id}`);
+        }
         res.json(result.rows[0]);
     } catch (err) {
         console.error("Erro ao atualizar viagem:", err);
@@ -1613,6 +1732,223 @@ app.delete('/api/viagens/:id', requireAuth, requireAdmin, async (req, res) => {
         res.json({ success: true });
     } catch (err) {
         console.error("Erro ao excluir viagem:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
+});
+
+// ─── SOLICITAÇÕES DE MANUTENÇÃO (PORTAL DO MOTORISTA) ─────
+app.get('/api/solicitacoes-manutencao', requireAuth, async (req, res) => {
+    try {
+        const { motoristaId, status } = req.query;
+        let queryStr = `
+            SELECT s.*, v.placa as "veiculoPlaca", v.marca as "veiculoMarca", v.modelo as "veiculoModelo", m.nome as "motoristaNome"
+            FROM solicitacoes_manutencao s
+            JOIN veiculos v ON s."veiculoId" = v.id
+            JOIN motoristas m ON s."motoristaId" = m.id
+        `;
+        const whereClauses = [];
+        const params = [];
+
+        if (motoristaId) {
+            params.push(motoristaId);
+            whereClauses.push(`s."motoristaId" = $${params.length}`);
+        }
+        if (status) {
+            params.push(status);
+            whereClauses.push(`s.status = $${params.length}`);
+        }
+
+        if (whereClauses.length > 0) {
+            queryStr += ' WHERE ' + whereClauses.join(' AND ');
+        }
+        queryStr += ' ORDER BY s.data DESC';
+
+        const result = await db.query(queryStr, params);
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Erro ao obter solicitações de manutenção:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
+});
+
+app.post('/api/solicitacoes-manutencao', requireAuth, async (req, res) => {
+    try {
+        const s = req.body;
+        if (!s.veiculoId || !s.motoristaId || !s.data || !s.descricao || !s.tipo) {
+            return res.status(400).json({ error: 'Campos obrigatórios ausentes.' });
+        }
+        const id = 'SOL-' + uuidv4().substr(0, 8).toUpperCase();
+
+        const result = await db.query(`
+            INSERT INTO solicitacoes_manutencao (id, "veiculoId", "motoristaId", data, descricao, tipo, status, anexo, observacoes)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            RETURNING *
+        `, [
+            id, s.veiculoId, s.motoristaId, s.data, s.descricao, s.tipo, s.status || 'Pendente', s.anexo || null, s.observacoes || null
+        ]);
+
+        const veicRes = await db.query('SELECT placa FROM veiculos WHERE id = $1', [s.veiculoId]);
+        const motorRes = await db.query('SELECT nome FROM motoristas WHERE id = $1', [s.motoristaId]);
+        const placa = veicRes.rows[0] ? veicRes.rows[0].placa : 'N/A';
+        const nomeMot = motorRes.rows[0] ? motorRes.rows[0].nome : 'N/A';
+
+        await addLog(req.session.nome, req.session.perfil, 'Cadastro', 'Solicitação de Manutenção', `Criou solicitação ${id} para veículo ${placa} (Motorista: ${nomeMot}, Tipo: ${s.tipo})`);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Erro ao cadastrar solicitação de manutenção:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
+});
+
+app.put('/api/solicitacoes-manutencao/:id', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const s = req.body;
+        const originalRes = await db.query('SELECT * FROM solicitacoes_manutencao WHERE id = $1', [id]);
+        if (originalRes.rowCount === 0) {
+            return res.status(404).json({ error: 'Solicitação de manutenção não encontrada.' });
+        }
+        const original = originalRes.rows[0];
+
+        const status = s.status !== undefined ? s.status : original.status;
+        const observacoes = s.observacoes !== undefined ? s.observacoes : original.observacoes;
+
+        const result = await db.query(`
+            UPDATE solicitacoes_manutencao SET
+                status = $1, observacoes = $2
+            WHERE id = $3
+            RETURNING *
+        `, [status, observacoes, id]);
+
+        await addLog(req.session.nome, req.session.perfil, 'Edição', 'Solicitação de Manutenção', `Alterou status da solicitação ${id} para: ${status}`);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Erro ao atualizar solicitação de manutenção:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
+});
+
+app.delete('/api/solicitacoes-manutencao/:id', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await db.query('DELETE FROM solicitacoes_manutencao WHERE id = $1 RETURNING id', [id]);
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Solicitação não encontrada.' });
+        }
+        await addLog(req.session.nome, req.session.perfil, 'Exclusão', 'Solicitação de Manutenção', `Removeu solicitação ${id}`);
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Erro ao excluir solicitação de manutenção:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
+});
+
+// ─── OCORRÊNCIAS DE VIAGEM (PORTAL DO MOTORISTA) ──────────
+app.get('/api/ocorrencias-viagem', requireAuth, async (req, res) => {
+    try {
+        const { viagemId, motoristaId, status } = req.query;
+        let queryStr = `
+            SELECT o.*, m.nome as "motoristaNome", v.origem, v.destino, ve.placa as "veiculoPlaca"
+            FROM ocorrencias_viagem o
+            JOIN viagens v ON o."viagemId" = v.id
+            JOIN veiculos ve ON v."veiculoId" = ve.id
+            LEFT JOIN motoristas m ON o."motoristaId" = m.id
+        `;
+        const whereClauses = [];
+        const params = [];
+
+        if (viagemId) {
+            params.push(viagemId);
+            whereClauses.push(`o."viagemId" = $${params.length}`);
+        }
+        if (motoristaId) {
+            params.push(motoristaId);
+            whereClauses.push(`o."motoristaId" = $${params.length}`);
+        }
+        if (status) {
+            params.push(status);
+            whereClauses.push(`o.status = $${params.length}`);
+        }
+
+        if (whereClauses.length > 0) {
+            queryStr += ' WHERE ' + whereClauses.join(' AND ');
+        }
+        queryStr += ' ORDER BY o.data DESC, o.hora DESC';
+
+        const result = await db.query(queryStr, params);
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Erro ao obter ocorrências de viagem:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
+});
+
+app.post('/api/ocorrencias-viagem', requireAuth, async (req, res) => {
+    try {
+        const o = req.body;
+        if (!o.viagemId || !o.data || !o.hora || !o.descricao) {
+            return res.status(400).json({ error: 'Campos obrigatórios ausentes.' });
+        }
+        const id = 'OCO-' + uuidv4().substr(0, 8).toUpperCase();
+
+        const result = await db.query(`
+            INSERT INTO ocorrencias_viagem (id, "viagemId", "motoristaId", data, hora, descricao, status, fotos, observacoes)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            RETURNING *
+        `, [
+            id, o.viagemId, o.motoristaId || null, o.data, o.hora, o.descricao, o.status || 'Pendente', JSON.stringify(o.fotos || []), o.observacoes || null
+        ]);
+
+        const motorRes = await db.query('SELECT nome FROM motoristas WHERE id = $1', [o.motoristaId]);
+        const nomeMot = motorRes.rows[0] ? motorRes.rows[0].nome : 'N/A';
+
+        await addLog(req.session.nome, req.session.perfil, 'Cadastro', 'Ocorrência', `Criou ocorrência ${id} na viagem ${o.viagemId} (Motorista: ${nomeMot})`);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Erro ao cadastrar ocorrência de viagem:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
+});
+
+app.put('/api/ocorrencias-viagem/:id', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const o = req.body;
+        const originalRes = await db.query('SELECT * FROM ocorrencias_viagem WHERE id = $1', [id]);
+        if (originalRes.rowCount === 0) {
+            return res.status(404).json({ error: 'Ocorrência não encontrada.' });
+        }
+        const original = originalRes.rows[0];
+
+        const status = o.status !== undefined ? o.status : original.status;
+        const observacoes = o.observacoes !== undefined ? o.observacoes : original.observacoes;
+
+        const result = await db.query(`
+            UPDATE ocorrencias_viagem SET
+                status = $1, observacoes = $2
+            WHERE id = $3
+            RETURNING *
+        `, [status, observacoes, id]);
+
+        await addLog(req.session.nome, req.session.perfil, 'Edição', 'Ocorrência', `Alterou status da ocorrência ${id} para: ${status}`);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Erro ao atualizar ocorrência de viagem:", err);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
+});
+
+app.delete('/api/ocorrencias-viagem/:id', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await db.query('DELETE FROM ocorrencias_viagem WHERE id = $1 RETURNING id', [id]);
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Ocorrência não encontrada.' });
+        }
+        await addLog(req.session.nome, req.session.perfil, 'Exclusão', 'Ocorrência', `Removeu ocorrência ${id}`);
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Erro ao excluir ocorrência de viagem:", err);
         res.status(500).json({ error: 'Erro interno do servidor.' });
     }
 });

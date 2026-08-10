@@ -277,6 +277,30 @@
     background-color: var(--danger);
 }
 
+.status-pill.aprovado {
+    background-color: var(--success-light);
+    color: var(--success);
+}
+.status-pill.aprovado::before {
+    background-color: var(--success);
+}
+
+.status-pill.pendente {
+    background-color: var(--warning-light);
+    color: var(--warning);
+}
+.status-pill.pendente::before {
+    background-color: var(--warning);
+}
+
+.status-pill.rejeitado {
+    background-color: var(--danger-light);
+    color: var(--danger);
+}
+.status-pill.rejeitado::before {
+    background-color: var(--danger);
+}
+
 /* Pagination Control Layout */
 .table-pagination {
     display: flex;

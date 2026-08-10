@@ -489,7 +489,7 @@
         });
 
         // Detailed View & Audit Timeline Modal
-        function openViagemDetailModal(tripId) {
+        async function openViagemDetailModal(tripId) {
             const currentTrips = window.movixStore.getViagens();
             const t = currentTrips.find(item => item.id === tripId);
             if (!t) return;
@@ -528,6 +528,74 @@
                 `).join('');
             } else {
                 historyTimelineHTML = '<p style="font-size:0.8rem; color:var(--text-muted); font-style:italic;">Nenhum log de auditoria encontrado para esta viagem.</p>';
+            }
+
+            // Fetch occurrences for this trip
+            let occurrences = [];
+            try {
+                const ocRes = await fetch(`/api/ocorrencias-viagem?viagemId=${t.id}`);
+                if (ocRes.ok) occurrences = await ocRes.json();
+            } catch (err) {
+                console.error("Erro ao obter ocorrências da viagem:", err);
+            }
+
+            let occurrencesHTML = '';
+            if (occurrences.length > 0) {
+                occurrencesHTML = `
+                    <div style="border-top:1px solid var(--border-color); padding-top:20px; margin-top:20px;">
+                        <h4 style="font-family:var(--font-heading); color:var(--primary); margin-bottom:12px;"><i class="fa-solid fa-triangle-exclamation"></i> Ocorrências Reportadas</h4>
+                        <div class="table-responsive" style="margin-top:10px; border:none; box-shadow:none;">
+                            <table class="smart-table" style="font-size:0.85rem;">
+                                <thead>
+                                    <tr>
+                                        <th>Data/Hora</th>
+                                        <th>Descrição</th>
+                                        <th>Anexo</th>
+                                        <th>Status</th>
+                                        <th style="width: 150px; text-align:right;">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${occurrences.map(o => {
+                                        const dateFmt = o.data.split('-').reverse().join('/') + ' ' + o.hora;
+                                        const fotosList = Array.isArray(o.fotos) ? o.fotos : JSON.parse(o.fotos || '[]');
+                                        const fotosHTML = fotosList.length > 0 
+                                            ? fotosList.map((f, idx) => `
+                                                <a href="${f}" target="_blank" class="btn btn-secondary" style="padding:4px 8px; font-size:0.75rem; display:inline-flex; align-items:center; gap:4px; text-decoration:none; margin-right:4px;">
+                                                    <i class="fa-solid fa-paperclip"></i> Ver ${fotosList.length > 1 ? idx + 1 : ''}
+                                                </a>
+                                            `).join('')
+                                            : '<span class="text-muted" style="font-size:0.75rem;">Sem anexo</span>';
+                                        const isPending = o.status === 'Pendente';
+                                        return `
+                                            <tr>
+                                                <td style="font-weight:600; white-space:nowrap;">${dateFmt}</td>
+                                                <td>${o.descricao}</td>
+                                                <td>${fotosHTML}</td>
+                                                <td>
+                                                    <span class="status-pill ${o.status.toLowerCase()}">${o.status}</span>
+                                                </td>
+                                                <td style="text-align:right; white-space:nowrap;">
+                                                    ${isPending && !isVisualizador ? `
+                                                        <button class="btn btn-primary btn-approve-oc" data-id="${o.id}" style="padding:4px 8px; font-size:0.7rem; border-radius:4px; height:auto; margin-right:4px;">Aprovar</button>
+                                                        <button class="btn btn-danger btn-reject-oc" data-id="${o.id}" style="padding:4px 8px; font-size:0.7rem; border-radius:4px; height:auto;">Rejeitar</button>
+                                                    ` : '-'}
+                                                </td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            } else {
+                occurrencesHTML = `
+                    <div style="border-top:1px solid var(--border-color); padding-top:20px; margin-top:20px;">
+                        <h4 style="font-family:var(--font-heading); color:var(--primary); margin-bottom:12px;"><i class="fa-solid fa-triangle-exclamation"></i> Ocorrências Reportadas</h4>
+                        <p style="font-size:0.8rem; color:var(--text-muted); font-style:italic;">Nenhuma ocorrência registrada nesta viagem.</p>
+                    </div>
+                `;
             }
 
             // Build driver history rows
@@ -611,6 +679,7 @@
                             </div>
                         </div>
                     </div>
+                    ${occurrencesHTML}
                     ${historyDriversHTML}
                 </div>
             `;
@@ -620,6 +689,49 @@
             `;
 
             modal.classList.add('active');
+
+            // Occurrence approval event listeners
+            modalBody.querySelectorAll('.btn-approve-oc').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const ocId = e.currentTarget.getAttribute('data-id');
+                    try {
+                        const putRes = await fetch(`/api/ocorrencias-viagem/${ocId}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ status: 'Aprovada' })
+                        });
+                        if (putRes.ok) {
+                            window.movixApp.showToast('Ocorrência aprovada com sucesso!', 'success');
+                            openViagemDetailModal(tripId);
+                        } else {
+                            throw new Error('Falha ao aprovar ocorrência.');
+                        }
+                    } catch (err) {
+                        window.movixApp.showToast(err.message, 'danger');
+                    }
+                });
+            });
+
+            modalBody.querySelectorAll('.btn-reject-oc').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const ocId = e.currentTarget.getAttribute('data-id');
+                    try {
+                        const putRes = await fetch(`/api/ocorrencias-viagem/${ocId}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ status: 'Rejeitada' })
+                        });
+                        if (putRes.ok) {
+                            window.movixApp.showToast('Ocorrência rejeitada.', 'warning');
+                            openViagemDetailModal(tripId);
+                        } else {
+                            throw new Error('Falha ao rejeitar ocorrência.');
+                        }
+                    } catch (err) {
+                        window.movixApp.showToast(err.message, 'danger');
+                    }
+                });
+            });
 
             document.getElementById('btn-fechar-detalhe').addEventListener('click', () => modal.classList.remove('active'));
         }
