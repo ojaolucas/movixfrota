@@ -665,6 +665,31 @@
                                 </li>
                             </ul>
 
+                            <!-- FOTOS DO CHECKLIST (SAÍDA/RETORNO) -->
+                            ${(t.fotoInicial || t.fotoFinal) ? `
+                            <div style="margin-top:20px;">
+                                <h5 style="font-weight:700; margin-bottom:8px; font-size:0.85rem;"><i class="fa-solid fa-camera"></i> Fotos do Checklist:</h5>
+                                <div style="display:flex; gap:12px;">
+                                    ${t.fotoInicial ? `
+                                        <div style="flex:1;">
+                                            <span style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:4px;">Checklist de Saída</span>
+                                            <a href="${t.fotoInicial}" target="_blank" style="display:block; border-radius:6px; overflow:hidden; border:1px solid var(--border-color); width: 100%; text-align: center;">
+                                                <img src="${t.fotoInicial}" style="max-width:100%; max-height:120px; object-fit:cover; display:block; margin:0 auto;" alt="Checklist Saída">
+                                            </a>
+                                        </div>
+                                    ` : ''}
+                                    ${t.fotoFinal ? `
+                                        <div style="flex:1;">
+                                            <span style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:4px;">Checklist de Retorno</span>
+                                            <a href="${t.fotoFinal}" target="_blank" style="display:block; border-radius:6px; overflow:hidden; border:1px solid var(--border-color); width: 100%; text-align: center;">
+                                                <img src="${t.fotoFinal}" style="max-width:100%; max-height:120px; object-fit:cover; display:block; margin:0 auto;" alt="Checklist Retorno">
+                                            </a>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            ` : ''}
+
                             ${t.observacoes ? `
                             <div style="margin-top:20px;">
                                 <h5 style="font-weight:700; margin-bottom:6px; font-size:0.85rem;">Instruções e Observações:</h5>
