@@ -480,7 +480,12 @@
                 </div>
                 <div class="form-group full-width">
                     <label>Senha de Acesso ${isEdit ? '<span style="color:var(--text-muted); font-weight:normal;">(Preencha apenas para alterar)</span>' : '<span class="required">*</span>'}</label>
-                    <input type="password" class="form-control" name="senha" placeholder="${isEdit ? '••••••••' : 'Defina a senha do motorista'}" ${isEdit ? '' : 'required'}>
+                    <div class="password-input-container">
+                        <input type="password" class="form-control" name="senha" placeholder="${isEdit ? '••••••••' : 'Defina a senha do motorista'}" ${isEdit ? '' : 'required'}>
+                        <button type="button" class="toggle-password-btn" title="Visualizar Senha">
+                            <i class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
             </form>
         `;
@@ -524,6 +529,20 @@
                 e.target.value = v;
             });
         }
+
+        // Password visibility toggle
+        const togglePasswordBtns = modal.querySelectorAll('.toggle-password-btn');
+        togglePasswordBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const input = e.currentTarget.previousElementSibling;
+                if (!input) return;
+                const isPassword = input.type === 'password';
+                input.type = isPassword ? 'text' : 'password';
+                e.currentTarget.innerHTML = isPassword 
+                    ? '<i class="fa-solid fa-eye-slash"></i>' 
+                    : '<i class="fa-solid fa-eye"></i>';
+            });
+        });
 
         // Photo Upload Logic
         const btnFoto = document.getElementById('btn-mot-foto');

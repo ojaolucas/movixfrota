@@ -1108,7 +1108,8 @@ body.not-logged-in .login-wrapper {
     width: 100%;
 }
 
-.password-input-container .form-login-control {
+.password-input-container .form-login-control,
+.password-input-container .form-control {
     padding-right: 46px;
 }
 
