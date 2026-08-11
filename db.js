@@ -401,6 +401,13 @@ async function initDB() {
                 auditoria JSONB DEFAULT '[]'::jsonb
             )
         `);
+        // 11. Índices adicionais para ganho de performance (joins e buscas frequentes)
+        await query(`CREATE INDEX IF NOT EXISTS idx_ocorrencias_viagem_viagem ON ocorrencias_viagem("viagemId")`);
+        await query(`CREATE INDEX IF NOT EXISTS idx_viagens_veiculo ON viagens("veiculoId")`);
+        await query(`CREATE INDEX IF NOT EXISTS idx_viagens_motorista ON viagens("motoristaId")`);
+        await query(`CREATE INDEX IF NOT EXISTS idx_abastecimentos_veiculo ON abastecimentos("veiculoId")`);
+        await query(`CREATE INDEX IF NOT EXISTS idx_manutencoes_veiculo ON manutencoes("veiculoId")`);
+
 
         // Enable Row Level Security (RLS) on all tables to prevent unauthorized public REST API access
         const tables = ['usuarios', 'veiculos', 'motoristas', 'abastecimentos', 'manutencoes', 'pneus', 'oleos', 'viagens', 'multas', 'logs', 'notificacoes', 'solicitacoes_manutencao', 'ocorrencias_viagem'];
