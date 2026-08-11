@@ -358,7 +358,9 @@
                         <option value="Gestor" ${isEdit && user.perfil === 'Gestor' ? 'selected' : ''}>Gestor (Edição/Operação/Relatórios)</option>
                         <option value="Operacional" ${isEdit && user.perfil === 'Operacional' ? 'selected' : ''}>Operacional (Cadastro/Movimentações)</option>
                         <option value="Visualizador" ${isEdit && user.perfil === 'Visualizador' ? 'selected' : ''}>Visualizador (Apenas Leitura)</option>
-                        <option value="Motorista" ${isEdit && user.perfil === 'Motorista' ? 'selected' : ''}>Motorista (Portal do Motorista)</option>
+                        ${isEdit && user.perfil === 'Motorista' ? `
+                            <option value="Motorista" selected>Motorista (Portal do Motorista) [Legado]</option>
+                        ` : ''}
                     </select>
                 </div>
                 <div class="form-group">
