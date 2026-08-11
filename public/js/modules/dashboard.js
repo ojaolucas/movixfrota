@@ -47,7 +47,7 @@
         const multas = window.movixStore.getMultas();
         const vehicles = window.movixStore.getVeiculos();
         const motoristas = window.movixStore.getMotoristas();
-        const abastecimentos = window.movixStore.getAbastecimentos();
+        const abastecimentos = window.movixStore.getAbastecimentos().filter(a => a.status === 'Aprovado');
         const manutencoes = window.movixStore.getMaintenances();
         const pneus = window.movixStore.getPneus();
 

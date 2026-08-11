@@ -888,7 +888,7 @@
             const borderColor = isDark ? '#1f293d' : '#e2e8f0';
 
             // Gather base store arrays
-            const supplies = window.movixStore.getAbastecimentos() || [];
+            const supplies = (window.movixStore.getAbastecimentos() || []).filter(a => a.status === 'Aprovado');
             const maint = window.movixStore.getMaintenances() || [];
             const multas = window.movixStore.getMultas() || [];
             const pneus = window.movixStore.getPneus() || [];

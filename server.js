@@ -2203,7 +2203,7 @@ app.get('/api/metricas', requireAuth, async (req, res) => {
         ] = await Promise.all([
             db.query('SELECT "kmAtual", "historicoKM", status FROM veiculos'),
             db.query('SELECT status, "dataVencimentoCNH", categoria FROM motoristas'),
-            db.query('SELECT "valorTotal", "kmL" FROM abastecimentos'),
+            db.query('SELECT "valorTotal", "kmL" FROM abastecimentos WHERE status = \'Aprovado\''),
             db.query('SELECT valor, status FROM manutencoes'),
             db.query('SELECT valor FROM oleos'),
             db.query('SELECT custo FROM pneus'),

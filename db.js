@@ -292,6 +292,13 @@ async function initDB() {
         await query(`ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS "senhaHash" TEXT`);
         await query(`ALTER TABLE motoristas ADD COLUMN IF NOT EXISTS "rememberToken" VARCHAR(255)`);
         await query(`ALTER TABLE abastecimentos ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'Pendente'`);
+        // Migração para aprovar abastecimentos legados anteriores à funcionalidade de aprovação
+        await query(`
+            UPDATE abastecimentos 
+            SET status = 'Aprovado' 
+            WHERE status = 'Pendente' 
+              AND (observacoes IS NULL OR observacoes NOT LIKE '%Portal do Motorista%')
+        `);
 
         // Tabela de Solicitações de Manutenção do Motorista
         await query(`
