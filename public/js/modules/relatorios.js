@@ -97,26 +97,78 @@
                         display: none !important;
                     }
                     body, .app-container, .content-wrapper, #view-content-wrapper {
-                        background: #fff !important;
-                        color: #000 !important;
+                        background: #ffffff !important;
+                        color: #0d172a !important;
                         padding: 0 !important;
                         margin: 0 !important;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
                     }
                     .report-grid-container {
                         grid-template-columns: 1fr !important;
+                        gap: 30px !important;
                     }
                     .card {
-                        border: none !important;
+                        border: 1px solid #cbd5e1 !important;
                         box-shadow: none !important;
-                        background: transparent !important;
-                        padding: 0 !important;
+                        background: #ffffff !important;
+                        padding: 16px !important;
+                        border-radius: 8px !important;
+                        margin-bottom: 25px !important;
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
                     }
                     .print-only-header {
                         display: block !important;
                     }
+                    .print-only-footer {
+                        display: block !important;
+                    }
+                    .smart-table {
+                        width: 100% !important;
+                        border-collapse: collapse !important;
+                        font-size: 0.8rem !important;
+                    }
                     .smart-table th {
                         background-color: #f1f5f9 !important;
-                        color: #000 !important;
+                        color: #1e293b !important;
+                        border-bottom: 2px solid #94a3b8 !important;
+                        padding: 10px 8px !important;
+                    }
+                    .smart-table td {
+                        border-bottom: 1px solid #e2e8f0 !important;
+                        padding: 8px 8px !important;
+                        color: #334155 !important;
+                    }
+                    .smart-table tr {
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
+                    }
+                    .reports-summary-grid {
+                        display: grid !important;
+                        grid-template-columns: repeat(4, 1fr) !important;
+                        gap: 12px !important;
+                    }
+                    .reports-summary-card {
+                        background: #f8fafc !important;
+                        border: 1px solid #cbd5e1 !important;
+                        color: #0f172a !important;
+                        padding: 14px !important;
+                        border-radius: 6px !important;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
+                    #executive-analysis-box {
+                        display: block !important;
+                        background: #f0f9ff !important;
+                        border: 1px solid #bae6fd !important;
+                        border-left: 5px solid #0ea5e9 !important;
+                        color: #0369a1 !important;
+                        padding: 16px !important;
+                        border-radius: 6px !important;
+                        margin-bottom: 20px !important;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
                     }
                 }
             </style>
@@ -201,6 +253,16 @@
                 <!-- Summary cards injected here -->
             </div>
 
+            <!-- EXECUTIVE ANALYSIS BOX (DYNAMICS FOR PRINT/SCREEN) -->
+            <div id="executive-analysis-box" class="card" style="margin-bottom: 20px; padding: 20px; border-left: 4px solid var(--primary); display:none; background: rgba(59, 130, 246, 0.05);">
+                <h4 style="margin: 0 0 8px 0; font-family: var(--font-heading); color: var(--primary); display: flex; align-items: center; gap: 8px; font-size: 0.95rem;">
+                    <i class="fa-solid fa-file-invoice-dollar"></i> Parecer Técnico / Resumo Executivo
+                </h4>
+                <p id="executive-analysis-text" style="margin: 0; font-size: 0.85rem; line-height: 1.6; color: var(--text-main); font-style: italic; font-weight: 500;">
+                    Gerando parecer gerencial...
+                </p>
+            </div>
+
             <!-- DYNAMIC REPORT CONTENT GRID -->
             <div class="report-grid-container">
                 
@@ -240,6 +302,17 @@
                     </div>
                 </div>
 
+            </div>
+
+            <!-- Print Only Footer Signatures -->
+            <div class="print-only-footer" style="display: none; margin-top: 40px; border-top: 1px solid #cbd5e1; padding-top: 15px; width: 100%;">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; font-size: 0.8rem; color: #64748b;">
+                    <span>Sistema MovixFrota ERP - Central Inteligente de Relatórios</span>
+                    <div style="display: flex; gap: 40px;">
+                        <div style="border-top: 1px solid #94a3b8; width: 180px; text-align: center; margin-top: 20px; padding-top: 4px;">Assinatura do Gestor</div>
+                        <div style="border-top: 1px solid #94a3b8; width: 180px; text-align: center; margin-top: 20px; padding-top: 4px;">Visto Diretor/Auditor</div>
+                    </div>
+                </div>
             </div>
         `;
 
@@ -838,6 +911,7 @@
         // MAIN GENERATION FUNCTION
         function generateReport(isInitial = false) {
             const reportType = document.getElementById('report-type-sel').value;
+            let filteredForAnalysis = [];
             const tableEl = document.getElementById('table-report-output');
             if (tableEl) {
                 tableEl.classList.toggle('report-trips-layout', reportType === 'trips_report');
@@ -2287,7 +2361,89 @@
                 state.currentPage = 1;
                 window.movixApp.saveListState('relatorios', state);
             }
+            buildExecutiveAnalysis(reportType, activeReportData);
             renderReportTable();
+        }
+
+        // DYNAMIC EXECUTIVE SUMMARY BUILDER FOR REPORTS
+        function buildExecutiveAnalysis(reportType, data) {
+            const analysisBox = document.getElementById('executive-analysis-box');
+            const analysisText = document.getElementById('executive-analysis-text');
+            if (!analysisBox || !analysisText) return;
+
+            if (!data || data.length === 0) {
+                analysisBox.style.display = 'none';
+                return;
+            }
+
+            analysisBox.style.display = 'block';
+            let text = '';
+
+            const parseNum = (str) => {
+                if (!str) return 0;
+                if (typeof str === 'number') return str;
+                const clean = str.replace(/[R$\s.Lkm/]/g, '').replace(',', '.');
+                return parseFloat(clean) || 0;
+            };
+
+            if (reportType === 'fuel_costs') {
+                const totalGasto = data.reduce((acc, a) => acc + parseNum(a.valorTotal), 0);
+                const totalLitros = data.reduce((acc, a) => acc + parseNum(a.litros), 0);
+                const validKml = data.filter(a => a.kmL && a.kmL !== 'N/A');
+                const avgKml = validKml.length > 0 ? (validKml.reduce((acc, a) => acc + parseNum(a.kmL), 0) / validKml.length) : 0;
+                const avgLitroCost = totalLitros > 0 ? (totalGasto / totalLitros) : 0;
+                
+                text = `Análise de Combustíveis: O consumo total do período somou <strong>${window.movixApp.formatDecimal(totalLitros)} litros</strong>, representando um custo operacional total de <strong>${window.movixApp.formatCurrency(totalGasto)}</strong>. O preço médio pago por litro foi de <strong>${window.movixApp.formatCurrency(avgLitroCost)}</strong>. A eficiência geral da frota registrou média de <strong>${avgKml > 0 ? `${avgKml.toFixed(2)} km/L` : 'N/A'}</strong>. Recomendamos monitorar abastecimentos que apresentem média KM/L muito abaixo do esperado para identificar falhas ou desvios de combustível.`;
+            } else if (reportType === 'multas_report') {
+                const totalVal = data.reduce((acc, m) => acc + parseNum(m.valor), 0);
+                const paid = data.filter(m => m.status === 'Pago').length;
+                const pending = data.filter(m => m.status === 'Não Pago' || m.status === 'Pendente').length;
+                const resource = data.filter(m => m.status === 'Em Recurso').length;
+
+                text = `Análise de Multas: Identificamos um total de <strong>${data.length} autuações de trânsito</strong> no período selecionado, totalizando um passivo financeiro de <strong>${window.movixApp.formatCurrency(totalVal)}</strong>. Do total das infrações, <strong>${paid} estão quitadas</strong> (${((paid/data.length)*100 || 0).toFixed(0)}%), <strong>${pending} encontram-se pendentes/vencidas</strong> e <strong>${resource} estão em fase de recurso</strong>. Recomendamos avaliar os motoristas reincidentes para aplicar treinamentos preventivos de direção defensiva.`;
+            } else if (reportType === 'maint_report') {
+                const totalVal = data.reduce((acc, m) => acc + parseNum(m.valor), 0);
+                const prev = data.filter(m => m.tipo === 'Preventiva').length;
+                const corr = data.filter(m => m.tipo === 'Corretiva').length;
+                const avgCost = totalVal / data.length;
+
+                text = `Análise de Manutenção: Foram executadas <strong>${data.length} ordens de serviço</strong>, gerando um custo total de <strong>${window.movixApp.formatCurrency(totalVal)}</strong> (média de <strong>${window.movixApp.formatCurrency(avgCost)}</strong> por veículo/serviço). Destas, <strong>${prev} foram preventivas</strong> (${((prev/data.length)*100 || 0).toFixed(0)}%) e <strong>${corr} corretivas</strong>. O ideal de conformidade frotista é manter manutenções corretivas abaixo de 20% para otimizar a disponibilidade da frota e mitigar custos imprevisíveis.`;
+            } else if (reportType === 'trips_report') {
+                const totalKm = data.reduce((acc, t) => acc + parseNum(t.kmRodados || t.kmRodado), 0);
+                const done = data.filter(t => t.situacao === 'Realizada' || t.status === 'Realizada').length;
+                const running = data.filter(t => t.situacao === 'Em Andamento' || t.status === 'Em Andamento').length;
+
+                text = `Análise de Tráfego e Viagens: A frota rodou um total acumulado de <strong>${totalKm.toLocaleString('pt-BR')} km</strong> em <strong>${data.length} viagens registradas</strong>. Destas, <strong>${done} viagens foram concluídas</strong> e <strong>${running} encontram-se em andamento</strong> no momento. É recomendável atentar para a validação dos checklists de partida e de retorno dos motoristas, garantindo a integridade dos veículos.`;
+            } else if (reportType === 'pneus_report') {
+                const totalCusto = data.reduce((acc, p) => acc + parseNum(p.custo), 0);
+                const avgCusto = totalCusto / data.length;
+
+                text = `Análise de Pneus: O controle de pneus registrou <strong>${data.length} movimentações/trocas</strong> no período, totalizando um investimento de <strong>${window.movixApp.formatCurrency(totalCusto)}</strong>. O custo unitário médio por pneu foi de <strong>${window.movixApp.formatCurrency(avgCusto)}</strong>. Recomendamos a calibração periódica e o rodízio sistemático a cada 10.000 km rodados para maximizar a vida útil e evitar trocas prematuras.`;
+            } else if (reportType === 'oil_report') {
+                const totalVal = data.reduce((acc, o) => acc + parseNum(o.valor), 0);
+                const avgVal = totalVal / data.length;
+
+                text = `Análise de Lubrificação (Trocas de Óleo): Foram realizadas <strong>${data.length} trocas de óleo</strong> preventivas nas unidades da frota, com custo agregado de <strong>${window.movixApp.formatCurrency(totalVal)}</strong> (média de <strong>${window.movixApp.formatCurrency(avgVal)}</strong> por veículo). A pontualidade na substituição do lubrificante protege o motor contra desgaste extremo e otimiza o consumo geral.`;
+            } else if (reportType === 'fleet_costs_consolidated') {
+                const totalGlobal = data.reduce((acc, c) => acc + parseNum(c.custoTotal), 0);
+                const fuelSum = data.reduce((acc, c) => acc + parseNum(c.combustivel), 0);
+                const maintSum = data.reduce((acc, c) => acc + parseNum(c.manutencao), 0);
+                const finesSum = data.reduce((acc, c) => acc + parseNum(c.multas), 0);
+                const tiresSum = data.reduce((acc, c) => acc + parseNum(c.pneus), 0);
+                const oilSum = data.reduce((acc, c) => acc + parseNum(c.oleos), 0);
+
+                text = `Parecer Consolidado de Custos da Frota: O custo total frotista somou <strong>${window.movixApp.formatCurrency(totalGlobal)}</strong> no período selecionado. A distribuição de gastos indica que: <strong>Combustíveis</strong> representam <strong>${((fuelSum/totalGlobal)*100 || 0).toFixed(1)}%</strong> das despesas; <strong>Manutenção</strong> representa <strong>${((maintSum/totalGlobal)*100 || 0).toFixed(1)}%</strong>; e demais categorias (pneus, óleos, multas) somam <strong>${(((tiresSum+oilSum+finesSum)/totalGlobal)*100 || 0).toFixed(1)}%</strong>. Sugere-se o acompanhamento focado na redução dos principais vetores de gastos.`;
+            } else if (reportType === 'expirations_alerts') {
+                const critical = data.filter(a => a.prioridade && a.prioridade.includes('Crítica')).length;
+                const warning = data.filter(a => a.prioridade && (a.prioridade.includes('Média') || a.prioridade.includes('Atenção'))).length;
+
+                text = `Análise de Conformidade e Vencimentos: A auditoria de documentação gerou um total de <strong>${data.length} alertas frotistas</strong>. Destes, <strong>${critical} são de gravidade CRÍTICA</strong> (documentos vencidos) e demandam regularização imediata para evitar problemas jurídicos, multas administrativas ou apreensão de veículos; outros <strong>${warning} são alertas de atenção</strong> (vencimentos nos próximos 30 dias).`;
+            } else {
+                analysisBox.style.display = 'none';
+                return;
+            }
+
+            analysisText.innerHTML = text;
         }
 
         // TABLE RENDER ENGINE (PAGINATION, SORTING, QUICK SEARCH)
