@@ -97,12 +97,10 @@
                         display: none !important;
                     }
                     body, .app-container, .content-wrapper, #view-content-wrapper {
-                        background: #ffffff !important;
-                        color: #000000 !important;
+                        background: #fff !important;
+                        color: #000 !important;
                         padding: 0 !important;
                         margin: 0 !important;
-                        -webkit-print-color-adjust: exact !important;
-                        print-color-adjust: exact !important;
                     }
                     .report-grid-container {
                         grid-template-columns: 1fr !important;
@@ -118,12 +116,7 @@
                     }
                     .smart-table th {
                         background-color: #f1f5f9 !important;
-                        color: #000000 !important;
-                        border-bottom: 2px solid #cbd5e1 !important;
-                    }
-                    .smart-table tr {
-                        page-break-inside: avoid !important;
-                        break-inside: avoid !important;
+                        color: #000 !important;
                     }
                 }
             </style>
@@ -845,7 +838,6 @@
         // MAIN GENERATION FUNCTION
         function generateReport(isInitial = false) {
             const reportType = document.getElementById('report-type-sel').value;
-            let filteredForAnalysis = [];
             const tableEl = document.getElementById('table-report-output');
             if (tableEl) {
                 tableEl.classList.toggle('report-trips-layout', reportType === 'trips_report');
