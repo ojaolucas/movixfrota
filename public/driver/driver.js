@@ -511,9 +511,12 @@
             const res = await fetch('/api/motoristas');
             if (res.ok) {
                 const motoristas = await res.json();
-                const userCpfClean = AppState.activeUser.cpf.replace(/\D/g, '');
+                const userCpfClean = AppState.activeUser.cpf ? AppState.activeUser.cpf.replace(/\D/g, '') : '';
                 
-                AppState.activeMotorista = motoristas.find(m => {
+                // Filter all matching motoristas first by ID, CPF, or Email
+                const matches = motoristas.filter(m => {
+                    if (AppState.activeUser.id === m.id) return true;
+
                     const mCpfClean = m.cpf ? m.cpf.replace(/\D/g, '') : '';
                     const matchCpf = userCpfClean && mCpfClean && mCpfClean === userCpfClean;
                     
@@ -523,6 +526,31 @@
                     
                     return matchCpf || matchEmail;
                 });
+
+                if (matches.length > 0) {
+                    // Prioritize matches to resolve duplicates (e.g. same CPF/email under different categories)
+                    // 1. Direct ID match
+                    // 2. Motorista Efetivo
+                    // 3. Motorista Temporário (Diarista)
+                    // 4. Condutor Interno / Others
+                    matches.sort((a, b) => {
+                        if (a.id === AppState.activeUser.id) return -1;
+                        if (b.id === AppState.activeUser.id) return 1;
+
+                        const rank = (m) => {
+                            const cat = String(m.categoria || '').toLowerCase();
+                            if (cat.includes('efetivo')) return 1;
+                            if (cat.includes('temporário') || cat.includes('diarista')) return 2;
+                            if (cat.includes('interno')) return 3;
+                            return 4;
+                        };
+                        return rank(a) - rank(b);
+                    });
+
+                    AppState.activeMotorista = matches[0];
+                } else {
+                    AppState.activeMotorista = null;
+                }
 
                 if (AppState.activeMotorista) {
                     localStorage.setItem("movix_cached_user", JSON.stringify(AppState.activeUser));
