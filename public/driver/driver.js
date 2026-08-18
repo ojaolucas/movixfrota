@@ -597,13 +597,13 @@
                     // Separa a viagem ativa do motorista
                     AppState.activeTrip = viagens.find(v => 
                         v.motoristaId === AppState.activeMotorista.id && 
-                        v.status === 'Em Andamento'
+                        (v.status && v.status.toLowerCase() === 'em andamento')
                     );
 
                     // Histórico de viagens dele
                     AppState.viagensHistorico = viagens.filter(v => 
                         v.motoristaId === AppState.activeMotorista.id &&
-                        v.status === 'Realizada'
+                        (v.status && v.status.toLowerCase() === 'realizada')
                     );
 
                     // Mesclar estado da fila offline pendente se a sincronização falhou/está pendente
@@ -1409,7 +1409,7 @@
             const fieldsWrapper = document.getElementById("start-trip-fields");
 
             const conflictTrip = selectedVehicleId && AppState.allViagens
-                ? AppState.allViagens.find(v => v.veiculoId === selectedVehicleId && v.status === 'Em Andamento')
+                ? AppState.allViagens.find(v => v.veiculoId === selectedVehicleId && (v.status && v.status.toLowerCase() === 'em andamento'))
                 : null;
 
             activeConflictTrip = conflictTrip;

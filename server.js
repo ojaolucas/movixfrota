@@ -2613,9 +2613,8 @@ async function syncNotifications(usuarioName = 'sistema') {
         }
     });
 
-    // 6. Viagens
     viagens.forEach(vi => {
-        if (vi.status !== 'Em Andamento') return;
+        if (!vi.status || vi.status.trim().toLowerCase() !== 'em andamento') return;
 
         const v = veiculos.find(item => item.id === vi.veiculoId);
         const placa = v ? v.placa : 'N/A';
